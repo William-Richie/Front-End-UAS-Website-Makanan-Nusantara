@@ -1,69 +1,258 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Navbar from '@/components/Navbar';
+import Hero from '@/components/Hero';
+import About from '@/components/About';
+import OrbitCarousel, { FavoriteItem } from '@/components/OrbitCarousel';
+import MenuSection, { MenuItem } from '@/components/MenuSection';
+import FaqSection, { FaqItem } from '@/components/FaqSection';
+import LocationSection from '@/components/LocationSection';
+import ReservationSection, { BranchMap } from '@/components/ReservationSection';
+import MyReservationSection from '@/components/MyReservationSection';
+import Footer from '@/components/Footer';
+import CartFloating, { CartItem } from '@/components/CartFloating';
+import CheckoutModal from '@/components/CheckoutModal';
+import AuthModal from '@/components/AuthModal';
+import IntroOverlay from '@/components/IntroOverlay';
+import { useReveal } from '@/hooks/useReveal';
+
+interface UserData {
+  id: string;
+  nama: string;
+  email: string;
+}
+
+interface KontenWebData {
+  id?: number;
+  teks_hero?: string | null;
+  teks_about?: string | null;
+}
+
+interface KontenFooterData {
+  id?: number;
+  judul?: string | null;
+  copyright?: string | null;
+  link_ig?: string | null;
+  link_tiktok?: string | null;
+  link_wa?: string | null;
+  link_linkedin?: string | null;
+  email?: string | null;
+}
 
 export default function Home() {
+  // State User Auth
+  const [user, setUser] = useState<UserData | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
+
+  // State Data Database
+  const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [branches, setBranches] = useState<BranchMap[]>([]);
+  const [kontenWeb, setKontenWeb] = useState<KontenWebData | null>(null);
+  const [kontenFooter, setKontenFooter] = useState<KontenFooterData | null>(null);
+
+  // State Cart & Checkout
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
+
+  // Toast Notification
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Scroll Reveal
+  useReveal([menus, favorites, faqs, branches, kontenWeb]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  useEffect(() => {
+    const saved = localStorage.getItem('papeda_user');
+    if (saved) {
+      const timer = setTimeout(() => {
+        try {
+          setUser(JSON.parse(saved));
+        } catch {
+          localStorage.removeItem('papeda_user');
+        }
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Konten Web
+        fetch('/api/konten')
+          .then((r) => r.json())
+          .then((d) => setKontenWeb(d.data || d))
+          .catch(() => { });
+
+        // Konten Footer
+        fetch('/api/footer')
+          .then((r) => r.json())
+          .then((d) => setKontenFooter(d.data || d))
+          .catch(() => { });
+
+        // Menu
+        fetch('/api/menu')
+          .then((r) => r.json())
+          .then((d) => setMenus(d.data || []))
+          .catch(() => { });
+
+        // Favorit
+        fetch('/api/favorit')
+          .then((r) => r.json())
+          .then((d) => setFavorites(d.data || []))
+          .catch(() => { });
+
+        // FAQ
+        fetch('/api/faq')
+          .then((r) => r.json())
+          .then((d) => setFaqs(d.data || []))
+          .catch(() => { });
+
+        // Maps
+        fetch('/api/maps')
+          .then((r) => r.json())
+          .then((d) => setBranches(d.data || []))
+          .catch(() => { });
+
+        // Statistik pengunjung
+        fetch('/api/pengunjung', { method: 'POST' }).catch(() => { });
+      } catch (err) {
+        console.error('Gagal mengambil data:', err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Cart Handlers
+  const handleAddToCart = (menu: MenuItem) => {
+    setCartItems((prev) => {
+      const existing = prev.find((i) => i.id === menu.id);
+      if (existing) {
+        return prev.map((i) =>
+          i.id === menu.id ? { ...i, quantity: i.quantity + 1 } : i
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: menu.id,
+          nama_makanan: menu.nama_makanan,
+          harga: menu.harga,
+          quantity: 1,
+          gambar: menu.gambar,
+        },
+      ];
+    });
+    showToast(`Ditambahkan: ${menu.nama_makanan}`);
+  };
+
+  const handleUpdateQty = (id: number, delta: number) => {
+    setCartItems((prev) =>
+      prev
+        .map((i) => (i.id === id ? { ...i, quantity: i.quantity + delta } : i))
+        .filter((i) => i.quantity > 0)
+    );
+  };
+
+  const handleRemoveItem = (id: number) => {
+    setCartItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const handleOpenAuth = (tab: 'login' | 'register') => {
+    setAuthTab(tab);
+    setAuthModalOpen(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('papeda_user');
+    setUser(null);
+    showToast('Berhasil logout.');
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <>
+      <IntroOverlay onEnter={() => { }} />
+
+      <Navbar
+        user={user}
+        onOpenAuth={handleOpenAuth}
+        onLogout={handleLogout}
+        onOpenProfile={() => showToast(`Profil ${user?.nama}`)}
+      />
+
+      <main>
+        <Hero teksHero={kontenWeb?.teks_hero} />
+        <About teksAbout={kontenWeb?.teks_about} />
+        <OrbitCarousel favorites={favorites} />
+        <MenuSection menus={menus} onAddToCart={handleAddToCart} />
+        <FaqSection faqList={faqs} onSuccessNotification={showToast} />
+        <LocationSection branches={branches} />
+        <ReservationSection
+          branches={branches}
+          user={user}
+          onOpenAuth={handleOpenAuth}
+          onSuccess={showToast}
         />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+        <MyReservationSection user={user} onNotification={showToast} />
       </main>
-    </div>
+
+      <Footer data={kontenFooter} />
+
+      {/* Floating Actions */}
+      <CartFloating
+        items={cartItems}
+        onUpdateQuantity={handleUpdateQty}
+        onRemoveItem={handleRemoveItem}
+        onCheckout={() => {
+          if (!user) {
+            handleOpenAuth('login');
+          } else {
+            setCheckoutModalOpen(true);
+          }
+        }}
+      />
+
+      {/* Modals */}
+      <CheckoutModal
+        show={checkoutModalOpen}
+        cartItems={cartItems}
+        branches={branches}
+        userName={user?.nama}
+        onClose={() => setCheckoutModalOpen(false)}
+        onSuccess={(orderId) => {
+          setCartItems([]);
+          showToast(`Pesanan #${orderId} berhasil diproses!`);
+        }}
+      />
+
+      <AuthModal
+        show={authModalOpen}
+        initialTab={authTab}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(loggedInUser) => {
+          setUser(loggedInUser);
+          showToast(`Selamat datang, ${loggedInUser.nama}!`);
+        }}
+      />
+
+      {/* Papeda Toast Notification */}
+      {toastMessage && (
+        <div
+          className="position-fixed bottom-0 start-50 translate-middle-x mb-4 p-3 bg-dark text-white rounded shadow-lg d-flex align-items-center gap-2"
+          style={{ zIndex: 99999 }}
+        >
+          <i className="fa-solid fa-circle-check text-success"></i>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+    </>
   );
 }
