@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useMemo, useEffect } from 'react';
 
 export interface MenuItem {
@@ -26,7 +27,6 @@ function clampPedas(level: number) {
   return Math.max(0, Math.min(5, Math.round(level || 0)));
 }
 
-/** 5 cabai; sejumlah level "menyala" (class .on dipakai CSS untuk warna & animasi) */
 function Chili({ level }: { level: number }) {
   const l = clampPedas(level);
   return (
@@ -45,6 +45,7 @@ function Chili({ level }: { level: number }) {
 export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProps) {
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [modalQty, setModalQty] = useState(1);
+  const [modalVisible, setModalVisible] = useState(false);
   const [currentTab, setCurrentTab] = useState('');
   const [justAddedId, setJustAddedId] = useState<number | null>(null);
 
@@ -79,8 +80,20 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
   }, [selectedMenu]);
 
   const openDetail = (menu: MenuItem) => {
-    setModalQty(1);
-    setSelectedMenu(menu);
+      setModalQty(1);
+      setModalVisible(false);
+      setSelectedMenu(menu);
+
+      requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+              setModalVisible(true);
+          });
+      });
+  };
+
+  const closeDetail = () => {
+    setModalVisible(false);
+    setSelectedMenu(null);
   };
 
   const addToCart = (menu: MenuItem, qty = 1) => {
@@ -168,12 +181,16 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
                               }
                             }}
                           >
-                            <img
+                            <Image
                               src={makanan.gambar}
                               alt={makanan.nama_makanan}
+                              width={600}
+                              height={400}
+                              sizes="(max-width: 767px) 50vw, 300px"
                               className="menu-img"
                               loading="lazy"
                             />
+
                             {pedas > 0 && (
                               <div className="mc-spicy spicy" title={LABEL_PEDAS[pedas]}>
                                 <Chili level={pedas} />
@@ -232,14 +249,14 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
       {selectedMenu && (
         <div
           id="menuModal"
-          className="modal fade show d-block"
+          className={`modal fade d-block ${modalVisible ? 'show' : ''}`}
           tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-label={`Detail ${selectedMenu.nama_makanan}`}
           style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedMenu(null);
+            if (e.target === e.currentTarget) closeDetail();
           }}
         >
           <div className="modal-dialog modal-dialog-centered modal-lg">
@@ -247,7 +264,7 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
               <button
                 type="button"
                 className="btn-close mm-close"
-                onClick={() => setSelectedMenu(null)}
+                onClick={closeDetail}
                 aria-label="Close"
               />
               <div className="row g-0">
@@ -256,7 +273,18 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
                   <span className="mm-float f2"><i className="fa-solid fa-pepper-hot"></i></span>
                   <span className="mm-float f3"><i className="fa-solid fa-lemon"></i></span>
                   <div className="mm-plate">
-                    <img src={selectedMenu.gambar} alt={selectedMenu.nama_makanan} />
+                    <Image
+                      src={selectedMenu.gambar}
+                      alt={selectedMenu.nama_makanan}
+                      width={600}
+                      height={600}
+                      sizes="(max-width: 767px) 80vw, 500px"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
                   </div>
                   <span className="mm-cat">{selectedMenu.nama_kategori}</span>
                 </div>

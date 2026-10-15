@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Dropdown, Nav } from 'react-bootstrap';
@@ -12,6 +12,8 @@ interface NavbarProps {
   onOpenProfile?: () => void;
 }
 
+const SECTION_IDS = ['home', 'about', 'favorite-menus', 'menu', 'faq', 'location', 'reservation', 'my-reservation'];
+
 export default function Navbar({
   user = null,
   onOpenAuth,
@@ -20,6 +22,35 @@ export default function Navbar({
 }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activeId, setActiveId] = useState('home');
+  useEffect(() => {
+    let raf = 0;
+  
+    const hitung = () => {
+      raf = 0;
+      const garis = 90 + window.innerHeight * 0.3;
+      const diDasar = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      let aktif = 'home';
+      for (const id of SECTION_IDS) {
+        const el = document.getElementById(id);
+        if (!el || el.offsetHeight === 0) continue;
+        if (diDasar || el.getBoundingClientRect().top <= garis) aktif = id;
+      }
+      setActiveId(aktif);
+    };
+
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(hitung);
+    };
+    raf = requestAnimationFrame(hitung);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [user]);
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -142,43 +173,43 @@ export default function Navbar({
         >
           <Nav as="ul">
             <Nav.Item as="li">
-              <Nav.Link href="#home" onClick={closeMenu}>
+              <Nav.Link href="#home" active={activeId === 'home'} onClick={closeMenu}>
                 Home
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#about" onClick={closeMenu}>
+              <Nav.Link href="#about" active={activeId === 'about'} onClick={closeMenu}>
                 About
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#favorite-menus" onClick={closeMenu}>
+              <Nav.Link href="#favorite-menus" active={activeId === 'favorite-menus'} onClick={closeMenu}>
                 Favorite
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#menu" onClick={closeMenu}>
+              <Nav.Link href="#menu" active={activeId === 'menu'} onClick={closeMenu}>
                 Menu
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#faq" onClick={closeMenu}>
+              <Nav.Link href="#faq" active={activeId === 'faq'} onClick={closeMenu}>
                 FAQ
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#location" onClick={closeMenu}>
+              <Nav.Link href="#location" active={activeId === 'location'} onClick={closeMenu}>
                 Location
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#reservation" onClick={closeMenu}>
+              <Nav.Link href="#reservation" active={activeId === 'reservation'} onClick={closeMenu}>
                 Reservation
               </Nav.Link>
             </Nav.Item>
@@ -187,6 +218,7 @@ export default function Navbar({
               <Nav.Item as="li" id="nav-myres">
                 <Nav.Link
                   href="#my-reservation"
+                  active={activeId === 'my-reservation'}
                   onClick={closeMenu}
                 >
                   My Reservation
