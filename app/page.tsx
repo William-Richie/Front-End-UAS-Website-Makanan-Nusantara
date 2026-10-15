@@ -16,6 +16,7 @@ import CheckoutModal from '@/components/CheckoutModal';
 import AuthModal from '@/components/AuthModal';
 import IntroOverlay from '@/components/IntroOverlay';
 import { useReveal } from '@/hooks/useReveal';
+import ProfileModal from '@/components/ProfileModal';
 
 interface UserData {
   id: string;
@@ -48,6 +49,8 @@ export default function Home() {
   const [user, setUser] = useState<UserData | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
+  const [authKey, setAuthKey] = useState(0);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // State Data Database
   const [menus, setMenus] = useState<MenuItem[]>([]);
@@ -57,7 +60,7 @@ export default function Home() {
   const [kontenWeb, setKontenWeb] = useState<KontenWebData | null>(null);
   const [kontenFooter, setKontenFooter] = useState<KontenFooterData | null>(null);
 
-  // State Cart & Checkout 
+  // State Cart & Checkout
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const cartHydrated = useRef(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
@@ -168,8 +171,10 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // Keranjang yang ditampilkan: harga/nama selalu mengikuti data menu terbaru,
-  // dan menu yang sudah dihapus / habis otomatis tidak ikut dihitung.
+  useEffect(() => {
+    document.body.classList.toggle('logged-in', !!user);
+  }, [user]);
+
   const cartView = useMemo<CartItem[]>(() => {
     if (menus.length === 0) return cartItems;
     const byId = new Map(menus.map((m) => [m.id, m]));
@@ -225,6 +230,7 @@ export default function Home() {
 
   const handleOpenAuth = (tab: 'login' | 'register') => {
     setAuthTab(tab);
+    setAuthKey((k) => k + 1);
     setAuthModalOpen(true);
   };
 
@@ -242,7 +248,7 @@ export default function Home() {
         user={user}
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
-        onOpenProfile={() => showToast(`Profil ${user?.nama}`)}
+        onOpenProfile={() => setProfileOpen(true)}
       />
 
       <main>
@@ -290,7 +296,20 @@ export default function Home() {
         }}
       />
 
+      <ProfileModal
+        key={profileOpen ? 'buka' : 'tutup'}
+        show={profileOpen}
+        user={user}
+        onClose={() => setProfileOpen(false)}
+        onSaved={(u) => {
+          setUser(u);
+          showToast('Profil berhasil diperbarui.');
+        }}
+        onLogout={handleLogout}
+      />
+
       <AuthModal
+        key={authKey}
         show={authModalOpen}
         initialTab={authTab}
         onClose={() => setAuthModalOpen(false)}

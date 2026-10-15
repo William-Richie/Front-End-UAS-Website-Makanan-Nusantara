@@ -6,6 +6,10 @@ export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
 
+    if (typeof password !== 'string' || !password) {
+      return NextResponse.json({ error: 'Email dan password wajib diisi.' }, { status: 400 });
+    }
+
     const cleanEmail = String(email || '').trim().toLowerCase();
 
     const user = await prisma.user.findUnique({
