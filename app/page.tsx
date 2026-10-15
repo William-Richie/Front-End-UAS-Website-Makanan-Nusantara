@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import About from '@/components/About';
@@ -40,6 +40,9 @@ interface KontenFooterData {
   email?: string | null;
 }
 
+const CART_KEY = 'papeda_cart';
+const MAX_QTY_PER_ITEM = 99;
+
 export default function Home() {
   // State User Auth
   const [user, setUser] = useState<UserData | null>(null);
@@ -54,8 +57,9 @@ export default function Home() {
   const [kontenWeb, setKontenWeb] = useState<KontenWebData | null>(null);
   const [kontenFooter, setKontenFooter] = useState<KontenFooterData | null>(null);
 
-  // State Cart & Checkout
+  // State Cart & Checkout 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const cartHydrated = useRef(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
 
   // Toast Notification
@@ -82,6 +86,39 @@ export default function Home() {
       return () => clearTimeout(timer);
     }
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const raw = localStorage.getItem(CART_KEY);
+        const parsed: unknown = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(
+            (i): i is CartItem =>
+              !!i &&
+              typeof i.id === 'number' &&
+              typeof i.nama_makanan === 'string' &&
+              typeof i.harga === 'number' &&
+              Number.isInteger(i.quantity) &&
+              i.quantity > 0
+          );
+          if (valid.length) setCartItems(valid);
+        }
+      } catch {
+        localStorage.removeItem(CART_KEY);
+      }
+      cartHydrated.current = true;
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!cartHydrated.current) return;
+    try {
+      localStorage.setItem(CART_KEY, JSON.stringify(cartItems));
+    } catch {
+    }
+  }, [cartItems]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,13 +168,27 @@ export default function Home() {
     fetchData();
   }, []);
 
+  // Keranjang yang ditampilkan: harga/nama selalu mengikuti data menu terbaru,
+  // dan menu yang sudah dihapus / habis otomatis tidak ikut dihitung.
+  const cartView = useMemo<CartItem[]>(() => {
+    if (menus.length === 0) return cartItems;
+    const byId = new Map(menus.map((m) => [m.id, m]));
+    return cartItems.flatMap((i) => {
+      const m = byId.get(i.id);
+      if (!m || !m.status) return [];
+      return [{ ...i, nama_makanan: m.nama_makanan, harga: m.harga, gambar: m.gambar }];
+    });
+  }, [cartItems, menus]);
+
   // Cart Handlers
-  const handleAddToCart = (menu: MenuItem) => {
+  const handleAddToCart = (menu: MenuItem, qty = 1) => {
     setCartItems((prev) => {
       const existing = prev.find((i) => i.id === menu.id);
       if (existing) {
         return prev.map((i) =>
-          i.id === menu.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.id === menu.id
+            ? { ...i, quantity: Math.min(MAX_QTY_PER_ITEM, i.quantity + qty) }
+            : i
         );
       }
       return [
@@ -146,18 +197,24 @@ export default function Home() {
           id: menu.id,
           nama_makanan: menu.nama_makanan,
           harga: menu.harga,
-          quantity: 1,
+          quantity: qty,
           gambar: menu.gambar,
         },
       ];
     });
-    showToast(`Ditambahkan: ${menu.nama_makanan}`);
+    showToast(
+      qty > 1 ? `Ditambahkan: ${qty}x ${menu.nama_makanan}` : `Ditambahkan: ${menu.nama_makanan}`
+    );
   };
 
   const handleUpdateQty = (id: number, delta: number) => {
     setCartItems((prev) =>
       prev
-        .map((i) => (i.id === id ? { ...i, quantity: i.quantity + delta } : i))
+        .map((i) =>
+          i.id === id
+            ? { ...i, quantity: Math.min(MAX_QTY_PER_ITEM, i.quantity + delta) }
+            : i
+        )
         .filter((i) => i.quantity > 0)
     );
   };
@@ -208,7 +265,7 @@ export default function Home() {
 
       {/* Floating Actions */}
       <CartFloating
-        items={cartItems}
+        items={cartView}
         onUpdateQuantity={handleUpdateQty}
         onRemoveItem={handleRemoveItem}
         onCheckout={() => {
@@ -223,7 +280,7 @@ export default function Home() {
       {/* Modals */}
       <CheckoutModal
         show={checkoutModalOpen}
-        cartItems={cartItems}
+        cartItems={cartView}
         branches={branches}
         userName={user?.nama}
         onClose={() => setCheckoutModalOpen(false)}

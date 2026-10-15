@@ -89,7 +89,7 @@ export default function FaqSection({
           </div>
 
           <div className="container text-center position-relative section-content-wrap">
-            <p className="hero-eyebrow reveal">Temukan Jawaban</p>
+            <p className="hero-eyebrow reveal">Pertanyaan Umum</p>
             <h1 className="faq-title reveal reveal-d1" id="faq-title">
               Frequently Asked<br /><em>Questions</em>
             </h1>
