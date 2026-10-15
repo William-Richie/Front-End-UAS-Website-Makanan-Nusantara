@@ -153,20 +153,29 @@ export default function FaqSection({
                         className="faq-question fw-bold"
                         style={{ '--d': `${Math.min(i, 8) * 0.08}s` } as React.CSSProperties}
                         onClick={() => toggleFaq(item.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleFaq(item.id);
+                          }
+                        }}
                         role="button"
                         tabIndex={0}
+                        aria-expanded={isOpen}
                       >
                         <span className="faq-num">
                           {String(i + 1).padStart(2, '0')}
                         </span>
                         <span className="faq-q-text">{item.pertanyaan}</span>
                         <span className="faq-chevron">
-                          <i className={`fa-solid ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
+                          <i className="fa-solid fa-chevron-down"></i>
                         </span>
                       </div>
-                      {isOpen && (
-                        <div className="faq-answer d-block">{item.jawaban}</div>
-                      )}
+                      <div className="faq-answer-wrap" inert={!isOpen}>
+                        <div className="faq-answer-clip">
+                          <div className="faq-answer d-block">{item.jawaban}</div>
+                        </div>
+                      </div>
                     </div>
                   );
                 })
