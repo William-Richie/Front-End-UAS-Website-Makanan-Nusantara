@@ -37,6 +37,15 @@ export default function CartFloating({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen]);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -49,8 +58,15 @@ export default function CartFloating({
           className="fab fab-action d-flex justify-content-center align-items-center rounded-circle"
           id="cart-button"
           onClick={() => setIsOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsOpen(true);
+            }
+          }}
           role="button"
           tabIndex={0}
+          aria-label="Buka keranjang pesanan"
           title="Keranjang Pesanan"
         >
           <i className="fa-solid fa-cart-shopping cart-icon"></i>
@@ -116,36 +132,56 @@ export default function CartFloating({
                   items.map((item) => (
                     <li
                       key={item.id}
-                      className="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom"
+                      className="list-group-item d-flex justify-content-between align-items-center px-0 py-3 bg-transparent"
                     >
-                      <div className="me-auto">
-                        <div className="fw-bold">{item.nama_makanan}</div>
-                        <small className="text-muted">
-                          Rp {item.harga.toLocaleString('id-ID')}
-                        </small>
+                      <div className="d-flex align-items-center gap-2 me-2" style={{ minWidth: 0, flex: 1 }}>
+                        {item.gambar && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.gambar} alt="" className="cart-item-thumb" />
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                          <div className="cart-item-title text-truncate" title={item.nama_makanan}>
+                            {item.nama_makanan}
+                          </div>
+                          <div className="cart-item-price">
+                            Rp {(item.harga * item.quantity).toLocaleString('id-ID')}
+                            {item.quantity > 1 && (
+                              <small className="text-muted ms-1">
+                                ({item.quantity} x {item.harga.toLocaleString('id-ID')})
+                              </small>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="d-flex align-items-center gap-2">
+
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="d-flex align-items-center">
+                          <button
+                            type="button"
+                            className="btn btn-qty-custom"
+                            aria-label={`Kurangi ${item.nama_makanan}`}
+                            onClick={() => onUpdateQuantity(item.id, -1)}
+                          >
+                            -
+                          </button>
+                          <span className="qty-number">{item.quantity}</span>
+                          <button
+                            type="button"
+                            className="btn btn-qty-custom"
+                            aria-label={`Tambah ${item.nama_makanan}`}
+                            onClick={() => onUpdateQuantity(item.id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline-secondary px-2 py-0"
-                          onClick={() => onUpdateQuantity(item.id, -1)}
-                        >
-                          -
-                        </button>
-                        <span className="fw-bold px-1">{item.quantity}</span>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-secondary px-2 py-0"
-                          onClick={() => onUpdateQuantity(item.id, 1)}
-                        >
-                          +
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm text-danger ms-2"
+                          className="btn btn-delete-custom"
+                          title="Hapus menu"
+                          aria-label={`Hapus ${item.nama_makanan}`}
                           onClick={() => onRemoveItem(item.id)}
                         >
-                          <i className="fa-solid fa-trash"></i>
+                          <i className="fa-solid fa-trash-can"></i>
                         </button>
                       </div>
                     </li>

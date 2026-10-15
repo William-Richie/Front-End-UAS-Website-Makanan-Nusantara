@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { isPasswordStrong, validateEmail, validateNama } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,11 +10,16 @@ export async function POST(req: NextRequest) {
     const cleanEmail = String(email || '').trim().toLowerCase();
     const cleanNama = String(nama || '').trim();
 
-    if (!cleanNama || !cleanEmail || !password || password.length < 6) {
-      return NextResponse.json(
-        { error: 'Nama, email, dan password (min. 6 karakter) wajib diisi.' },
-        { status: 400 }
-      );
+    const pwd = typeof password === 'string' ? password : '';
+    const problem =
+      validateNama(cleanNama) ||
+      validateEmail(cleanEmail) ||
+      (isPasswordStrong(pwd)
+        ? ''
+        : 'Password minimal 8 karakter dan harus mengandung huruf besar, huruf kecil, dan angka.');
+
+    if (problem) {
+      return NextResponse.json({ error: problem }, { status: 400 });
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -27,7 +33,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(pwd, 10);
 
     const newUser = await prisma.user.create({
       data: {

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Dropdown, Nav } from 'react-bootstrap';
 
 interface NavbarProps {
   user?: { nama: string; email: string } | null;
@@ -20,13 +21,12 @@ export default function Navbar({
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const toggleMenu = () => setMenuOpen((prev) => !prev);
   const closeMenu = () => setMenuOpen(false);
 
   return (
     <header className="sticky-top">
       <div className="header-container d-flex justify-content-between align-items-center position-relative">
-        {/* Tombol daftar dan Logo */}
+        {/* Logo dan autentikasi */}
         <div className="LOGIN">
           <Link href="#home" className="logo">
             <Image
@@ -41,147 +41,159 @@ export default function Navbar({
 
           {!user ? (
             <div id="auth-guest" className="d-flex align-items-center">
-              <div
+              <button
+                type="button"
                 className="Sign-in"
-                role="button"
-                tabIndex={0}
                 onClick={() => onOpenAuth?.('login')}
               >
                 Sign in
-              </div>
-              <div
+              </button>
+
+              <button
+                type="button"
                 className="regist"
-                role="button"
-                tabIndex={0}
                 onClick={() => onOpenAuth?.('register')}
               >
                 Registration
-              </div>
+              </button>
             </div>
           ) : (
-            <div id="auth-user" className="dropdown position-relative">
-              <button
-                type="button"
-                className="user-btn dropdown-toggle d-flex align-items-center gap-2 border-0 bg-transparent"
-                onClick={() => setDropdownOpen((prev) => !prev)}
-                aria-expanded={dropdownOpen}
+            <Dropdown
+              id="auth-user"
+              className="position-relative"
+              show={dropdownOpen}
+              onToggle={(nextShow) => setDropdownOpen(nextShow)}
+              autoClose
+            >
+              <Dropdown.Toggle
+                id="user-dropdown"
+                className="user-btn"
+                variant="light"
+                aria-label="Buka menu pengguna"
               >
                 <span className="user-avatar" id="user-initial">
-                  {user.nama ? user.nama.charAt(0).toUpperCase() : 'U'}
+                  {user.nama
+                    ? user.nama.charAt(0).toUpperCase()
+                    : 'U'}
                 </span>
-                <span id="user-name">{user.nama}</span>
-              </button>
 
-              {dropdownOpen && (
-                <ul
-                  className="dropdown-menu show position-absolute"
-                  style={{ top: '100%', left: 0 }}
+                <span id="user-name">{user.nama}</span>
+              </Dropdown.Toggle>
+
+              <Dropdown.Menu>
+                <Dropdown.Item
+                  as="button"
+                  type="button"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onOpenProfile?.();
+                  }}
                 >
-                  <li>
-                    <button
-                      className="dropdown-item"
-                      type="button"
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        onOpenProfile?.();
-                      }}
-                    >
-                      <i className="fa-solid fa-user me-2"></i> Profile
-                    </button>
-                  </li>
-                  <li>
-                    <Link
-                      className="dropdown-item"
-                      href="#my-reservation"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <i className="fa-solid fa-calendar-check me-2"></i> My Reservation
-                    </Link>
-                  </li>
-                  <li>
-                    <hr className="dropdown-divider" />
-                  </li>
-                  <li>
-                    <button
-                      className="dropdown-item logout text-danger"
-                      type="button"
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        onLogout?.();
-                      }}
-                    >
-                      <i className="fa-solid fa-right-from-bracket me-2"></i> Logout
-                    </button>
-                  </li>
-                </ul>
-              )}
-            </div>
+                  <i className="fa-solid fa-user me-2" />
+                  Profile
+                </Dropdown.Item>
+
+                <Dropdown.Item
+                  as={Link}
+                  href="#my-reservation"
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  <i className="fa-solid fa-calendar-check me-2" />
+                  My Reservation
+                </Dropdown.Item>
+
+                <Dropdown.Divider />
+
+                <Dropdown.Item
+                  as="button"
+                  type="button"
+                  className="logout text-danger"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onLogout?.();
+                  }}
+                >
+                  <i className="fa-solid fa-right-from-bracket me-2" />
+                  Logout
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
           )}
         </div>
 
-        {/* Hamburger Menu (Mobile) */}
-        <div
+        {/* Hamburger menu */}
+        <button
+          type="button"
           className="hamburger"
           id="hamburger-menu"
-          role="button"
-          tabIndex={0}
-          onClick={toggleMenu}
+          onClick={() => setMenuOpen((prev) => !prev)}
           aria-label="Toggle navigation menu"
+          aria-expanded={menuOpen}
         >
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
+          <span />
+          <span />
+          <span />
+        </button>
 
-        {/* Navigasi Link */}
+        {/* Navigasi menggunakan React Bootstrap */}
         <nav
           id="main-nav"
           style={{ display: menuOpen ? 'block' : undefined }}
         >
-          <ul>
-            <li>
-              <a href="#home" className="nav-link" onClick={closeMenu}>
+          <Nav as="ul">
+            <Nav.Item as="li">
+              <Nav.Link href="#home" onClick={closeMenu}>
                 Home
-              </a>
-            </li>
-            <li>
-              <a href="#about" className="nav-link" onClick={closeMenu}>
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item as="li">
+              <Nav.Link href="#about" onClick={closeMenu}>
                 About
-              </a>
-            </li>
-            <li>
-              <a href="#favorite-menus" className="nav-link" onClick={closeMenu}>
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item as="li">
+              <Nav.Link href="#favorite-menus" onClick={closeMenu}>
                 Favorite
-              </a>
-            </li>
-            <li>
-              <a href="#menu" className="nav-link" onClick={closeMenu}>
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item as="li">
+              <Nav.Link href="#menu" onClick={closeMenu}>
                 Menu
-              </a>
-            </li>
-            <li>
-              <a href="#faq" className="nav-link" onClick={closeMenu}>
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item as="li">
+              <Nav.Link href="#faq" onClick={closeMenu}>
                 FAQ
-              </a>
-            </li>
-            <li>
-              <a href="#location" className="nav-link" onClick={closeMenu}>
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item as="li">
+              <Nav.Link href="#location" onClick={closeMenu}>
                 Location
-              </a>
-            </li>
-            <li>
-              <a href="#reservation" className="nav-link" onClick={closeMenu}>
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item as="li">
+              <Nav.Link href="#reservation" onClick={closeMenu}>
                 Reservation
-              </a>
-            </li>
+              </Nav.Link>
+            </Nav.Item>
+
             {user && (
-              <li id="nav-myres">
-                <a href="#my-reservation" className="nav-link" onClick={closeMenu}>
+              <Nav.Item as="li" id="nav-myres">
+                <Nav.Link
+                  href="#my-reservation"
+                  onClick={closeMenu}
+                >
                   My Reservation
-                </a>
-              </li>
+                </Nav.Link>
+              </Nav.Item>
             )}
-          </ul>
+          </Nav>
         </nav>
       </div>
     </header>
