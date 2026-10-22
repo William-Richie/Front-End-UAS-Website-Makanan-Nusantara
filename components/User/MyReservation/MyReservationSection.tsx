@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import styles from './MyReservationSection.module.css';
 
 export interface ReservationData {
   id: string;
@@ -28,13 +29,13 @@ export default function MyReservationSection({
   const [loading, setLoading] = useState(false);
 
   const STATUS_MAP: Record<string, [string, string, string]> = {
-    pending: ['Menunggu', 'warning', 'fa-hourglass-half'],
-    approved: ['Dikonfirmasi', 'primary', 'fa-circle-check'],
-    dikonfirmasi: ['Dikonfirmasi', 'primary', 'fa-circle-check'],
-    complete: ['Selesai', 'success', 'fa-circle-check'],
-    selesai: ['Selesai', 'success', 'fa-circle-check'],
-    dibatalkan: ['Dibatalkan', 'danger', 'fa-circle-xmark'],
-    cancelled: ['Dibatalkan', 'danger', 'fa-circle-xmark'],
+    pending: ['Menunggu', 'pending', 'fa-hourglass-half'],
+    approved: ['Dikonfirmasi', 'confirmed', 'fa-circle-check'],
+    dikonfirmasi: ['Dikonfirmasi', 'confirmed', 'fa-circle-check'],
+    complete: ['Selesai', 'done', 'fa-circle-check'],
+    selesai: ['Selesai', 'done', 'fa-circle-check'],
+    dibatalkan: ['Dibatalkan', 'cancelled', 'fa-circle-xmark'],
+    cancelled: ['Dibatalkan', 'cancelled', 'fa-circle-xmark'],
   };
 
   const fetchReservasi = async () => {
@@ -111,7 +112,7 @@ export default function MyReservationSection({
         <span className="sec-q s3" aria-hidden="true"><i className="fa-solid fa-bell-concierge"></i></span>
         <span className="sec-q s4" aria-hidden="true"><i className="fa-solid fa-utensils"></i></span>
 
-        <div className="container text-center position-relative section-content-wrap">
+        <div className="container text-center position-relative">
           <p className="hero-eyebrow reveal">Riwayat Anda</p>
           <h1 className="sec-title reveal reveal-d1">
             My<br /><em>Reservation</em>
@@ -128,8 +129,8 @@ export default function MyReservationSection({
           <p className="text-center py-4">Memuat reservasi...</p>
         ) : list.length === 0 ? (
           <div className="text-center py-4">
-            <div className="gate-icon mb-2">
-              <i className="fa-solid fa-calendar-xmark fs-2 text-muted"></i>
+            <div className={`${styles.emptyIcon} mb-2`}>
+              <i className="fa-solid fa-calendar-xmark"></i>
             </div>
             <p className="text-muted">Belum ada reservasi. Yuk buat yang pertama!</p>
           </div>
@@ -142,19 +143,19 @@ export default function MyReservationSection({
 
               return (
                 <div key={r.id} className="col-md-6">
-                  <div className="res-card p-3 border rounded bg-white shadow-sm">
+                  <div className={styles.resCard}>
                     <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
                       <h5 className="mb-0 fw-bold">
-                        <i className="fa-solid fa-store me-2 text-warning"></i>
+                        <i className={`fa-solid fa-store me-2 ${styles.storeIcon}`}></i>
                         {r.gerai}
                       </h5>
-                      <span className={`badge text-bg-${s[1]}`}>
+                      <span className={`${styles.badge} ${styles[s[1]]}`}>
                         <i className={`fa-solid ${s[2]} me-1`}></i>
                         {s[0]}
                       </span>
                     </div>
 
-                    <ul className="res-info list-unstyled small text-muted mb-3">
+                    <ul className={`${styles.resInfo} mb-3`}>
                       <li className="mb-1">
                         <i className="fa-solid fa-calendar-day me-2"></i>
                         {r.tanggal}
@@ -182,7 +183,7 @@ export default function MyReservationSection({
                     {bisaBatal && (
                       <button
                         type="button"
-                        className="btn btn-sm btn-outline-danger w-100"
+                        className={`btn btn-sm w-100 ${styles.cancelBtn}`}
                         onClick={() => handleCancel(r.id)}
                       >
                         Batalkan Reservasi

@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+import { Container, Row, Col } from 'react-bootstrap';
+import styles from './Hero.module.css';
 
 interface HeroProps {
   teksHero?: string | null;
@@ -9,51 +11,49 @@ interface HeroProps {
 export default function Hero({ teksHero }: HeroProps) {
   return (
     <section id="home" className="page-section">
-      <div className="hero-papeda position-relative overflow-hidden">
-        <div className="container py-5 position-relative hero-content-wrap">
-          <div className="row align-items-center g-4 py-md-4">
-            {/* Kolom Teks */}
-            <div className="col-md-6 text-center text-md-start">
+      <div className={`${styles.heroPapeda} position-relative overflow-hidden`}>
+        <Container className={`${styles.heroContent} py-5 position-relative`}>
+          <Row className="align-items-center g-4 py-md-4">
+            <Col md={6} className="text-center text-md-start">
               <p className="hero-eyebrow reveal" id="hero-eyebrow">
                 Cita Rasa Timur Indonesia
               </p>
-              <h1 id="judul-hero" className="reveal reveal-d1">
+              <h1 id="judul-hero" className={`${styles.heroTitle} reveal reveal-d1`}>
                 Welcome to Our
                 <br />
                 Papeda Restaurant
               </h1>
-              <p className="hero-sub mx-auto mx-md-0 reveal reveal-d2" id="hero-sub">
+              <p className={`${styles.heroSub} mx-auto mx-md-0 reveal reveal-d2`} id="hero-sub">
                 {teksHero || 'Cita rasa asli Timur Indonesia, dari sagu hingga kuah kuning.'}
               </p>
               <div className="d-flex gap-2 justify-content-center justify-content-md-start reveal reveal-d3">
-                <a href="#menu" className="btn hero-btn">
+                <a href="#menu" className={styles.heroBtn}>
                   Lihat Menu
                 </a>
-                <a href="#reservation" className="btn hero-btn-outline">
+                <a href="#reservation" className={styles.heroBtnOutline}>
                   Reservasi
                 </a>
               </div>
-            </div>
+            </Col>
 
-            {/* Kolom Gambar */}
-            <div className="col-md-6 d-flex justify-content-center">
-              <div className="papeda-area position-relative">
-                <span className="food-icon chili position-absolute">
+            <Col md={6} className="d-flex justify-content-center">
+              <div className={`${styles.papedaArea} position-relative`}>
+                <span className={`${styles.foodIcon} ${styles.chili} position-absolute`}>
                   <i className="fa-solid fa-pepper-hot"></i>
                 </span>
-                <span className="food-icon lime position-absolute">
+                <span className={`${styles.foodIcon} ${styles.lime} position-absolute`}>
                   <i className="fa-solid fa-lemon"></i>
                 </span>
-                <span className="food-icon fish-1 position-absolute">
+                <span className={`${styles.foodIcon} ${styles.fish1} position-absolute`}>
                   <i className="fa-solid fa-fish"></i>
                 </span>
-                <span className="food-icon fish-2 position-absolute">
+                <span className={`${styles.foodIcon} ${styles.fish2} position-absolute`}>
                   <i className="fa-solid fa-fish"></i>
                 </span>
-                <span className="food-icon star star-1 position-absolute">
+                <span className={`${styles.foodIcon} ${styles.star} ${styles.star1} position-absolute`}>
                   <i className="fa-solid fa-star"></i>
                 </span>
-                <span className="food-icon star star-2 position-absolute">
+                <span className={`${styles.foodIcon} ${styles.star} ${styles.star2} position-absolute`}>
                   <i className="fa-solid fa-star"></i>
                 </span>
 
@@ -62,20 +62,20 @@ export default function Hero({ teksHero }: HeroProps) {
                   alt="Papeda"
                   width={280}
                   height={280}
-                  className="papeda-img"
+                  className={styles.papedaImg}
                   priority
                 />
                 <Image
                   src="/img/asap.png"
-                  alt="Asap"
+                  alt=""
                   width={150}
                   height={150}
-                  className="smoke-img position-absolute"
+                  className={`${styles.smokeImg} position-absolute`}
                 />
               </div>
-            </div>
-          </div>
-        </div>
+            </Col>
+          </Row>
+        </Container>
       </div>
     </section>
   );

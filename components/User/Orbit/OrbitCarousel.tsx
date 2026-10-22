@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react';
 import Image from 'next/image';
+import { Container } from 'react-bootstrap';
+import styles from './OrbitCarousel.module.css';
 
 export interface FavoriteItem {
   id?: number;
@@ -17,7 +19,6 @@ interface OrbitCarouselProps {
 }
 
 export default function OrbitCarousel({ favorites = [] }: OrbitCarouselProps) {
-  // Selalu siapkan array 5 slot (1 sampai 5)
   const items = useMemo(() => {
     const list: (FavoriteItem | null)[] = [];
     for (let i = 0; i < 5; i++) {
@@ -33,11 +34,7 @@ export default function OrbitCarousel({ favorites = [] }: OrbitCarouselProps) {
     return (
       <span className="ms-2 d-inline-flex align-items-center">
         {Array.from({ length: l }).map((_, i) => (
-          <i
-            key={i}
-            className="fa-solid fa-pepper-hot"
-            style={{ color: '#c0392b', fontSize: '0.85em', marginLeft: '3px' }}
-          />
+          <i key={i} className={`fa-solid fa-pepper-hot ${styles.chili}`} />
         ))}
       </span>
     );
@@ -45,25 +42,27 @@ export default function OrbitCarousel({ favorites = [] }: OrbitCarouselProps) {
 
   return (
     <section id="favorite-menus" className="page-section py-5">
-      <div className="content-container text-content text-center">
+      <Container className="content-container text-content text-center">
         <p className="hero-eyebrow reveal">Chef&apos;s Recommendation</p>
         <h2 className="section-title reveal">Our Favorite Menus</h2>
 
-        {/* Orbit Path 3D */}
-        <div className="orbit-wrapper reveal mt-5 position-relative mx-auto">
-          <div className="orbit-path position-absolute" id="dynamic-orbit-path">
+        <div className={`${styles.orbitWrapper} reveal mt-5 position-relative mx-auto`}>
+          <div className={`${styles.orbitPath} position-absolute`} id="dynamic-orbit-path">
             {items.map((item, index) => {
               const isFilled = Boolean(item && item.nama_makanan);
               return (
                 <div
                   key={index}
-                  className="orbit-item"
-                  style={!isFilled ? { border: '2px dashed #c9a17a' } : undefined}
+                  className={`${styles.orbitItem} ${isFilled ? '' : styles.empty}`}
+                  style={{ '--angle': `${180 + index * 72}deg` } as React.CSSProperties}
                 >
                   {isFilled && item?.gambar ? (
-                    <img
+                    <Image
                       src={item.gambar}
                       alt={item.nama_makanan || 'Menu Favorit'}
+                      fill
+                      sizes="(max-width: 767px) 76px, 130px"
+                      className={styles.orbitImg}
                     />
                   ) : (
                     <Image
@@ -71,7 +70,7 @@ export default function OrbitCarousel({ favorites = [] }: OrbitCarouselProps) {
                       alt="Coming Soon"
                       width={60}
                       height={60}
-                      style={{ objectFit: 'contain', padding: '20px' }}
+                      className={styles.placeholderImg}
                     />
                   )}
                 </div>
@@ -80,15 +79,18 @@ export default function OrbitCarousel({ favorites = [] }: OrbitCarouselProps) {
           </div>
         </div>
 
-        {/* Dynamic Description Rotator (Synced via CSS animation) */}
         <div
-          className="menu-desc-container position-relative mx-auto mt-4"
+          className={`${styles.descContainer} position-relative mx-auto mt-4`}
           id="dynamic-desc-container"
         >
           {items.map((item, index) => {
             const isFilled = Boolean(item && item.nama_makanan);
             return (
-              <div key={index} className="menu-desc-item text-center">
+              <div
+                key={index}
+                className={`${styles.descItem} text-center`}
+                style={{ '--k': index } as React.CSSProperties}
+              >
                 {isFilled ? (
                   <>
                     <h4 className="fw-bold mb-1 d-flex justify-content-center align-items-center">
@@ -112,7 +114,7 @@ export default function OrbitCarousel({ favorites = [] }: OrbitCarouselProps) {
             );
           })}
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

@@ -1,5 +1,8 @@
 'use client';
 
+import { Container } from 'react-bootstrap';
+import styles from './Footer.module.css';
+
 interface FooterProps {
   data?: {
     judul?: string | null;
@@ -22,17 +25,17 @@ export default function Footer({ data }: FooterProps) {
   const linkLinkedin = data?.link_linkedin || '#';
 
   return (
-    <footer className="mt-auto custom-footer">
-      <div className="container">
+    <footer className={`mt-auto ${styles.footer}`}>
+      <Container className={styles.footerInner}>
         <div className="text-center mb-4">
-          <h6 className="fw-bold mb-4 mt-4 text-warning">{judul}</h6>
+          <h6 className={`${styles.footerTitle} fw-bold mb-4 mt-4 text-warning`}>{judul}</h6>
 
           <div className="d-flex justify-content-center gap-3">
             <a
               href={linkIg}
               target="_blank"
               rel="noopener noreferrer"
-              className="custom-social-btn text-decoration-none"
+              className={styles.socialBtn}
               title="Instagram"
             >
               <i className="fab fa-instagram"></i>
@@ -41,7 +44,7 @@ export default function Footer({ data }: FooterProps) {
               href={linkTiktok}
               target="_blank"
               rel="noopener noreferrer"
-              className="custom-social-btn text-decoration-none"
+              className={styles.socialBtn}
               title="TikTok"
             >
               <i className="fab fa-tiktok"></i>
@@ -50,14 +53,14 @@ export default function Footer({ data }: FooterProps) {
               href={linkWa}
               target="_blank"
               rel="noopener noreferrer"
-              className="custom-social-btn text-decoration-none"
+              className={styles.socialBtn}
               title="WhatsApp"
             >
               <i className="fab fa-whatsapp"></i>
             </a>
             <a
               href={linkEmail}
-              className="custom-social-btn text-decoration-none"
+              className={styles.socialBtn}
               title="Email"
             >
               <i className="fas fa-envelope"></i>
@@ -66,7 +69,7 @@ export default function Footer({ data }: FooterProps) {
               href={linkLinkedin}
               target="_blank"
               rel="noopener noreferrer"
-              className="custom-social-btn text-decoration-none"
+              className={styles.socialBtn}
               title="LinkedIn"
             >
               <i className="fab fa-linkedin-in"></i>
@@ -79,7 +82,7 @@ export default function Footer({ data }: FooterProps) {
         <div className="text-center small text-light text-opacity-75">
           {copyright}
         </div>
-      </div>
+      </Container>
     </footer>
   );
 }

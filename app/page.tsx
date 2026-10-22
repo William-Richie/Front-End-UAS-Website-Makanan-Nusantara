@@ -1,22 +1,22 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import Navbar from '@/components/Navbar';
-import Hero from '@/components/Hero';
-import About from '@/components/About';
-import OrbitCarousel, { FavoriteItem } from '@/components/OrbitCarousel';
-import MenuSection, { MenuItem } from '@/components/MenuSection';
-import FaqSection, { FaqItem } from '@/components/FaqSection';
-import LocationSection from '@/components/LocationSection';
-import ReservationSection, { BranchMap } from '@/components/ReservationSection';
-import MyReservationSection from '@/components/MyReservationSection';
-import Footer from '@/components/Footer';
-import CartFloating, { CartItem } from '@/components/CartFloating';
-import CheckoutModal from '@/components/CheckoutModal';
-import AuthModal from '@/components/AuthModal';
-import IntroOverlay from '@/components/IntroOverlay';
+import Navbar from '@/components/User/Navbar/Navbar';
+import Hero from '@/components/User/Hero/Hero';
+import About from '@/components/User/About/About';
+import OrbitCarousel, { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
+import MenuSection, { MenuItem } from '@/components/User/Menu/MenuSection';
+import FaqSection, { FaqItem } from '@/components/User/Faq/FaqSection';
+import LocationSection from '@/components/User/Location/LocationSection';
+import ReservationSection, { BranchMap } from '@/components/User/Reservation/ReservationSection';
+import MyReservationSection from '@/components/User/MyReservation/MyReservationSection';
+import Footer from '@/components/User/Footer/Footer';
+import CartFloating, { CartItem } from '@/components/User/FloatingButton/FloatingButton';
+import CheckoutModal from '@/components/User/Checkout/CheckoutModal';
+import AuthModal from '@/components/User/Auth/AuthModal';
+import IntroOverlay from '@/components/User/Intro/IntroOverlay';
 import { useReveal } from '@/hooks/useReveal';
-import ProfileModal from '@/components/ProfileModal';
+import ProfileModal from '@/components/User/Profile/ProfileModal';
 
 interface UserData {
   id: string;

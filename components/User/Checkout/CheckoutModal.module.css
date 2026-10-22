@@ -1,0 +1,26 @@
+.checkoutContent {
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--color-bg-light);
+}
+
+/* Header: krem agak gelap + garis putus-putus di bawah */
+.checkoutContent .checkoutHeader {
+  background: var(--color-bg-cream);
+  border-bottom: 1px dashed var(--color-border);
+  padding: 18px 20px;
+}
+
+.checkoutTitle {
+  font-family: var(--title-font);
+  font-size: 1.4rem;
+  color: var(--color-primary-dark);
+}
+
+/* Footer: krem agak gelap + garis putus-putus di atas */
+.checkoutContent .checkoutFooter {
+  background: var(--color-bg-cream);
+  border-top: 1px dashed var(--color-border);
+  padding: 16px 20px 20px;
+}

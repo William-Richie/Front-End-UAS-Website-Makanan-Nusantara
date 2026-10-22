@@ -1,0 +1,100 @@
+.footer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-primary-brown);
+  color: var(--color-white);
+  border-top: 0;
+}
+ 
+.footer::before,
+.footer::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  width: 200px;
+  height: 200px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M0,100 C0,50 50,10 80,0 C50,30 40,60 0,100 Z' fill='%23ffffff' opacity='0.05'/><path d='M0,100 C20,60 70,40 90,30 C60,50 40,70 0,100 Z' fill='%23ffffff' opacity='0.08'/></svg>");
+  background-repeat: no-repeat;
+  background-size: contain;
+  pointer-events: none;
+  z-index: 1;
+}
+ 
+.footer::before {
+  left: -20px;
+}
+ 
+.footer::after {
+  right: -20px;
+  transform: scaleX(-1);
+}
+ 
+.footerInner {
+  position: relative;
+  z-index: 2;
+}
+ 
+.footerTitle {
+  letter-spacing: 1px;
+}
+
+.socialBtn {
+  text-decoration: none;
+}
+ 
+.socialBtn i {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 0;
+  outline: none;
+  background-color: var(--color-brown-choc);
+  color: var(--color-white);
+  font-size: 1.2rem;
+  text-decoration: none;
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.socialBtn i:hover {
+  background-color: var(--color-border-wheat);
+  color: var(--color-primary-brown);
+  transform: translateY(-5px);
+}
+ 
+.socialBtn:focus-visible {
+  outline: 2px solid var(--color-accent-gold);
+  outline-offset: 3px;
+}
+
+/* .socialBtn i {
+  width: auto;
+  height: auto;
+  display: inline-block;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: transparent;
+  font-size: inherit;
+  font-weight: 400;
+  cursor: inherit;
+  transition: none;
+}
+
+.socialBtn i:hover {
+  transform: none;
+  background-color: var(--color-border-wheat);
+  color: var(--color-primary-brown);
+} */
+ 
+@media (prefers-reduced-motion: reduce) {
+  .socialBtn {
+    transition: none;
+  }
+ 
+  .socialBtn:hover {
+    transform: none;
+  }
+}
