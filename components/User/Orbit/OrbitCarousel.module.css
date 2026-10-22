@@ -1,0 +1,129 @@
+.orbitWrapper {
+  --r: 115px;     /* radius cincin */
+  --item: 76px;   /* diameter item */
+  position: relative;
+  width: calc(var(--r) * 2 + var(--item));
+  max-width: 100%;
+  height: calc(var(--r) + var(--item) + 48px);
+  perspective: 900px;
+}
+ 
+@media (min-width: 768px) {
+  .orbitWrapper {
+    --r: 225px;
+    --item: 130px;
+    perspective: 1100px;
+  }
+}
+ 
+.orbitPath {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(60deg);
+  animation: orbitSpin 20s infinite ease-in-out;
+}
+ 
+/* garis cincin */
+.orbitPath::before {
+  content: "";
+  position: absolute;
+  inset: calc(50% - var(--r));
+  border: 2px dashed var(--color-accent-tan);
+  border-radius: 50%;
+  opacity: 0.7;
+}
+ 
+.orbitItem {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--item);
+  height: var(--item);
+  margin: calc(var(--item) / -2) 0 0 calc(var(--item) / -2);
+  overflow: hidden;
+  border: 3px solid var(--color-white);
+  border-radius: 50%;
+  background: var(--color-bg-light);
+  box-shadow: 0 8px 18px rgba(59, 35, 20, 0.3);
+  transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateX(-60deg);
+  animation: orbitCounter 20s infinite ease-in-out;
+}
+ 
+.orbitItem.empty {
+  border: 2px dashed var(--color-accent-tan);
+  box-shadow: none;
+}
+ 
+.orbitImg {
+  object-fit: cover;
+}
+ 
+.placeholderImg {
+  width: 100%;
+  height: 100%;
+  padding: 22%;
+  object-fit: contain;
+  opacity: 0.7;
+}
+ 
+/* ---------- Deskripsi ---------- */
+.descContainer {
+  max-width: 520px;
+  min-height: 120px;
+}
+ 
+.descItem {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: orbitDesc 20s infinite both;
+  animation-delay: calc(var(--k) * 4s);
+}
+ 
+.chili {
+  margin-left: 3px;
+  font-size: 0.85em;
+  color: var(--color-spicy-red);
+}
+ 
+/* ---------- Keyframes ---------- */
+@keyframes orbitSpin {
+  0%, 15%   { transform: rotateX(60deg) rotateZ(0deg); }
+  20%, 35%  { transform: rotateX(60deg) rotateZ(-72deg); }
+  40%, 55%  { transform: rotateX(60deg) rotateZ(-144deg); }
+  60%, 75%  { transform: rotateX(60deg) rotateZ(-216deg); }
+  80%, 95%  { transform: rotateX(60deg) rotateZ(-288deg); }
+  100%      { transform: rotateX(60deg) rotateZ(-360deg); }
+}
+ 
+@keyframes orbitCounter {
+  0%, 15%   { transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateZ(0deg)   rotateX(-60deg); }
+  20%, 35%  { transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateZ(72deg)  rotateX(-60deg); }
+  40%, 55%  { transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateZ(144deg) rotateX(-60deg); }
+  60%, 75%  { transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateZ(216deg) rotateX(-60deg); }
+  80%, 95%  { transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateZ(288deg) rotateX(-60deg); }
+  100%      { transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateZ(360deg) rotateX(-60deg); }
+}
+ 
+@keyframes orbitDesc {
+  0%   { opacity: 0; transform: translateY(8px); }
+  3%   { opacity: 1; transform: none; }
+  14%  { opacity: 1; transform: none; }
+  18%  { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 0; }
+}
+ 
+/* Tanpa animasi: cincin diam, hanya deskripsi pertama yang tampil */
+@media (prefers-reduced-motion: reduce) {
+  .orbitPath,
+  .orbitItem,
+  .descItem {
+    animation: none;
+  }
+ 
+  .descItem:first-child {
+    opacity: 1;
+  }
+}
+ 

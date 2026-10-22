@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Container, Row, Col, Form, Button } from 'react-bootstrap';
+import styles from './ReservationSection.module.css';
 
 export interface BranchMap {
   id: number;
@@ -102,7 +104,7 @@ export default function ReservationSection({
         <span className="sec-q s3" aria-hidden="true"><i className="fa-solid fa-bell-concierge"></i></span>
         <span className="sec-q s4" aria-hidden="true"><i className="fa-solid fa-users"></i></span>
 
-        <div className="container text-center position-relative section-content-wrap">
+        <Container className="text-center position-relative">
           <p className="hero-eyebrow reveal">Pesan Meja Anda</p>
           <h1 className="sec-title reveal reveal-d1">
             Table<br /><em>Reservation</em>
@@ -111,91 +113,100 @@ export default function ReservationSection({
             <li><i className="fa-solid fa-bolt"></i>Konfirmasi Cepat</li>
             <li><i className="fa-solid fa-ticket"></i>Gratis Reservasi</li>
           </ul>
-        </div>
+        </Container>
       </div>
 
       {!user ? (
-        <div id="reservation-lock" className="auth-lock text-center py-5">
-          <div className="gate-icon mb-3"><i className="fa-solid fa-lock fs-2 text-warning"></i></div>
+        <Container className="py-4">
+          <div id="reservation-lock" className={styles.lockCard}>
+          <div className="gate-icon"><i className="fa-solid fa-lock"></i></div>
           <h3>Login untuk Reservasi</h3>
           <p className="text-muted">
             Silakan masuk atau buat akun terlebih dahulu untuk melanjutkan reservasi.
           </p>
           <div className="d-flex gap-2 justify-content-center">
-            <button
-              type="button"
-              className="btn btn-papeda"
+            <Button
+              variant="papeda"
               onClick={() => onOpenAuth('login')}
             >
               Login
-            </button>
+            </Button>
             <button
               type="button"
-              className="btn btn-papeda-outline"
+              className={styles.outlineBtn}
               onClick={() => onOpenAuth('register')}
             >
               Register
             </button>
           </div>
-        </div>
+          </div>
+        </Container>
       ) : (
-        <div className="content-containers text-content container py-4" style={{ maxWidth: '720px' }}>
+        <Container className="text-content py-4" style={{ maxWidth: '720px' }}>
           <div className="mb-4">
-            <label className="form-label fw-bold store-label">
+            <Form.Label className={styles.storeLabel}>
               <i className="fa-solid fa-store me-2"></i>Pilih Gerai Restoran
-            </label>
-            <div className="store-cards d-flex flex-wrap gap-2">
+            </Form.Label>
+            <div className={styles.storeCards}>
               {branches.length === 0 ? (
                 <p className="text-muted small mb-0">Memuat gerai...</p>
               ) : (
-                branches.map((b) => (
-                  <div
-                    key={b.id}
-                    className={`p-3 rounded border flex-fill ${selectedBranch === b.nama ? 'border-warning bg-light' : ''}`}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => setSelectedBranch(b.nama)}
-                  >
-                    <div className="fw-bold">{b.nama}</div>
-                    <small className="text-muted">{b.alamat}</small>
-                  </div>
-                ))
+                branches.map((b, i) => {
+                  const aktif = selectedBranch === b.nama;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      className={`${styles.storeCard} ${aktif ? styles.active : ''}`}
+                      style={{ '--i': i } as React.CSSProperties}
+                      aria-pressed={aktif}
+                      onClick={() => setSelectedBranch(b.nama)}
+                    >
+                      <span className={styles.storePin}>
+                        <i className="fa-solid fa-location-dot"></i>
+                      </span>
+                      <span className={styles.storeInfo}>
+                        <strong>{b.nama}</strong>
+                        <small>{b.alamat}</small>
+                      </span>
+                      <i className={`fa-solid fa-circle-check ${styles.storeCheck}`}></i>
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="reservation-form-group">
-            <div className="mb-3">
-              <label htmlFor="res-name" className="form-label fw-bold">Full Name</label>
-              <input
+          <Form onSubmit={handleSubmit} className={styles.resForm}>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Full Name</Form.Label>
+              <Form.Control
                 type="text"
                 id="res-name"
-                className="form-control"
                 maxLength={32}
                 required
                 value={nama}
                 onChange={(e) => setNama(e.target.value)}
               />
-            </div>
+            </Form.Group>
 
-            <div className="mb-3">
-              <label htmlFor="res-email" className="form-label fw-bold">Email</label>
-              <input
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Email</Form.Label>
+              <Form.Control
                 type="email"
                 id="res-email"
-                className="form-control"
                 maxLength={64}
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-            </div>
+            </Form.Group>
 
-            <div className="mb-3">
-              <label htmlFor="res-phone" className="form-label fw-bold">Active Phone Number</label>
-              <input
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Active Phone Number</Form.Label>
+              <Form.Control
                 type="tel"
                 id="res-phone"
-                className="form-control"
                 placeholder="08xxxxxxxxxx"
                 pattern="^08[0-9]{8,11}$"
                 title="Nomor telepon harus diawali 08 dan memiliki panjang 10-13 digit angka"
@@ -203,67 +214,70 @@ export default function ReservationSection({
                 value={telepon}
                 onChange={(e) => setTelepon(e.target.value)}
               />
-            </div>
+            </Form.Group>
 
-            <div className="row g-3 mb-3">
-              <div className="col-7">
-                <label htmlFor="res-date" className="form-label fw-bold">Reservation Date</label>
-                <input
-                  type="date"
-                  id="res-date"
-                  className="form-control"
-                  required
-                  value={tanggal}
-                  onChange={(e) => setTanggal(e.target.value)}
-                />
-              </div>
-              <div className="col-5">
-                <label htmlFor="res-guest" className="form-label fw-bold">Guests</label>
-                <input
-                  type="number"
-                  id="res-guest"
-                  className="form-control"
-                  min="1"
-                  max="20"
-                  required
-                  value={jumlah}
-                  onChange={(e) => setJumlah(Number(e.target.value))}
-                />
-              </div>
-            </div>
+            <Row className="g-3 mb-3">
+              <Col xs={7}>
+                <Form.Group>
+                  <Form.Label className="fw-bold">Reservation Date</Form.Label>
+                  <Form.Control
+                    type="date"
+                    id="res-date"
+                    required
+                    value={tanggal}
+                    onChange={(e) => setTanggal(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={5}>
+                <Form.Group>
+                  <Form.Label className="fw-bold">Guests</Form.Label>
+                  <Form.Control
+                    type="number"
+                    id="res-guest"
+                    min="1"
+                    max="20"
+                    required
+                    value={jumlah}
+                    onChange={(e) => setJumlah(Number(e.target.value))}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
 
-            <div className="row g-3 mb-3">
-              <div className="col-7">
-                <label htmlFor="res-session" className="form-label fw-bold">Session</label>
-                <select
-                  id="res-session"
-                  className="form-select"
-                  value={sesi}
-                  onChange={(e) => setSesi(e.target.value)}
-                >
-                  <option value="morning">Morning (08.00 - 11.00)</option>
-                  <option value="afternoon">Afternoon (12.00 - 18.00)</option>
-                  <option value="night">Evening (18.00 - 21.00)</option>
-                </select>
-              </div>
-              <div className="col-5">
-                <label htmlFor="res-time" className="form-label fw-bold">Arrival Time</label>
-                <input
-                  type="time"
-                  id="res-time"
-                  className="form-control"
-                  required
-                  value={jam}
-                  onChange={(e) => setJam(e.target.value)}
-                />
-              </div>
-            </div>
+            <Row className="g-3 mb-3">
+              <Col xs={7}>
+                <Form.Group>
+                  <Form.Label className="fw-bold">Session</Form.Label>
+                  <Form.Select
+                    id="res-session"
+                    value={sesi}
+                    onChange={(e) => setSesi(e.target.value)}
+                  >
+                    <option value="morning">Morning (08.00 - 11.00)</option>
+                    <option value="afternoon">Afternoon (12.00 - 18.00)</option>
+                    <option value="night">Evening (18.00 - 21.00)</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col xs={5}>
+                <Form.Group>
+                  <Form.Label className="fw-bold">Arrival Time</Form.Label>
+                  <Form.Control
+                    type="time"
+                    id="res-time"
+                    required
+                    value={jam}
+                    onChange={(e) => setJam(e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
 
-            <div className="mb-3">
-              <label htmlFor="res-room" className="form-label fw-bold">Select The Room</label>
-              <select
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Select The Room</Form.Label>
+              <Form.Select
                 id="res-room"
-                className="form-select"
                 required
                 value={ruangan}
                 onChange={(e) => setRuangan(e.target.value)}
@@ -279,32 +293,37 @@ export default function ReservationSection({
                   <option value="vip-20">VIP Room 2 (2 Table, Recommended for 8 - 20 people)</option>
                   <option value="vip-20-tv">VIP Room 2 ++ (2 Table + TV, Recommended for 8 - 20 people)</option>
                 </optgroup>
-              </select>
-            </div>
+              </Form.Select>
+            </Form.Group>
 
-            <div className="mb-3">
-              <label htmlFor="res-notes" className="form-label fw-bold">Extra Note</label>
-              <textarea
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Extra Note</Form.Label>
+              <Form.Control
+                as="textarea"
                 id="res-notes"
-                className="form-control"
                 rows={4}
                 placeholder=". . ."
                 value={catatan}
                 onChange={(e) => setCatatan(e.target.value)}
               />
-            </div>
+            </Form.Group>
 
-            {errorMsg && <div className="alert alert-danger py-2">{errorMsg}</div>}
+            {errorMsg && (
+              <div className={styles.errorBox} role="alert">
+                {errorMsg}
+              </div>
+            )}
 
-            <button
+            <Button
               type="submit"
               disabled={submitting}
-              className="btn submit w-100 text-white fw-bold"
+              variant="papeda"
+              className={`${styles.submitBtn} w-100 text-white fw-bold`}
             >
               {submitting ? 'Memproses Reservasi...' : 'Confirm'}
-            </button>
-          </form>
-        </div>
+            </Button>
+          </Form>
+        </Container>
       )}
     </section>
   );

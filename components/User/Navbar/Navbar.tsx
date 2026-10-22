@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import styles from './Navbar.module.css';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Dropdown, Nav } from 'react-bootstrap';
@@ -23,6 +24,7 @@ export default function Navbar({
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [activeId, setActiveId] = useState('home');
+  
   useEffect(() => {
     let raf = 0;
   
@@ -56,10 +58,10 @@ export default function Navbar({
 
   return (
     <header className="sticky-top">
-      <div className="header-container d-flex justify-content-between align-items-center position-relative">
+      <div className={`${styles.headerContainer} d-flex justify-content-between align-items-center position-relative`}>
         {/* Logo dan autentikasi */}
-        <div className="LOGIN">
-          <Link href="#home" className="logo">
+        <div className={styles.login}>
+          <Link href="#home" className={styles.logo}>
             <Image
               src="/img/Web-Icon/PAPEDA.png"
               alt="Logo Papeda"
@@ -71,10 +73,10 @@ export default function Navbar({
           </Link>
 
           {!user ? (
-            <div id="auth-guest" className="d-flex align-items-center">
+            <div id="auth-guest" className={styles.authGuest}>
               <button
                 type="button"
-                className="Sign-in"
+                className={styles.signIn}
                 onClick={() => onOpenAuth?.('login')}
               >
                 Sign in
@@ -82,7 +84,7 @@ export default function Navbar({
 
               <button
                 type="button"
-                className="regist"
+                className={styles.regist}
                 onClick={() => onOpenAuth?.('register')}
               >
                 Registration
@@ -98,23 +100,24 @@ export default function Navbar({
             >
               <Dropdown.Toggle
                 id="user-dropdown"
-                className="user-btn"
+                className={styles.userBtn}
                 variant="light"
                 aria-label="Buka menu pengguna"
               >
-                <span className="user-avatar" id="user-initial">
+                <span className={styles.userAvatar} id="user-initial">
                   {user.nama
                     ? user.nama.charAt(0).toUpperCase()
                     : 'U'}
                 </span>
 
-                <span id="user-name">{user.nama}</span>
+                <span id="user-name" className={styles.userName}>{user.nama}</span>
               </Dropdown.Toggle>
 
-              <Dropdown.Menu>
+              <Dropdown.Menu className={styles.userMenu}>
                 <Dropdown.Item
                   as="button"
                   type="button"
+                  className={styles.userItem}
                   onClick={() => {
                     setDropdownOpen(false);
                     onOpenProfile?.();
@@ -127,6 +130,7 @@ export default function Navbar({
                 <Dropdown.Item
                   as={Link}
                   href="#my-reservation"
+                  className={styles.userItem}
                   onClick={() => setDropdownOpen(false)}
                 >
                   <i className="fa-solid fa-calendar-check me-2" />
@@ -138,7 +142,7 @@ export default function Navbar({
                 <Dropdown.Item
                   as="button"
                   type="button"
-                  className="logout text-danger"
+                  className={`${styles.userItem} ${styles.logoutItem}`}
                   onClick={() => {
                     setDropdownOpen(false);
                     onLogout?.();
@@ -155,7 +159,7 @@ export default function Navbar({
         {/* Hamburger menu */}
         <button
           type="button"
-          className="hamburger"
+          className={`${styles.hamburger} ${menuOpen ? styles.hamburgerOpen : ''}`}
           id="hamburger-menu"
           onClick={() => setMenuOpen((prev) => !prev)}
           aria-label="Toggle navigation menu"
@@ -166,9 +170,9 @@ export default function Navbar({
           <span />
         </button>
 
-        {/* Navigasi menggunakan React Bootstrap */}
         <nav
           id="main-nav"
+          className={styles.mainNav}
           style={{ display: menuOpen ? 'block' : undefined }}
         >
           <Nav as="ul">

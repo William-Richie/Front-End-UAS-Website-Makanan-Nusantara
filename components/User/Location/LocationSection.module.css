@@ -1,0 +1,302 @@
+.locSection {
+  position: relative;
+}
+ 
+.locMotif {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url("/img/batik.png") center / 380px repeat;
+  opacity: 0.06;
+  pointer-events: none;
+}
+ 
+/* ---------- Banner ---------- */
+.locHero {
+  position: relative;
+  z-index: 2;
+  padding: 48px 0 84px;
+}
+ 
+.locHeroBg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 85% 25%, rgba(255, 255, 255, 0.38), transparent 45%),
+    linear-gradient(225deg, var(--color-warm-beige-200) 0%, var(--color-border-dough) 50%, var(--color-accent-russet) 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 82%, 0 100%);
+}
+ 
+.locHeroBg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  background: url("/img/batik.png") 0 0 / 380px repeat;
+  animation: locDrift 100s linear infinite;
+}
+ 
+.locRings {
+  position: absolute;
+  left: -90px;
+  bottom: -110px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  border: 2px solid var(--color-alpha-cream-73);
+  box-shadow: 0 0 0 28px var(--color-alpha-cream-24), 0 0 0 58px var(--color-alpha-cream-14);
+  animation: locRing 7s ease-in-out infinite;
+  pointer-events: none;
+}
+ 
+.locPin {
+  position: absolute;
+  z-index: 3;
+  line-height: 1;
+  pointer-events: none;
+  transform: rotate(var(--rot, 0deg));
+  animation: locPinBob 5s ease-in-out infinite;
+  animation-delay: var(--dl, 0s);
+  filter: drop-shadow(0 8px 10px rgba(59, 35, 20, 0.3));
+}
+ 
+.p1 { --rot: 14deg;  font-size: 3.4rem; color: var(--color-brown-deep);      right: 3%;  top: -26px; }
+.p2 { --rot: 12deg;  font-size: 2.2rem; color: var(--color-accent-gold);     left: 5%;   top: 6px;     --dl: 0.6s; opacity: 0.9; }
+.p3 { --rot: -10deg; font-size: 3.6rem; color: var(--color-accent-hover);    left: 12%;  bottom: -18px; --dl: 1.2s; }
+.p4 { --rot: -12deg; font-size: 2.2rem; color: var(--color-primary-brown);   right: 16%; bottom: -14px; --dl: 2.2s; }
+ 
+.locTitle {
+  margin-bottom: 18px;
+  font-size: clamp(1.9rem, 4.5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+ 
+.locTitle em {
+  font-style: normal;
+  color: var(--color-red-garnet);
+  padding: 0 6px;
+  background: linear-gradient(transparent 68%, rgba(242, 200, 121, 0.85) 0);
+}
+ 
+/* ---------- Isi ---------- */
+.locWrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1000px;
+  margin: -24px auto 0;
+  padding: 40px 20px 16px;
+}
+ 
+.locGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+ 
+.locIntro {
+  text-align: center;
+}
+ 
+.locIntro h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.3rem, 4vw, 1.9rem);
+  line-height: 1.25;
+}
+ 
+.locDesc {
+  margin: 0 0 18px;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--color-brown-muted);
+}
+ 
+.mapBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1.5rem;
+  border: 2px solid var(--color-primary-brown);
+  border-radius: 50px;
+  background: var(--color-primary-brown);
+  color: var(--color-white);
+  font-weight: 700;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+ 
+.mapBtn:hover {
+  background: var(--color-brown-base);
+  border-color: var(--color-brown-base);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(74, 44, 23, 0.3);
+}
+ 
+.locCards {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+ 
+.locCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-bg-alt);
+  border-left: 5px solid var(--color-accent-tan);
+  border-radius: 14px;
+  background: var(--color-bg-light);
+  box-shadow: 0 4px 12px rgba(59, 35, 20, 0.06);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+ 
+a.locCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(59, 35, 20, 0.12);
+}
+ 
+.locIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-accent-tan), var(--color-accent-hover));
+  color: var(--color-white);
+  font-size: 1rem;
+  transition: transform 0.2s;
+}
+ 
+a.locCard:hover .locIcon {
+  transform: scale(1.08);
+}
+ 
+.locCard h3 {
+  margin: 0 0 2px;
+  font-size: 0.95rem;
+}
+ 
+.locCard p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--color-brown-muted);
+  word-break: break-word;
+}
+ 
+/* ---------- Peta cabang ---------- */
+.mapReveal {
+  margin-top: 24px;
+  animation: locMapIn 0.4s ease;
+}
+ 
+.mapRevealInner {
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg-light);
+  box-shadow: 0 6px 18px rgba(59, 35, 20, 0.1);
+}
+ 
+.branchList {
+  scrollbar-width: thin;
+}
+ 
+.branchBtn:global(.btn) {
+  --bs-btn-color: var(--color-brown-base);
+  --bs-btn-bg: var(--color-bg-cream);
+  --bs-btn-border-color: var(--color-border);
+  --bs-btn-hover-color: var(--color-primary-brown);
+  --bs-btn-hover-bg: var(--color-bg-soft);
+  --bs-btn-hover-border-color: var(--color-accent-tan);
+  --bs-btn-active-color: var(--color-white);
+  --bs-btn-active-bg: var(--color-primary-brown);
+  --bs-btn-active-border-color: var(--color-primary-brown);
+  flex: 0 0 auto;
+  border-radius: 50px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+ 
+.branchDetail {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-bg-alt);
+  border-radius: 12px;
+  background: var(--color-bg-cream);
+}
+ 
+/* ---------- Desktop ---------- */
+@media (min-width: 768px) {
+  .locHero {
+    padding: 64px 0 120px;
+  }
+ 
+  .p1 { font-size: 5.2rem; right: 4%; top: -34px; }
+  .p2 { font-size: 6.2rem; left: 10%; top: auto; bottom: -25px; opacity: 1; }
+  .p3 { font-size: 3rem;   left: auto; right: 17%; bottom: -22px; }
+  .p4 { font-size: 3.2rem; right: 19%; bottom: auto; top: 6px; }
+ 
+  .locGrid {
+    grid-template-columns: 1.05fr 1fr;
+    gap: 28px;
+    align-items: center;
+  }
+ 
+  .locIntro {
+    text-align: left;
+  }
+ 
+  .locCards {
+    padding-left: 40px;
+  }
+}
+ 
+@media (max-width: 575px) {
+  .p2,
+  .p3 {
+    display: none;
+  }
+}
+ 
+/* ---------- Keyframes ---------- */
+@keyframes locDrift {
+  to { background-position: 380px 380px; }
+}
+ 
+@keyframes locRing {
+  50% { transform: scale(1.06); }
+}
+ 
+@keyframes locPinBob {
+  0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
+  50%      { transform: translateY(-10px) rotate(calc(var(--rot, 0deg) - 5deg)); }
+}
+ 
+@keyframes locMapIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+ 
+@media (prefers-reduced-motion: reduce) {
+  .locHeroBg::before,
+  .locRings,
+  .locPin,
+  .mapReveal {
+    animation: none;
+  }
+ 
+  .locCard,
+  .locIcon,
+  .mapBtn {
+    transition: none;
+  }
+}
+ 
