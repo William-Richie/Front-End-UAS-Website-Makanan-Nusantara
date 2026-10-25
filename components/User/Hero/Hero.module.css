@@ -4,7 +4,7 @@
   background:
     radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.4), transparent 45%),
     linear-gradient(135deg, var(--color-warm-beige-200) 0%, var(--color-border-tan) 55%, var(--color-accent-bronze) 100%);
-  border-radius: 0 0 50% 50% / 0 0 18px 18px;
+  border-radius: 0 0 50% 50% / 0 0 40px 40px;
 }
  
 .heroPapeda::before {
@@ -17,9 +17,13 @@
   pointer-events: none;
 }
  
-.heroContent {
+.heroContent:global(.container-fluid) {
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 1700px;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 7.4vw, 9rem);
 }
  
 /* ---------- Teks ---------- */
@@ -48,7 +52,7 @@
   padding: 10px 28px;
   border: 2px solid var(--color-primary-brown);
   border-radius: 50px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.2;
   text-decoration: none;
@@ -85,31 +89,33 @@
 .papedaArea {
   position: relative;
   isolation: isolate;
-  width: 250px;
-  height: 250px;
-  transform-origin: center;
+  display: grid;
+  place-items: center;
+  width: min(100%, 320px);
+  aspect-ratio: 1;
 }
  
 .papedaArea::before {
   content: "";
   position: absolute;
-  inset: -35px;
+  inset: -4%;
   z-index: -1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 250, 243, 0.85), rgba(255, 250, 243, 0) 70%);
+  background: radial-gradient(circle, rgba(255, 250, 243, 0.85), rgba(255, 250, 243, 0) 57%);
 }
  
 .papedaImg {
-  width: 200px;
+  width: 65%;
   height: auto;
-  margin-top: 50px;
+  margin-top: 3%;
   animation: heroFloat 3s ease-in-out infinite;
 }
  
 .smokeImg {
-  top: -20px;
-  left: 40%;
-  width: 100px;
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  width: 28%;
   height: auto;
   transform: translateX(100%);
   opacity: 0;
@@ -119,30 +125,43 @@
  
 @media (min-width: 768px) {
   .papedaArea {
-    width: 300px;
-    height: 300px;
+    width: min(100%, 320px);
+  }
+
+  .heroPapeda {
+    min-height: 0;
+    padding: 32px 0 72px;
+    border-radius: 0 0 50% 50% / 0 0 60px 60px;
   }
  
-  .papedaImg {
-    width: 240px;
-    margin-top: 60px;
+  .heroTitle,
+  .heroSub {
+    margin-inline: auto;
+  }
+
+  .heroBtn,
+  .heroBtnOutline {
+    padding: 11px 24px;
+    font-size: 1rem;
   }
 }
  
 /* ---------- Ikon makanan ---------- */
 .foodIcon {
   font-size: 20px;
+  line-height: 1;
+  margin: -13px 0 0 -13px;
   animation: heroFloat 3s ease-in-out infinite;
 }
  
-.chili  { top: 20px;     left: -10px;  color: var(--color-red-terracotta); }
-.lime   { top: 10px;     right: 30px;  color: var(--color-gold-dark); }
-.fish1  { bottom: 10px;  right: 10px;  color: var(--color-brown-mocha); }
-.fish2  { bottom: 100px; left: -40px;  color: var(--color-brown-sepia); }
-.star   { font-size: 16px; color: var(--color-gold-muted); }
-.star1  { bottom: 20px;  left: 20px; }
-.star2  { top: 100px;    right: 10px; }
- 
+.chili { left: 17%; top: 22%; color: var(--color-red-terracotta); }
+.lime  { left: 86%; top: 19%; color: var(--color-gold-dark); animation-delay: 0.4s; }
+.fish1 { left: 80%; top: 80%; color: var(--color-brown-mocha); animation-delay: 0.8s; }
+.fish2 { left: 7%;  top: 55%; color: var(--color-brown-sepia); animation-delay: 1.2s; }
+.star  { font-size: 15px; color: var(--color-gold-muted); }
+.star1 { left: 27%; top: 83%; animation-delay: 0.6s; }
+.star2 { left: 93%; top: 47%; animation-delay: 1s; }
+
 /* ---------- Keyframes ---------- */
 @keyframes heroFloat {
   50% { transform: translateY(10px); }

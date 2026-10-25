@@ -82,6 +82,10 @@ export default function FaqSection({
             <span className="sec-float f2"><i className="fa-solid fa-circle-question"></i></span>
             <span className="sec-float f3"><i className="fa-solid fa-comments"></i></span>
           </div>
+          <span className="sec-q s1" aria-hidden="true"><i className="fa-solid fa-circle-question"></i></span>
+          <span className="sec-q s2" aria-hidden="true"><i className="fa-solid fa-question"></i></span>
+          <span className="sec-q s3" aria-hidden="true"><i className="fa-solid fa-question"></i></span>
+          <span className="sec-q s4" aria-hidden="true"><i className="fa-solid fa-circle-question"></i></span>
 
           <Container className="text-center position-relative">
             <p className="hero-eyebrow reveal">Pertanyaan Umum</p>
@@ -162,7 +166,14 @@ export default function FaqSection({
         </div>
       </section>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered contentClassName={`${styles.faqModal} border-0 position-relative`}>
+      <Modal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        centered
+        dialogClassName={styles.faqDialog}
+        backdropClassName={styles.faqBackdrop}
+        contentClassName={`${styles.faqModal} border-0 position-relative`}
+      >
         <button
           type="button"
           className={`btn-close ${styles.modalClose}`}
@@ -172,11 +183,13 @@ export default function FaqSection({
 
         {!isSubmitted ? (
           <>
-            <Modal.Header className={`${styles.faqModalHead} border-0 pb-0 d-block text-center`}>
+            <Modal.Header className={`${styles.faqModalHead} border-0 d-block text-center`}>
               <div className={`${styles.faqModalIcon} mx-auto`}>
-                <i className="fa-solid fa-circle-question"></i>
+                <span className={styles.faqModalIconInner}>
+                  <i className="fa-solid fa-question"></i>
+                </span>
               </div>
-              <h3 className="mt-2">Drop a Question</h3>
+              <h3 className="mt-3">Drop a Question</h3>
               <p>Pertanyaan Anda akan dibaca langsung oleh tim Papeda Restaurant</p>
             </Modal.Header>
 

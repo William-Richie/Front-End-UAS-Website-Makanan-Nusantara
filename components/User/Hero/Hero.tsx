@@ -12,21 +12,19 @@ export default function Hero({ teksHero }: HeroProps) {
   return (
     <section id="home" className="page-section">
       <div className={`${styles.heroPapeda} position-relative overflow-hidden`}>
-        <Container className={`${styles.heroContent} py-5 position-relative`}>
-          <Row className="align-items-center g-4 py-md-4">
-            <Col md={6} className="text-center text-md-start">
+        <Container fluid className={styles.heroContent}>
+          <Row className="align-items-center g-4">
+            <Col md={6} className="text-start">
               <p className="hero-eyebrow reveal" id="hero-eyebrow">
                 Cita Rasa Timur Indonesia
               </p>
               <h1 id="judul-hero" className={`${styles.heroTitle} reveal reveal-d1`}>
-                Welcome to Our
-                <br />
-                Papeda Restaurant
+                Welcome to Our Papeda Restaurant
               </h1>
               <p className={`${styles.heroSub} mx-auto mx-md-0 reveal reveal-d2`} id="hero-sub">
-                {teksHero || 'Cita rasa asli Timur Indonesia, dari sagu hingga kuah kuning.'}
+                Cita rasa asli Timur Indonesia, dari sagu hingga kuah kuning.
               </p>
-              <div className="d-flex gap-2 justify-content-center justify-content-md-start reveal reveal-d3">
+              <div className="d-flex gap-2 justify-content-start reveal reveal-d3">
                 <a href="#menu" className={styles.heroBtn}>
                   Lihat Menu
                 </a>
@@ -60,8 +58,8 @@ export default function Hero({ teksHero }: HeroProps) {
                 <Image
                   src="/img/papeda-icon.png"
                   alt="Papeda"
-                  width={280}
-                  height={280}
+                  width={600}
+                  height={350}
                   className={styles.papedaImg}
                   priority
                 />
@@ -70,7 +68,7 @@ export default function Hero({ teksHero }: HeroProps) {
                   alt=""
                   width={150}
                   height={150}
-                  className={`${styles.smokeImg} position-absolute`}
+                  className={styles.smokeImg}
                 />
               </div>
             </Col>
