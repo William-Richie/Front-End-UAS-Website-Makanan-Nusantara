@@ -637,6 +637,8 @@ h6,
 html {
     scrollbar-width: thin;
     scrollbar-color: var(--color-brown-deep) var(--color-bg-cream);
+    scroll-behavior: smooth;
+    scroll-padding-top: 90px;
 }
  
 ::-webkit-scrollbar {
