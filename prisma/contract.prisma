@@ -1,0 +1,147 @@
+// use prisma-8
+
+// 1. Menu
+model Menu {
+  id            Int        @id @default(autoincrement())
+  nama_kategori String
+  nama_makanan  String
+  harga         Float
+  gambar        String
+  deskripsi     String?
+  pedas         Int        @default(0)
+  status        Boolean    @default(true)
+  created_at    DateTime   @default(now())
+
+  // Relasi ke Favorit (1 menu bisa ada di favorit)
+  favorit       Favorit[]
+
+  @@map("menu")
+}
+
+// 2. Pesanan
+model Pesanan {
+  id         Int      @id @default(autoincrement())
+  nama       String
+  item       String   // Format JSON string atau teks daftar pesanan/keranjang
+  total      Float
+  status     String   @default("pending")
+  created_at DateTime @default(now())
+
+  @@map("pesanan")
+}
+
+// 3. Reservasi
+model Reservasi {
+  id         String   @id @onCreate(uuid())
+  user_id    String?  // Relasi opsional/fleksibel ke tabel User
+  gerai      String
+  nama       String
+  telepon    String
+  email      String
+  tanggal    String
+  jam        String
+  sesi       String
+  jumlah     Int
+  ruangan    String
+  catatan    String?
+  status     String   @default("pending")
+  created_at DateTime @default(now())
+
+  user       User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@map("reservasi")
+}
+
+// 4. Users
+model User {
+  id            String      @id @onCreate(uuid())
+  nama          String
+  email         String      @unique
+  password      String
+  total_reserve Int         @default(0)
+  created_at    DateTime    @default(now())
+
+  reservasi     Reservasi[]
+
+  @@map("users")
+}
+
+// 5. FAQ (Daftar FAQ yang tampil di halaman)
+model Faq {
+  id         Int      @id @default(autoincrement())
+  pertanyaan String
+  jawaban    String
+  created_at DateTime @default(now())
+
+  @@map("faq")
+}
+
+// 6. FAQ Pertanyaan (Pesan/pertanyaan baru dari form modal user)
+model FaqPertanyaan {
+  id         Int      @id @default(autoincrement())
+  nama       String
+  email      String
+  pertanyaan String
+  dibaca     Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@map("faq_pertanyaan")
+}
+
+// 7. Favorit (Top 5 Menu / Orbit Carousel)
+model Favorit {
+  id         Int      @id @default(autoincrement())
+  menu_id    Int
+  slot       Int      // Slot posisi 1 sampai 5 di animasi orbit
+  created_at DateTime @default(now())
+
+  menu       Menu     @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+
+  @@map("favorit")
+}
+
+// 8. Konten Web (Hero & About Landing Page - Row Tunggal ID: 1)
+model KontenWeb {
+  id         Int      @id @default(1)
+  teks_hero  String?
+  teks_about String?
+  created_at DateTime @default(now())
+
+  @@map("konten_web")
+}
+
+// 9. Konten Footer (Kontak & Media Sosial - Row Tunggal ID: 1)
+model KontenFooter {
+  id            Int      @id @default(1)
+  judul         String?
+  copyright     String?
+  link_ig       String?
+  link_tiktok   String?
+  link_wa       String?
+  link_linkedin String?
+  email         String?
+  created_at    DateTime @default(now())
+
+  @@map("konten_footer")
+}
+
+// 10. Maps (Titik Lokasi Gerai)
+model Map {
+  id         Int      @id @default(autoincrement())
+  latitude   Float
+  longitude  Float
+  nama       String
+  alamat     String
+  created_at DateTime @default(now())
+
+  @@map("maps")
+}
+
+// 11. Statistik (Counter Pengunjung - Row Tunggal ID: 1)
+model Statistik {
+  id                Int      @id @default(1)
+  jumlah_pengunjung Int      @default(0)
+  created_at        DateTime @default(now())
+
+  @@map("statistik")
+}

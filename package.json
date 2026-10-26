@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "contract:emit": "prisma contract emit"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.3.1",
@@ -17,7 +18,7 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.0.3",
     "bootstrap": "^5.3.8",
-    "dotenv": "^18.0.7",
+    "dotenv": "^18.0.9",
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "next": "16.4.0",
@@ -26,6 +27,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@prisma/cli-engine": "^0.9.0",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^20",
     "@types/react": "^19",
