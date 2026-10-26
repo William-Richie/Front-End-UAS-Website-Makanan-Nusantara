@@ -10,7 +10,7 @@ model Menu {
   deskripsi     String?
   pedas         Int        @default(0)
   status        Boolean    @default(true)
-  created_at    DateTime   @default(now())
+  created_at    TimestamptzJsDate   @default(now())
 
   // Relasi ke Favorit (1 menu bisa ada di favorit)
   favorit       Favorit[]
@@ -25,7 +25,7 @@ model Pesanan {
   item       String   // Format JSON string atau teks daftar pesanan/keranjang
   total      Float
   status     String   @default("pending")
-  created_at DateTime @default(now())
+  created_at TimestamptzJsDate @default(now())
 
   @@map("pesanan")
 }
@@ -45,7 +45,7 @@ model Reservasi {
   ruangan    String
   catatan    String?
   status     String   @default("pending")
-  created_at DateTime @default(now())
+  created_at TimestamptzJsDate @default(now())
 
   user       User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
@@ -59,7 +59,7 @@ model User {
   email         String      @unique
   password      String
   total_reserve Int         @default(0)
-  created_at    DateTime    @default(now())
+  created_at    TimestamptzJsDate    @default(now())
 
   reservasi     Reservasi[]
 
@@ -71,7 +71,7 @@ model Faq {
   id         Int      @id @default(autoincrement())
   pertanyaan String
   jawaban    String
-  created_at DateTime @default(now())
+  created_at TimestamptzJsDate @default(now())
 
   @@map("faq")
 }
@@ -83,7 +83,7 @@ model FaqPertanyaan {
   email      String
   pertanyaan String
   dibaca     Boolean  @default(false)
-  created_at DateTime @default(now())
+  created_at TimestamptzJsDate @default(now())
 
   @@map("faq_pertanyaan")
 }
@@ -93,7 +93,7 @@ model Favorit {
   id         Int      @id @default(autoincrement())
   menu_id    Int
   slot       Int      // Slot posisi 1 sampai 5 di animasi orbit
-  created_at DateTime @default(now())
+  created_at TimestamptzJsDate @default(now())
 
   menu       Menu     @relation(fields: [menu_id], references: [id], onDelete: Cascade)
 
@@ -105,7 +105,7 @@ model KontenWeb {
   id         Int      @id @default(1)
   teks_hero  String?
   teks_about String?
-  created_at DateTime @default(now())
+  created_at TimestamptzJsDate @default(now())
 
   @@map("konten_web")
 }
@@ -120,7 +120,7 @@ model KontenFooter {
   link_wa       String?
   link_linkedin String?
   email         String?
-  created_at    DateTime @default(now())
+  created_at    TimestamptzJsDate @default(now())
 
   @@map("konten_footer")
 }
@@ -132,7 +132,7 @@ model Map {
   longitude  Float
   nama       String
   alamat     String
-  created_at DateTime @default(now())
+  created_at TimestamptzJsDate @default(now())
 
   @@map("maps")
 }
@@ -141,7 +141,7 @@ model Map {
 model Statistik {
   id                Int      @id @default(1)
   jumlah_pengunjung Int      @default(0)
-  created_at        DateTime @default(now())
+  created_at        TimestamptzJsDate @default(now())
 
   @@map("statistik")
 }
