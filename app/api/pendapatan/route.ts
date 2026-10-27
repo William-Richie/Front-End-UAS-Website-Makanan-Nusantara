@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+// import prisma from '@/lib/prisma';  //Prisma 7 (lama)
+import { db } from '@/prisma/db';
+import { and } from '@prisma/orm-postgres/orm-client';
 
 export interface RingkasanPendapatan {
   total: number;
@@ -37,23 +39,30 @@ export async function GET(req: NextRequest) {
     startDate.setDate(startDate.getDate() - (n - 1));
     startDate.setHours(0, 0, 0, 0);
 
-    const [rows, menus] = await Promise.all([
-      prisma.pesanan.findMany({
-        where: {
-          status: 'selesai',
-          created_at: {
-            gte: startDate,
-          },
-        },
-      }),
-      prisma.menu.findMany({
-        select: {
-          nama_makanan: true,
-          harga: true,
-        },
-      }),
-    ]);
+    // const [rows, menus] = await Promise.all([
+    //   prisma.pesanan.findMany({
+    //     where: {
+    //       status: 'selesai',
+    //       created_at: {
+    //         gte: startDate,
+    //       },
+    //     },
+    //   }),
+    //   prisma.menu.findMany({
+    //     select: {
+    //       nama_makanan: true,
+    //       harga: true,
+    //     },
+    //   }),
+    // ]);
+    const rows = await db.orm.public.Pesanan
+      .where((p) => and(p.status.eq('selesai'), p.created_at.gte(startDate)))
+      .all();
 
+    const menus = await db.orm.public.Menu
+      .select('nama_makanan', 'harga')
+      .all();
+      
     const hargaMap: Record<string, number> = {};
     menus.forEach((m) => {
       hargaMap[m.nama_makanan.trim().toLowerCase()] = m.harga;

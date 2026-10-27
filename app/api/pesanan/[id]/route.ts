@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+// import prisma from '@/lib/prisma';  //Prisma 7 (lama)
+import { db } from '@/prisma/db';
 
 // PUT /api/pesanan/[id] - Update status pesanan
 export async function PUT(
@@ -10,11 +11,11 @@ export async function PUT(
     const { id } = await params;
     const { status } = await req.json();
 
-    const updated = await prisma.pesanan.update({
-      where: { id: parseInt(id, 10) },
-      data: { status: String(status) },
-    });
-
+    // const updated = await prisma.pesanan.update({
+    //   where: { id: parseInt(id, 10) },
+    //   data: { status: String(status) },
+    // });
+    const updated = await db.orm.public.Pesanan.where({ id: parseInt(id, 10) }).update({ status: String(status) });
     return NextResponse.json({ pesan: `Status pesanan berhasil diubah menjadi ${status}`, data: updated });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal memperbarui status pesanan.';

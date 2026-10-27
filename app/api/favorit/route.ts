@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+// import prisma from '@/lib/prisma';  //Prisma 7 (lama)
+import { db } from '@/prisma/db';
 
-// GET /api/favorit - Ambil 5 menu favorit
+// GET /api/favorit - Mengambil 5 menu favorit
 export async function GET() {
   try {
-    const list = await prisma.favorit.findMany({
-      include: {
-        menu: true,
-      },
-      orderBy: { slot: 'asc' },
-    });
-
+    // const list = await prisma.favorit.findMany({
+    //   include: {
+    //     menu: true,
+    //   },
+    //   orderBy: { slot: 'asc' },
+    // });
+    const list = await db.orm.public.Favorit.include('menu').orderBy((f) => f.slot.asc()).all();
     const cleaned = list.map((item) => ({
       slot: item.slot,
       menu_id: item.menu_id,
@@ -41,21 +42,26 @@ export async function PUT(req: NextRequest) {
     // Update or insert slot 1 - 5
     for (const item of items) {
       if (item.slot && item.menu_id) {
-        const existing = await prisma.favorit.findFirst({
-          where: { slot: Number(item.slot) },
-        });
-
+        // const existing = await prisma.favorit.findFirst({
+        //   where: { slot: Number(item.slot) },
+        // });
+        const existing = await db.orm.public.Favorit.where({ slot: Number(item.slot) }).first();
         if (existing) {
-          await prisma.favorit.update({
-            where: { id: existing.id },
-            data: { menu_id: Number(item.menu_id) },
-          });
+          // await prisma.favorit.update({
+          //   where: { id: existing.id },
+          //   data: { menu_id: Number(item.menu_id) },
+          // });
+          await db.orm.public.Favorit.where({ id: existing.id }).update({ menu_id: Number(item.menu_id) });
         } else {
-          await prisma.favorit.create({
-            data: {
-              slot: Number(item.slot),
-              menu_id: Number(item.menu_id),
-            },
+          // await prisma.favorit.create({
+          //   data: {
+          //     slot: Number(item.slot),
+          //     menu_id: Number(item.menu_id),
+          //   },
+          // });
+          await db.orm.public.Favorit.create({
+            slot: Number(item.slot),
+            menu_id: Number(item.menu_id),
           });
         }
       }
