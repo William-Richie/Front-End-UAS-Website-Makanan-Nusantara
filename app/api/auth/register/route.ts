@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+// import prisma from '@/lib/prisma';  //Prisma 7 (lama)
+import { db } from '@/prisma/db';
 import bcrypt from 'bcryptjs';
 import { isPasswordStrong, validateEmail, validateNama } from '@/lib/validation';
 
@@ -22,10 +23,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: problem }, { status: 400 });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: cleanEmail },
-    });
+    // const existingUser = await prisma.user.findUnique({
+    //   where: { email: cleanEmail },
+    // });
 
+    const existingUser = await db.orm.public.User.where({ email: cleanEmail }).first();
+    
     if (existingUser) {
       return NextResponse.json(
         { error: 'Email sudah terdaftar. Silakan login.' },
@@ -35,12 +38,18 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(pwd, 10);
 
-    const newUser = await prisma.user.create({
-      data: {
-        nama: cleanNama,
-        email: cleanEmail,
-        password: hashedPassword,
-      },
+    // const newUser = await prisma.user.create({
+    //   data: {
+    //     nama: cleanNama,
+    //     email: cleanEmail,
+    //     password: hashedPassword,
+    //   },
+    // });
+
+    const newUser = await db.orm.public.User.create({
+      nama: cleanNama,
+      email: cleanEmail,
+      password: hashedPassword,
     });
 
     return NextResponse.json(

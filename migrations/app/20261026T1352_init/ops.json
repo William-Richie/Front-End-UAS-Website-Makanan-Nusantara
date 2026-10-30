@@ -1,0 +1,806 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.faq",
+    "label": "Create table \"faq\"",
+    "summary": "Creates table \"faq\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "faq"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"faq\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"faq\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"faq\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"faq\"",
+        "sql": "CREATE TABLE \"public\".\"faq\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"jawaban\" text NOT NULL,\n  \"pertanyaan\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"faq\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"faq\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"faq\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.faq_pertanyaan",
+    "label": "Create table \"faq_pertanyaan\"",
+    "summary": "Creates table \"faq_pertanyaan\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "faq_pertanyaan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"faq_pertanyaan\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"faq_pertanyaan\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"faq_pertanyaan\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"faq_pertanyaan\"",
+        "sql": "CREATE TABLE \"public\".\"faq_pertanyaan\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"dibaca\" bool DEFAULT false NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"nama\" text NOT NULL,\n  \"pertanyaan\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"faq_pertanyaan\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"faq_pertanyaan\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"faq_pertanyaan\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.favorit",
+    "label": "Create table \"favorit\"",
+    "summary": "Creates table \"favorit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "favorit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"favorit\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"favorit\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"favorit\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"favorit\"",
+        "sql": "CREATE TABLE \"public\".\"favorit\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"menu_id\" int4 NOT NULL,\n  \"slot\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"favorit\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"favorit\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"favorit\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.konten_footer",
+    "label": "Create table \"konten_footer\"",
+    "summary": "Creates table \"konten_footer\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "konten_footer"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"konten_footer\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"konten_footer\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"konten_footer\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"konten_footer\"",
+        "sql": "CREATE TABLE \"public\".\"konten_footer\" (\n  \"copyright\" text,\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text,\n  \"id\" int4 DEFAULT 1 NOT NULL,\n  \"judul\" text,\n  \"link_ig\" text,\n  \"link_linkedin\" text,\n  \"link_tiktok\" text,\n  \"link_wa\" text,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"konten_footer\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"konten_footer\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"konten_footer\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.konten_web",
+    "label": "Create table \"konten_web\"",
+    "summary": "Creates table \"konten_web\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "konten_web"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"konten_web\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"konten_web\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"konten_web\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"konten_web\"",
+        "sql": "CREATE TABLE \"public\".\"konten_web\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" int4 DEFAULT 1 NOT NULL,\n  \"teks_about\" text,\n  \"teks_hero\" text,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"konten_web\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"konten_web\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"konten_web\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.maps",
+    "label": "Create table \"maps\"",
+    "summary": "Creates table \"maps\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "maps"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"maps\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"maps\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"maps\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"maps\"",
+        "sql": "CREATE TABLE \"public\".\"maps\" (\n  \"alamat\" text NOT NULL,\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"latitude\" float8 NOT NULL,\n  \"longitude\" float8 NOT NULL,\n  \"nama\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"maps\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"maps\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"maps\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.menu",
+    "label": "Create table \"menu\"",
+    "summary": "Creates table \"menu\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "menu"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"menu\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"menu\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"menu\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"menu\"",
+        "sql": "CREATE TABLE \"public\".\"menu\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"deskripsi\" text,\n  \"gambar\" text NOT NULL,\n  \"harga\" float8 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"nama_kategori\" text NOT NULL,\n  \"nama_makanan\" text NOT NULL,\n  \"pedas\" int4 DEFAULT 0 NOT NULL,\n  \"status\" bool DEFAULT true NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"menu\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"menu\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"menu\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.pesanan",
+    "label": "Create table \"pesanan\"",
+    "summary": "Creates table \"pesanan\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "pesanan"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"pesanan\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"pesanan\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"pesanan\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"pesanan\"",
+        "sql": "CREATE TABLE \"public\".\"pesanan\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"item\" text NOT NULL,\n  \"nama\" text NOT NULL,\n  \"status\" text DEFAULT 'pending' NOT NULL,\n  \"total\" float8 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"pesanan\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"pesanan\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"pesanan\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.reservasi",
+    "label": "Create table \"reservasi\"",
+    "summary": "Creates table \"reservasi\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "reservasi"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"reservasi\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"reservasi\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"reservasi\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"reservasi\"",
+        "sql": "CREATE TABLE \"public\".\"reservasi\" (\n  \"catatan\" text,\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"gerai\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"jam\" text NOT NULL,\n  \"jumlah\" int4 NOT NULL,\n  \"nama\" text NOT NULL,\n  \"ruangan\" text NOT NULL,\n  \"sesi\" text NOT NULL,\n  \"status\" text DEFAULT 'pending' NOT NULL,\n  \"tanggal\" text NOT NULL,\n  \"telepon\" text NOT NULL,\n  \"user_id\" text,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"reservasi\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"reservasi\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"reservasi\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.statistik",
+    "label": "Create table \"statistik\"",
+    "summary": "Creates table \"statistik\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "statistik"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"statistik\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"statistik\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"statistik\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"statistik\"",
+        "sql": "CREATE TABLE \"public\".\"statistik\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" int4 DEFAULT 1 NOT NULL,\n  \"jumlah_pengunjung\" int4 DEFAULT 0 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"statistik\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"statistik\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"statistik\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.users",
+    "label": "Create table \"users\"",
+    "summary": "Creates table \"users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"users\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"users\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"users\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"users\"",
+        "sql": "CREATE TABLE \"public\".\"users\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"nama\" text NOT NULL,\n  \"password\" text NOT NULL,\n  \"total_reserve\" int4 DEFAULT 0 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"users\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"users\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"users\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "unique.users.users_email_key",
+    "label": "Add unique constraint on \"users\" (email)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "users_email_key",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"users_email_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_email_key",
+          "public",
+          "\"public\".\"users\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"users_email_key\" on \"users\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"users_email_key\"",
+        "sql": "ALTER TABLE \"public\".\"users\" ADD CONSTRAINT \"users_email_key\" UNIQUE (\"email\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"users_email_key\" exists on (email)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "users_email_key",
+          "public",
+          "\"public\".\"users\"",
+          "u",
+          "[\"email\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.favorit.favorit_menu_id_idx_acdcfcd6",
+    "label": "Create index \"favorit_menu_id_idx_acdcfcd6\" on \"favorit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "favorit_menu_id_idx_acdcfcd6",
+        "table": "favorit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"favorit_menu_id_idx_acdcfcd6\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"favorit_menu_id_idx_acdcfcd6\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"favorit_menu_id_idx_acdcfcd6\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"favorit_menu_id_idx_acdcfcd6\"",
+        "sql": "CREATE INDEX \"favorit_menu_id_idx_acdcfcd6\" ON \"public\".\"favorit\" (\"menu_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"favorit_menu_id_idx_acdcfcd6\" exists on \"favorit\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"favorit_menu_id_idx_acdcfcd6\"",
+          "i",
+          "I",
+          "\"public\".\"favorit\"",
+          "btree",
+          "[\"menu_id\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.reservasi.reservasi_user_id_idx_6c952402",
+    "label": "Create index \"reservasi_user_id_idx_6c952402\" on \"reservasi\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "reservasi_user_id_idx_6c952402",
+        "table": "reservasi"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"reservasi_user_id_idx_6c952402\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"reservasi_user_id_idx_6c952402\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"reservasi_user_id_idx_6c952402\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"reservasi_user_id_idx_6c952402\"",
+        "sql": "CREATE INDEX \"reservasi_user_id_idx_6c952402\" ON \"public\".\"reservasi\" (\"user_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"reservasi_user_id_idx_6c952402\" exists on \"reservasi\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"reservasi_user_id_idx_6c952402\"",
+          "i",
+          "I",
+          "\"public\".\"reservasi\"",
+          "btree",
+          "[\"user_id\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.favorit.favorit_menu_id_fkey",
+    "label": "Add foreign key \"favorit_menu_id_fkey\" on \"favorit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "favorit_menu_id_fkey",
+        "table": "favorit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"favorit_menu_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "favorit_menu_id_fkey",
+          "public",
+          "\"public\".\"favorit\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"favorit_menu_id_fkey\" on \"favorit\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"favorit_menu_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"favorit\"\nADD CONSTRAINT \"favorit_menu_id_fkey\"\nFOREIGN KEY (\"menu_id\")\nREFERENCES \"public\".\"menu\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"favorit_menu_id_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "favorit_menu_id_fkey",
+          "public",
+          "\"public\".\"favorit\"",
+          "f",
+          "[\"menu_id\"]",
+          "\"public\".\"menu\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.reservasi.reservasi_user_id_fkey",
+    "label": "Add foreign key \"reservasi_user_id_fkey\" on \"reservasi\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "reservasi_user_id_fkey",
+        "table": "reservasi"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"reservasi_user_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "reservasi_user_id_fkey",
+          "public",
+          "\"public\".\"reservasi\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"reservasi_user_id_fkey\" on \"reservasi\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"reservasi_user_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"reservasi\"\nADD CONSTRAINT \"reservasi_user_id_fkey\"\nFOREIGN KEY (\"user_id\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"reservasi_user_id_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "reservasi_user_id_fkey",
+          "public",
+          "\"public\".\"reservasi\"",
+          "f",
+          "[\"user_id\"]",
+          "\"public\".\"users\"",
+          "[\"id\"]",
+          "n",
+          "a"
+        ]
+      }
+    ]
+  }
+]

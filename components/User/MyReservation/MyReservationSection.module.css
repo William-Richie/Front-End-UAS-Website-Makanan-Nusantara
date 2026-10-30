@@ -1,0 +1,97 @@
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-inline: auto;
+  border-radius: 50%;
+  background: var(--color-bg-soft);
+  color: var(--color-brown-base);
+  font-size: 1.8rem;
+}
+ 
+/* ---------- Kartu reservasi ---------- */
+.resCard {
+  height: 100%;
+  padding: 18px;
+  background: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(74, 44, 23, 0.08);
+  animation: resFade 0.5s ease backwards;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+ 
+.resCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 22px rgba(74, 44, 23, 0.15);
+}
+ 
+.resInfo {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+}
+ 
+.resInfo li {
+  padding: 3px 0;
+  font-size: 0.92rem;
+  color: var(--color-primary-dark);
+}
+ 
+.resInfo i {
+  width: 22px;
+  color: var(--color-accent-cinnamon);
+}
+ 
+.storeIcon {
+  color: var(--color-accent-cinnamon);
+}
+ 
+/* ---------- Status ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 5px 10px;
+  border-radius: 50px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+ 
+.pending   { background: var(--color-cream-amber);      color: var(--color-gold-dark);   border: 1px solid var(--color-border-gold); }
+.confirmed { background: var(--color-primary-brown);    color: var(--color-white);       border: 1px solid var(--color-primary-brown); }
+.done      { background: rgba(39, 174, 96, 0.14);       color: #1e7e46;                  border: 1px solid rgba(39, 174, 96, 0.4); }
+.cancelled { background: var(--color-pink-light);       color: var(--color-status-danger-dark); border: 1px solid var(--color-pink-blush); }
+ 
+/* ---------- Tombol batal ---------- */
+.cancelBtn:global(.btn) {
+  --bs-btn-color: var(--color-status-danger-dark);
+  --bs-btn-border-color: var(--color-pink-blush);
+  --bs-btn-hover-color: var(--color-white);
+  --bs-btn-hover-bg: var(--color-status-danger-dark);
+  --bs-btn-hover-border-color: var(--color-status-danger-dark);
+  --bs-btn-active-color: var(--color-white);
+  --bs-btn-active-bg: var(--color-status-danger-dark);
+  --bs-btn-active-border-color: var(--color-status-danger-dark);
+  border-radius: 50px;
+  font-weight: 700;
+}
+ 
+@keyframes resFade {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+ 
+@media (prefers-reduced-motion: reduce) {
+  .resCard {
+    animation: none;
+    transition: none;
+  }
+ 
+  .resCard:hover {
+    transform: none;
+  }
+}
+ 

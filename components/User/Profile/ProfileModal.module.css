@@ -1,0 +1,31 @@
+.profileCard {
+  border-radius: 20px;
+  background: var(--color-bg-cream);
+}
+ 
+.profileForm .label {
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary-brown);
+}
+ 
+.profileForm :global(.form-control) {
+  border-color: var(--color-border);
+  background-color: var(--color-bg-light);
+}
+ 
+.profileForm :global(.form-control:focus) {
+  border-color: var(--color-brown-base);
+  box-shadow: 0 0 0 0.2rem rgba(107, 66, 38, 0.15);
+}
+ 
+.profileForm :global(.form-control:disabled) {
+  background-color: var(--color-bg-soft);
+  color: var(--color-brown-muted);
+}
+ 
+.profileForm :global(.invalid-feedback) {
+  font-size: 0.8rem;
+}
+ 

@@ -45,3 +45,6 @@ dev.db
 *.db
 *.sqlite
 *.db-journal
+node_modules/
+dist/
+.env

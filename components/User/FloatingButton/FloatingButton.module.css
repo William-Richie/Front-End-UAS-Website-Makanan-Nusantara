@@ -1,0 +1,180 @@
+.fabContainer {
+  position: fixed;
+  right: 16px;
+  bottom: 30px;
+  z-index: 1030; /* di bawah modal (1055) & offcanvas */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+ 
+.fabAction {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  background-color: var(--color-brown-deep);
+  cursor: pointer;
+}
+ 
+.cartIcon {
+  font-size: 1.15rem;
+}
+
+.upIcon {
+  animation: upIconScroll 1s ease-in-out backwards;
+}
+ 
+.cartBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50px;
+  background: var(--color-spicy-red);
+  color: var(--color-white);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  border: 2px solid var(--color-bg-cream);
+}
+ 
+/* @keyframes bump global dipakai ulang; dibuat lokal agar module mandiri */
+.bump {
+  animation: cartBump 0.3s ease;
+}
+ 
+@keyframes cartBump {
+  40% { transform: scale(1.4); }
+}
+
+@keyframes upIconScroll {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+ 
+/* ---------- Drawer keranjang ---------- */
+/* Harus di atas .offcanvas-backdrop (z-index 99998 !important) di globals.css,
+   kalau tidak panel keranjang tertutup backdrop dan tidak bisa diklik. */
+.cartDrawer {
+  --bs-offcanvas-width: min(400px, 92vw);
+  --bs-offcanvas-bg: var(--color-bg-cream);
+  z-index: 99999;
+}
+ 
+.cartHeader {
+  background: var(--color-bg-light);
+  border-bottom: 1px solid var(--color-border);
+}
+ 
+.cartTitle {
+  font-family: var(--title-font);
+}
+ 
+.cartItemsList {
+  --bs-list-group-bg: transparent;
+}
+ 
+.listGroupItem {
+  border-color: var(--color-border);
+}
+ 
+.emptyMsg {
+  color: var(--color-brown-muted);
+}
+ 
+.cartItemThumb {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-alt);
+}
+ 
+.cartItemTitle {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+ 
+.cartItemPrice {
+  font-size: 0.85rem;
+  color: var(--color-brown-base);
+}
+ 
+/* ---------- Tombol jumlah ---------- */
+.btnQtyCustom:global(.btn) {
+  --bs-btn-color: var(--color-primary-brown);
+  --bs-btn-bg: var(--color-bg-soft);
+  --bs-btn-border-color: var(--color-border);
+  --bs-btn-hover-color: var(--color-white);
+  --bs-btn-hover-bg: var(--color-primary-brown);
+  --bs-btn-hover-border-color: var(--color-primary-brown);
+  --bs-btn-active-color: var(--color-white);
+  --bs-btn-active-bg: var(--color-primary-brown);
+  --bs-btn-active-border-color: var(--color-primary-brown);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  line-height: 1;
+}
+ 
+.btnQtyCustom:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+ 
+.qtyNumber {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+ 
+.btnDeleteCustom:global(.btn) {
+  padding: 4px;
+  line-height: 1;
+  text-decoration: none;
+}
+ 
+.btnDeleteCustom:hover {
+  color: var(--color-status-danger-dark) !important;
+}
+ 
+/* ---------- Total & checkout ---------- */
+.cartFooter {
+  border-top: 1px solid var(--color-border);
+}
+ 
+.cartTotalPrice {
+  color: var(--color-brown-base);
+}
+ 
+.btnCheckoutCart:disabled {
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+ 
+@media (prefers-reduced-motion: reduce) {
+  .bump, .upIcon {
+    animation: none;
+  }
+}
+ 
