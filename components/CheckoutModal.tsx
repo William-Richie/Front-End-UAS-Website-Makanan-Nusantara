@@ -1,8 +1,10 @@
+
 'use client';
 
 import { useState } from 'react';
 import { CartItem } from './CartFloating';
 import { BranchMap } from './ReservationSection';
+import { Form } from 'react-bootstrap';
 
 interface CheckoutModalProps {
   show: boolean;
@@ -29,15 +31,25 @@ export default function CheckoutModal({
 
   if (!show) return null;
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.harga * item.quantity, 0);
+  const subtotal = cartItems.reduce(
+    (acc, item) => acc + item.harga * item.quantity,
+    0
+  );
+
   const ongkir = orderType === 'online' ? 15000 : 0;
   const totalBayar = subtotal + ongkir;
 
   const handleConfirmPay = async () => {
-    if (orderType === 'dine-in' && !selectedBranch) {
+    if (branches.length === 0) {
+      setErrorMsg('Data gerai belum tersedia. Silakan coba lagi nanti.');
+      return;
+    }
+
+    if (!selectedBranch) {
       setErrorMsg('Pilih gerai restoran terlebih dahulu.');
       return;
     }
+
     if (orderType === 'online' && !deliveryAddress.trim()) {
       setErrorMsg('Masukkan alamat pengiriman Anda.');
       return;
@@ -51,7 +63,11 @@ export default function CheckoutModal({
         nama: userName || 'Pelanggan',
         item: JSON.stringify({
           metode: orderType,
-          lokasi_atau_alamat: orderType === 'dine-in' ? selectedBranch : deliveryAddress,
+          gerai: selectedBranch,
+          lokasi_atau_alamat:
+            orderType === 'dine-in'
+              ? 'Makan di tempat'
+              : deliveryAddress.trim(),
           daftar_menu: cartItems,
           ongkir,
         }),
@@ -61,17 +77,26 @@ export default function CheckoutModal({
 
       const res = await fetch('/api/pesanan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(orderPayload),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memproses pesanan.');
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal memproses pesanan.');
+      }
 
       onSuccess(data.pesanan?.id || 1);
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan saat memproses pembayaran.';
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Terjadi kesalahan saat memproses pembayaran.';
+
       setErrorMsg(msg);
     } finally {
       setLoading(false);
@@ -108,60 +133,111 @@ export default function CheckoutModal({
               <p className="fw-bold mb-2 checkout-order-type-title">
                 Pilih metode pesanan Anda:
               </p>
-              <div className="checkout-type-group w-100 d-flex gap-2" role="group">
+
+              <div
+                className="checkout-type-group w-100 d-flex gap-2"
+                role="group"
+              >
                 <button
                   type="button"
-                  className={`btn checkout-type-btn flex-fill ${orderType === 'dine-in' ? 'active btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setOrderType('dine-in')}
+                  className={`btn checkout-type-btn flex-fill ${
+                    orderType === 'dine-in'
+                      ? 'active btn-primary'
+                      : 'btn-outline-secondary'
+                  }`}
+                  onClick={() => {
+                    setOrderType('dine-in');
+                    setErrorMsg('');
+                  }}
                 >
-                  <i className="fa-solid fa-store me-1"></i> Makan di Tempat
+                  <i className="fa-solid fa-store me-1"></i>
+                  Makan di Tempat
                 </button>
                 <button
                   type="button"
-                  className={`btn checkout-type-btn flex-fill ${orderType === 'online' ? 'active btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setOrderType('online')}
+                  className={`btn checkout-type-btn flex-fill ${
+                    orderType === 'online'
+                      ? 'active btn-primary'
+                      : 'btn-outline-secondary'
+                  }`}
+                  onClick={() => {
+                    setOrderType('online');
+                    setErrorMsg('');
+                  }}
                 >
-                  <i className="fa-solid fa-motorcycle me-1"></i> Pesan Antar
+                  <i className="fa-solid fa-motorcycle me-1"></i>
+                  Pesan Antar
                 </button>
               </div>
             </div>
 
-            {orderType === 'dine-in' ? (
-              <div id="dineInForm" className="mb-3">
-                <label htmlFor="checkout-store" className="form-label fw-bold small text-uppercase checkout-form-label">
-                  Pilih Gerai Restoran
-                </label>
-                <select
-                  id="checkout-store"
-                  className="form-select custom-input"
-                  value={selectedBranch}
-                  onChange={(e) => setSelectedBranch(e.target.value)}
+            <div className="mb-3">
+              <Form.Group controlId="branchForm">
+                <Form.Label
+                  className="checkout-form-label fw-bold small text-uppercase"
                 >
-                  <option value="" disabled>-- Pilih Lokasi --</option>
+                  Pilih Gerai Restoran
+                </Form.Label>
+
+                <Form.Select
+                  className="checkout-custom-input"
+                  value={selectedBranch}
+                  onChange={(e) => {
+                    setSelectedBranch(e.target.value);
+                    setErrorMsg('');
+                  }}
+                >
+                  <option value="">-- Pilih Gerai --</option>
+
                   {branches.map((b) => (
                     <option key={b.id} value={b.nama}>
                       {b.nama} - {b.alamat}
                     </option>
                   ))}
-                </select>
-              </div>
-            ) : (
-              <div id="onlineForm" className="mb-3">
-                <label htmlFor="delivery-address" className="form-label fw-bold small text-uppercase checkout-form-label">
+                </Form.Select>
+
+                {branches.length === 0 && (
+                  <small className="text-danger">
+                    Belum ada data gerai. Silakan hubungi admin.
+                  </small>
+                )}
+              </Form.Group>
+            </div>
+
+            {orderType === 'online' && (
+              <Form.Group className="mb-3" controlId="onlineForm">
+                <Form.Label
+                  className="checkout-form-label fw-bold small text-uppercase"
+                >
                   Alamat Pengiriman
-                </label>
-                <textarea
-                  id="delivery-address"
-                  className="form-control custom-input"
+                </Form.Label>
+
+                <Form.Control
+                  as="textarea"
                   rows={3}
+                  className="checkout-custom-input"
                   placeholder="Masukkan alamat lengkap Anda..."
                   value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  onChange={(e) => {
+                    setDeliveryAddress(e.target.value);
+                    setErrorMsg('');
+                  }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    minHeight: '100px',
+                    backgroundColor: '#fff',
+                    border: '1px solid #ced4da',
+                    padding: '10px',
+                  }}
                 />
-              </div>
+
+                <Form.Text className="text-muted">
+                </Form.Text>
+              </Form.Group>
             )}
 
-            <div className="checkout-summary p-3 bg-light rounded mt-3">
+            <div className="checkout-summary">
               <div className="summary-row d-flex justify-content-between mb-1">
                 <span>Subtotal Makanan</span>
                 <span id="modalSubtotal" className="fw-bold">
@@ -185,7 +261,11 @@ export default function CheckoutModal({
               </div>
             </div>
 
-            {errorMsg && <div className="alert alert-danger py-2 small mt-3">{errorMsg}</div>}
+            {errorMsg && (
+              <div className="alert alert-danger py-2 small mt-3">
+                {errorMsg}
+              </div>
+            )}
           </div>
 
           <div className="modal-footer border-0 pb-4 px-4 pt-0">
@@ -199,7 +279,8 @@ export default function CheckoutModal({
                 'Memproses...'
               ) : (
                 <>
-                  Konfirmasi & Bayar <i className="fa-solid fa-arrow-right ms-2"></i>
+                  Konfirmasi & Bayar
+                  <i className="fa-solid fa-arrow-right ms-2"></i>
                 </>
               )}
             </button>
