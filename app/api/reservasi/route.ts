@@ -42,13 +42,33 @@ export async function POST(req: NextRequest) {
       catatan,
     } = body;
 
-    if (!gerai || !nama || !email || !telepon || !tanggal || !jumlah || !sesi || !jam || !ruangan) {
-      return NextResponse.json({ error: 'Semua data reservasi wajib diisi.' }, { status: 400 });
+    if (
+      !gerai || !nama || !email || !telepon ||
+      !tanggal || !jumlah || !sesi || !jam || !ruangan
+    ) {
+      return NextResponse.json(
+        { error: 'Semua data reservasi wajib diisi.' },
+        { status: 400 }
+      );
+    }
+
+    let validUser = null;
+
+    if (user_id) {
+      validUser = await prisma.user.findUnique({
+        where: { id: String(user_id) },
+      });
+    }
+
+    if (!validUser && email) {
+      validUser = await prisma.user.findUnique({
+        where: { email: String(email).trim() },
+      });
     }
 
     const created = await prisma.reservasi.create({
       data: {
-        user_id: user_id || null,
+        user_id: validUser?.id ?? null,
         gerai: String(gerai),
         nama: String(nama),
         email: String(email),
@@ -63,16 +83,34 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (user_id) {
+    if (validUser) {
       await prisma.user.update({
-        where: { id: user_id },
-        data: { total_reserve: { increment: 1 } },
-      }).catch(() => {});
+        where: { id: validUser.id },
+        data: {
+          total_reserve: { increment: 1 },
+        },
+      });
     }
 
-    return NextResponse.json({ pesan: 'Reservasi berhasil dibuat!', data: created }, { status: 201 });
+    return NextResponse.json(
+      {
+        pesan: 'Reservasi berhasil dibuat!',
+        data: created,
+      },
+      { status: 201 }
+    );
+
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Gagal membuat reservasi.';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('Reservasi error:', error);
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Gagal membuat reservasi.';
+
+    return NextResponse.json(
+      { error: message },
+      { status: 500 }
+    );
   }
 }
