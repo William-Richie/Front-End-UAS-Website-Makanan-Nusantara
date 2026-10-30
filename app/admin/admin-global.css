@@ -1,0 +1,310 @@
+.admin-layout {
+    height: 100vh;
+    height: 100dvh;
+    background: #f7f3ed;
+    color: #3b2314;
+    font-family: var(--font-lato), sans-serif;
+    overflow: hidden;
+}
+
+/* SIDEBAR */
+.admin-sidebar {
+    width: 270px;
+    min-width: 270px;
+    height: 100%;
+    flex-shrink: 0;
+    background: #3b2314 !important;
+    border-right: 1px solid #5c4433;
+    overflow: hidden;
+    z-index: 10;
+}
+.admin-sidebar h2 {
+    font-family: var(--font-playfair), serif;
+    color: #f7ede1;
+    font-size: 1.35rem !important;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(255,255,255,.15);
+}
+
+/* NAVIGATION */
+.admin-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    gap: 5px;
+    padding-right: 4px;
+}
+.admin-nav .nav-item {
+    width: 100%;
+    margin-bottom: 3px !important;
+}
+.admin-sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 13px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: #eee2d5 !important;
+    font-family: var(--font-lato), sans-serif;
+    font-size: .9rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: left;
+    white-space: normal;
+    transition: all .2s ease;
+}
+.admin-sidebar .nav-link i {
+    width: 21px;
+    min-width: 21px;
+    text-align: center;
+    font-size: .95rem;
+}
+.admin-sidebar .nav-link:hover {
+    background: rgba(255,255,255,.12) !important;
+    color: #fff !important;
+}
+.admin-sidebar .nav-link.active {
+    background: #c99b63 !important;
+    color: #3b2314 !important;
+    font-weight: 700;
+    box-shadow: 0 3px 8px rgba(0,0,0,.12);
+}
+.admin-sidebar .nav-link.active i {
+    color: #3b2314;
+}
+
+/* LOGOUT */
+.admin-sidebar > div:last-child {
+    flex-shrink: 0;
+    margin-top: 12px !important;
+    padding-top: 15px !important;
+    border-top: 1px solid rgba(255,255,255,.2);
+}
+.admin-sidebar .btn {
+    border-radius: 9px;
+    padding: 10px;
+    font-weight: 600;
+    transition: .2s ease;
+}
+.admin-sidebar .btn:hover {
+    background: #fff !important;
+    color: #3b2314 !important;
+}
+
+/* MAIN CONTENT */
+.admin-main {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 30px !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #f7f3ed;
+}
+.admin-main h1,
+.admin-main h2,
+.admin-main h3,
+.admin-main h4 {
+    font-family: var(--font-playfair), serif;
+    color: #3b2314;
+}
+.admin-main h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 22px;
+}
+.admin-main h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+.admin-main p {
+    line-height: 1.6;
+}
+
+/* CARDS */
+.admin-main .card {
+    background: #fffaf3;
+    border: 1px solid #eee2d5 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 14px rgba(59,35,20,.06) !important;
+}
+.admin-main .card-header {
+    background: #4a2c17;
+    color: #fff;
+    border-radius: 14px 14px 0 0;
+    font-weight: 700;
+}
+.admin-main .card-body {
+    min-width: 0;
+}
+
+/* STATISTICS */
+.admin-main .fs-2 {
+    color: #8b5e34;
+    font-weight: 700;
+}
+.admin-main .text-muted {
+    color: #85776a !important;
+}
+
+/* FORM */
+.admin-main .form-label {
+    color: #4a2c17;
+    font-weight: 700;
+    font-size: .9rem;
+    margin-bottom: 7px;
+}
+.admin-main .form-control,
+.admin-main .form-select {
+    min-height: 43px;
+    padding: 10px 13px;
+    border: 1px solid #dfd0bf;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #3b2314;
+    font-size: .9rem;
+}
+.admin-main .form-control:focus,
+.admin-main .form-select:focus {
+    border-color: #b68b5b;
+    box-shadow: 0 0 0 3px rgba(182,139,91,.15);
+}
+.admin-main textarea.form-control {
+    min-height: 100px;
+}
+
+/* BUTTONS */
+.admin-main .btn {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 9px 15px;
+    transition: all .2s ease;
+}
+.admin-main .btn-warning {
+    background: #c99b63;
+    border-color: #c99b63;
+    color: #3b2314;
+}
+.admin-main .btn-warning:hover {
+    background: #b48750;
+    border-color: #b48750;
+}
+.admin-main .btn-primary {
+    background: #4a2c17;
+    border-color: #4a2c17;
+}
+.admin-main .btn-primary:hover {
+    background: #654329;
+    border-color: #654329;
+}
+
+/* TABLE */
+.admin-main .table {
+    margin-bottom: 0;
+    vertical-align: middle;
+    font-size: .88rem;
+}
+.admin-main .table thead th {
+    padding: 13px 12px;
+    background: #f1e6d9;
+    color: #4a2c17;
+    font-weight: 700;
+    white-space: nowrap;
+    border-bottom: 2px solid #dfd0bf;
+}
+.admin-main .table tbody td {
+    padding: 12px;
+    color: #514337;
+    border-color: #eee5dc;
+}
+.admin-main .table tbody tr:hover {
+    background: #fcf5eb;
+}
+
+/* BADGES */
+.admin-main .badge {
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+/* IMAGES */
+.admin-main img {
+    max-width: 100%;
+    object-fit: cover;
+}
+
+/* SCROLLBAR */
+.admin-sidebar,
+.admin-main {
+    scrollbar-width: thin;
+    scrollbar-color: #98704b transparent;
+}
+.admin-sidebar::-webkit-scrollbar,
+.admin-main::-webkit-scrollbar {
+    width: 6px;
+}
+.admin-sidebar::-webkit-scrollbar-thumb,
+.admin-main::-webkit-scrollbar-thumb {
+    background: #98704b;
+    border-radius: 10px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .admin-layout {
+        flex-direction: column;
+    }
+    .admin-sidebar {
+        width: 100%;
+        min-width: 100%;
+        height: 43vh;
+        max-height: 350px;
+        padding: 12px !important;
+    }
+    .admin-sidebar h2 {
+        font-size: 1.1rem !important;
+        margin-bottom: 10px !important;
+        padding-bottom: 10px;
+    }
+    .admin-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 5px;
+    }
+    .admin-sidebar .nav-link {
+        min-height: 40px;
+        padding: 8px;
+        font-size: .78rem;
+    }
+    .admin-sidebar .nav-link i {
+        font-size: .8rem;
+        width: 18px;
+        min-width: 18px;
+    }
+    .admin-main {
+        height: auto;
+        flex: 1;
+        padding: 18px !important;
+    }
+    .admin-main h1 {
+        font-size: 1.45rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .admin-main {
+        padding: 13px !important;
+    }
+    .admin-main .card {
+        padding: 15px !important;
+    }
+    .admin-main .btn {
+        font-size: .8rem;
+    }
+}
