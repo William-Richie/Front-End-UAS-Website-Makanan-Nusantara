@@ -1,5 +1,6 @@
 'use client';
 
+import './admin-global.css';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -429,11 +430,13 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="d-flex vh-100 overflow-hidden">
+    <div className="admin-layout d-flex vh-100 overflow-hidden">
       {/* Sidebar */}
-      <aside className="sidebar text-white p-3 d-flex flex-column shadow-sm" style={{ width: '260px', backgroundColor: '#3b2314' }}>
-        <h2 className="text-center mb-4 fs-4 fw-bold mt-2">Admin Papeda</h2>
-        <ul className="nav nav-pills flex-column mb-auto">
+      <aside className="admin-sidebar sidebar text-white p-3 d-flex flex-column shadow-sm">
+        <h2 className="text-center mb-4 fs-4 fw-bold mt-2">
+          Admin Papeda
+        </h2>
+          <ul className="admin-nav nav nav-pills flex-column mb-auto">
           <li className="nav-item mb-2">
             <button
               className={`nav-link text-white text-start w-100 ${activeTab === 'statistik' ? 'active bg-warning' : ''}`}
@@ -515,7 +518,7 @@ export default function AdminPage() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-grow-1 p-4 overflow-auto bg-light">
+      <main className="admin-main flex-grow-1 p-4 overflow-auto">
         {/* TAB 1: STATISTIK */}
         {activeTab === 'statistik' && (
           <div>
