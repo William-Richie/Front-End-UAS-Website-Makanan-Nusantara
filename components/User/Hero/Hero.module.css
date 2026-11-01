@@ -162,7 +162,6 @@
 .star1 { left: 27%; top: 83%; animation-delay: 0.6s; }
 .star2 { left: 93%; top: 47%; animation-delay: 1s; }
 
-/* ---------- Keyframes ---------- */
 @keyframes heroFloat {
   50% { transform: translateY(10px); }
 }

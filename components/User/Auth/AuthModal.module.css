@@ -3,7 +3,6 @@
   background: var(--color-bg-cream);
 }
  
-/* Animasi muncul modal (dulu #authModal.fade .modal-dialog) */
 :global(.modal.fade) .authDialog:global(.modal-dialog) {
   transform: scale(0.85) translateY(30px);
   transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
@@ -12,8 +11,7 @@
 :global(.modal.show) .authDialog:global(.modal-dialog) {
   transform: none;
 }
- 
-/* ---------- Sisi kiri (branding) ---------- */
+
 .authSide {
   position: relative;
   min-height: 480px;
@@ -60,8 +58,6 @@
 .a3 { bottom: 15%; left: 15%; animation-delay: 1.4s; }
 .a4 { bottom: 9%; right: 12%; animation-delay: 0.4s; }
  
-/* ---------- Header form ---------- */
- 
 .authHeadSwap {
   animation: authFade 0.35s ease;
 }
@@ -71,7 +67,6 @@
   color: var(--color-primary-dark);
 }
  
-/* ---------- Tab login / register (pill geser) ---------- */
 .authTabs {
   position: relative;
   display: flex;
@@ -115,17 +110,14 @@
   color: var(--color-white);
 }
  
-/* ---------- Panel geser ---------- */
 .authPanes {
   position: relative;
   overflow: hidden;
-  /* ruang ekstra supaya focus ring & bayangan input tidak terpotong */
   box-sizing: content-box;
   padding: 4px;
   margin: -4px;
 }
  
-/* transisi tinggi baru aktif setelah ukuran awal terukur (class di-set dari JS) */
 .ready {
   transition: height 0.35s ease;
 }
@@ -150,7 +142,6 @@
   transition-delay: 0s;
 }
  
-/* ---------- Form ---------- */
 .authForm .authLabel {
   font-size: 0.85rem;
   font-weight: 700;
@@ -195,7 +186,6 @@
   --bs-btn-active-border-color: var(--color-border);
 }
  
-/* ---------- Checklist syarat password ---------- */
 .pwRules {
   list-style: none;
   display: grid;
@@ -231,8 +221,6 @@
   }
 }
  
-/* ---------- Error & link ---------- */
- 
 .shake {
   animation: authShake 0.4s;
 }
@@ -252,7 +240,6 @@
   color: var(--color-accent-hover);
 }
  
-/* ---------- Keyframes ---------- */
 @keyframes authBob {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-10px); }

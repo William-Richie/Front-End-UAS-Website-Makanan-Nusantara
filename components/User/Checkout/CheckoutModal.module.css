@@ -5,7 +5,6 @@
   background: var(--color-bg-light);
 }
 
-/* Header: krem agak gelap + garis putus-putus di bawah */
 .checkoutContent .checkoutHeader {
   background: var(--color-bg-cream);
   border-bottom: 1px dashed var(--color-border);
@@ -18,7 +17,6 @@
   color: var(--color-primary-dark);
 }
 
-/* Footer: krem agak gelap + garis putus-putus di atas */
 .checkoutContent .checkoutFooter {
   background: var(--color-bg-cream);
   border-top: 1px dashed var(--color-border);

@@ -3,8 +3,7 @@
   margin: 0 auto;
   padding: 15px 20px;
 }
- 
-/* ---------- Logo & auth ---------- */
+
 .login {
   display: flex;
   align-items: center;
@@ -68,7 +67,6 @@
   .regist { display: none; }
 }
  
-/* ---------- Dropdown user ---------- */
 .userBtn:global(.btn) {
   --bs-btn-color: var(--color-white);
   --bs-btn-bg: var(--color-primary-brown);
@@ -144,8 +142,7 @@
 .userMenu .logoutItem:focus {
   color: var(--color-status-danger-dark);
 }
- 
-/* ---------- Hamburger ---------- */
+
 .hamburger {
   display: flex;
   flex-direction: column;

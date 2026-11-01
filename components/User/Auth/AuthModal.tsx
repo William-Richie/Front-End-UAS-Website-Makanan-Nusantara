@@ -266,7 +266,6 @@ export default function AuthModal({
           </div>
 
           <div className={styles.authPanes} ref={panesRef}>
-            {/* LOGIN */}
             <div
               ref={loginPaneRef}
               className={`${styles.authSlide} ${styles.fromLeft} ${isLogin ? styles.on : ''}`}
@@ -331,7 +330,6 @@ export default function AuthModal({
               </Form>
             </div>
 
-            {/* REGISTER */}
             <div
               ref={regPaneRef}
               className={`${styles.authSlide} ${styles.fromRight} ${!isLogin ? styles.on : ''}`}
