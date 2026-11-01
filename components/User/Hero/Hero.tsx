@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Container, Row, Col } from 'react-bootstrap';
 import styles from './Hero.module.css';
 
@@ -25,12 +26,12 @@ export default function Hero({ teksHero }: HeroProps) {
                 Cita rasa asli Timur Indonesia, dari sagu hingga kuah kuning.
               </p>
               <div className="d-flex gap-2 justify-content-start reveal reveal-d3">
-                <a href="#menu" className={styles.heroBtn}>
+                <Link href="/menu" className={styles.heroBtn}>
                   Lihat Menu
-                </a>
-                <a href="#reservation" className={styles.heroBtnOutline}>
+                </Link>
+                <Link href="/reservation" className={styles.heroBtnOutline}>
                   Reservasi
-                </a>
+                </Link>
               </div>
             </Col>
 
@@ -77,4 +78,4 @@ export default function Hero({ teksHero }: HeroProps) {
       </div>
     </section>
   );
-}
+}
