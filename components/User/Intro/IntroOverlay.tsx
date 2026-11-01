@@ -1,71 +1,63 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from './IntroOverlay.module.css';
 import Image from 'next/image';
 import { Container, Button } from 'react-bootstrap';
-
-const INTRO_IMAGES = [
-  '/img/intro/spatula.png',
-  '/img/intro/tepung.png',
-  '/img/intro/rempah.png',
-  '/img/intro/kelapa.png',
-  '/img/intro/bumbu.png',
-  '/img/intro/garam.png',
-];
 
 interface IntroOverlayProps {
   onEnter: () => void;
 }
 
+const ITEMS = [
+  { src: '/img/intro/spatula.png', alt: 'Spatula' },
+  { src: '/img/intro/tepung.png', alt: 'Tepung sagu' },
+  { src: '/img/intro/rempah.png', alt: 'Rempah' },
+  { src: '/img/intro/kelapa.png', alt: 'Kelapa' },
+  { src: '/img/intro/bumbu.png', alt: 'Bumbu' },
+  { src: '/img/intro/garam.png', alt: 'Garam' },
+];
+
+const MAX_WAIT_MS = 4000;
+
 export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
-  const [visible, setVisible] = useState<boolean | null>(null);
+  const [visible, setVisible] = useState(true);
+  const [imagesReady, setImagesReady] = useState(false);
+  const loaded = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const isEntered = sessionStorage.getItem('hasEntered') === 'true';
-    const timer = setTimeout(() =>
-        setVisible(!isEntered)
-      , 0);
+    if (isEntered) {
+      const timer = setTimeout(() => {
+        setVisible(false);
+      }, 0);
       return () => clearTimeout(timer);
+    }
   }, []);
-
-  const [ready, setReady] = useState(false);
-  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const preload = Promise.allSettled(
-      INTRO_IMAGES.map((src) => {
-        const img = new window.Image();
-        img.src = src;
-        return img.decode();
-      })
-    );
-    const timeout = new Promise((r) => setTimeout(r, 2500));
-
-    Promise.race([preload, timeout]).then(() => {
-      if (!cancelled) setReady(true);
-    });
-
-    return () => { cancelled = true; };
+    const timer = setTimeout(() => setImagesReady(true), MAX_WAIT_MS);
+    return () => clearTimeout(timer);
   }, []);
 
+  const handleImageDone = (index: number) => {
+    loaded.current.add(index);
+    if (loaded.current.size >= ITEMS.length) setImagesReady(true);
+  };
+
   const handleStart = () => {
-  if (leaving) return;
-  sessionStorage.setItem('hasEntered', 'true');
-  setLeaving(true);
-  onEnter();
-  setTimeout(() => {
-    window.dispatchEvent(new CustomEvent('papeda:reveal'));
-  }, 150);
-  setTimeout(() => setVisible(false), 800); 
-};
+    sessionStorage.setItem('hasEntered', 'true');
+    setVisible(false);
+    onEnter();
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('papeda:reveal'));
+    }, 150);
+  };
 
   if (!visible) return null;
 
   return (
-    <div id="intro" className={`${styles.intro} ${ready ? styles.ready : ''} ${leaving ? styles.leaving : ''}`}>
+    <div id="intro" className={`${styles.intro} ${imagesReady ? styles.ready : ''}`}>
       <Container className="mb-4">
         <p className={`${styles.introEyebrow} mb-2`}>Cita Rasa Timur Indonesia</p>
         <h1 className={`${styles.introTitle} mb-2`}>Papeda Restaurant</h1>
@@ -73,25 +65,21 @@ export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
       </Container>
 
       <div className={`${styles.introTable} w-100 py-4`}>
-        <div className="d-flex flex-nowrap justify-content-center align-items-center">
-          <div className={`${styles.introItem} ${styles.item0}`}>
-            <Image src="/img/intro/spatula.png" alt="Spatula" width={60} height={60} priority unoptimized/>
-          </div>
-          <div className={`${styles.introItem} ${styles.item1}`}>
-            <Image src="/img/intro/tepung.png" alt="Tepung sagu" width={60} height={60} priority unoptimized/>
-          </div>
-          <div className={`${styles.introItem} ${styles.item2}`}>
-            <Image src="/img/intro/rempah.png" alt="Rempah" width={60} height={60} priority unoptimized/>
-          </div>
-          <div className={`${styles.introItem} ${styles.item3}`}>
-            <Image src="/img/intro/kelapa.png" alt="Kelapa" width={60} height={60} priority unoptimized/>
-          </div>
-          <div className={`${styles.introItem} ${styles.item4}`}>
-            <Image src="/img/intro/bumbu.png" alt="Bumbu" width={60} height={60} priority unoptimized/>
-          </div>
-          <div className={`${styles.introItem} ${styles.item5}`}>
-            <Image src="/img/intro/garam.png" alt="Garam" width={60} height={60} priority unoptimized/>
-          </div>
+        <div className="d-flex flex-nowrap justify-content-center align-items-center gap-1 gap-md-5 px-2 px-md-3">
+          {ITEMS.map((item, i) => (
+            <div key={item.src} className={`${styles.introItem} ${styles[`item${i}`]}`}>
+              <Image
+                src={item.src}
+                alt={item.alt}
+                width={60}
+                height={60}
+                loading="eager"
+                fetchPriority="high"
+                onLoad={() => handleImageDone(i)}
+                onError={() => handleImageDone(i)}
+              />
+            </div>
+          ))}
         </div>
       </div>
 
