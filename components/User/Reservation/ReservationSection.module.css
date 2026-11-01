@@ -25,8 +25,7 @@
   color: var(--color-white);
   transform: translateY(-2px);
 }
- 
-/* ---------- Pilih gerai ---------- */
+
 .storeLabel:global(.form-label) {
   display: flex;
   align-items: center;
@@ -137,7 +136,6 @@
   transform: none;
 }
  
-/* ---------- Form ---------- */
 .resForm {
   padding: 22px 20px;
   background: var(--color-bg-light);
@@ -185,7 +183,6 @@
   transform: none;
 }
  
-/* ---------- Keyframes ---------- */
 @keyframes storeIn {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: none; }

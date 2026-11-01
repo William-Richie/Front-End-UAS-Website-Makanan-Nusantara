@@ -10,7 +10,6 @@
   font-size: 1.8rem;
 }
  
-/* ---------- Kartu reservasi ---------- */
 .resCard {
   height: 100%;
   padding: 18px;
@@ -48,7 +47,6 @@
   color: var(--color-accent-cinnamon);
 }
  
-/* ---------- Status ---------- */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -60,12 +58,30 @@
   white-space: nowrap;
 }
  
-.pending   { background: var(--color-cream-amber);      color: var(--color-gold-dark);   border: 1px solid var(--color-border-gold); }
-.confirmed { background: var(--color-primary-brown);    color: var(--color-white);       border: 1px solid var(--color-primary-brown); }
-.done      { background: rgba(39, 174, 96, 0.14);       color: #1e7e46;                  border: 1px solid rgba(39, 174, 96, 0.4); }
-.cancelled { background: var(--color-pink-light);       color: var(--color-status-danger-dark); border: 1px solid var(--color-pink-blush); }
- 
-/* ---------- Tombol batal ---------- */
+.pending   {
+  background: var(--color-cream-amber);      
+  color: var(--color-gold-dark);   
+  border: 1px solid var(--color-border-gold); 
+}
+
+.confirmed { 
+  background: var(--color-primary-brown);    
+  color: var(--color-white);       
+  border: 1px solid var(--color-primary-brown); 
+}
+
+.done { 
+  background: rgba(39, 174, 96, 0.14);       
+  color: #1e7e46;                  
+  border: 1px solid rgba(39, 174, 96, 0.4); 
+}
+
+.cancelled { 
+  background: var(--color-pink-light);       
+  color: var(--color-status-danger-dark); 
+  border: 1px solid var(--color-pink-blush); 
+}
+
 .cancelBtn:global(.btn) {
   --bs-btn-color: var(--color-status-danger-dark);
   --bs-btn-border-color: var(--color-pink-blush);

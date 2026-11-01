@@ -120,7 +120,6 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
             <p className="text-center py-4">Memuat menu restoran...</p>
           ) : (
             <>
-              {/* Tabs Kategori */}
               <div className={styles.menuTabs}>
                 {categories.map((kat) => (
                   <button
@@ -134,7 +133,6 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
                 ))}
               </div>
 
-              {/* Grid menu per kategori */}
               {categories.map((kat) => (
                 <div key={kat} className={`${styles.menuGroup} ${activeTab === kat ? styles.active : ''}`}>
                   <div className={styles.categoryHeader}>{kat}</div>
@@ -223,7 +221,6 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
         </div>
       </section>
 
-      {/* Modal Detail Menu */}
       <Modal
         show={modalVisible}
         onHide={closeDetail}

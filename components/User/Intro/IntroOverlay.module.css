@@ -1,7 +1,7 @@
 .intro {
   position: fixed;
   inset: 0;
-  z-index: 200000; /* di atas navbar, tombol melayang (1030) & offcanvas (99999) */
+  z-index: 200000;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -51,7 +51,6 @@
   overflow-x: hidden;
 }
  
-/* ---------- Teks ---------- */
 .introEyebrow {
   font-size: 0.7rem;
   font-weight: 600;
@@ -75,8 +74,7 @@
   color: var(--color-brown-muted);
   animation: introFadeUp 0.7s ease both 0.4s;
 }
- 
-/* ---------- Meja & bahan ---------- */
+
 .introTable {
   --plank: clamp(56px, 13vw, 140px);
   background:
@@ -116,8 +114,7 @@
 .item3 { --i: 3; --r: 180deg; }
 .item4 { --i: 4; --r: -160deg; }
 .item5 { --i: 5; --r: 140deg; }
- 
-/* ---------- Tombol ---------- */
+
 .introBtn {
   box-shadow: 0 8px 18px rgba(74, 44, 23, 0.35);
   font-weight: 700;
@@ -131,8 +128,7 @@
 .introBtn:hover i {
   transform: translateX(4px);
 }
- 
-/* ---------- Keyframes ---------- */
+
 @keyframes introFadeUp {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: none; }

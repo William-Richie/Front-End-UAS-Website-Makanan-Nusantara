@@ -44,7 +44,6 @@
   }
 }
 
-/* ---------- Kartu samping ---------- */
 .faqAside {
   overflow: hidden;
   background: var(--color-bg-light);
@@ -117,7 +116,6 @@
   box-shadow: 0 1px 0 var(--color-ochre-bronze);
 }
 
-/* ---------- Accordion ---------- */
 .faqAccordion {
   --bs-accordion-bg: transparent;
   --bs-accordion-border-width: 0;
@@ -239,7 +237,6 @@
   color: var(--color-brown-base);
 }
 
-/* ---------- Modal tulis pertanyaan ---------- */
 .faqDialog:global(.modal-dialog) {
   max-width: 560px;
 }
@@ -420,7 +417,6 @@
   color: var(--color-brown-muted);
 }
 
-/* ---------- Keyframes ---------- */
 @keyframes faqBob {
   50% { transform: translateY(-6px); }
 }

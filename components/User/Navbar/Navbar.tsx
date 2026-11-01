@@ -32,7 +32,6 @@ export default function Navbar({
   return (
     <header className="sticky-top">
       <div className={`${styles.headerContainer} d-flex justify-content-between align-items-center position-relative`}>
-        {/* Logo dan autentikasi */}
         <div className={styles.login}>
           <Link href="/" className={styles.logo}>
             <Image
@@ -129,7 +128,6 @@ export default function Navbar({
           )}
         </div>
 
-        {/* Hamburger menu */}
         <button
           type="button"
           className={`${styles.hamburger} ${menuOpen ? styles.hamburgerOpen : ''}`}
