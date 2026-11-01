@@ -10,13 +10,8 @@
   padding: 24px 12px;
   text-align: center;
   background:
-    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.55), transparent 50%),
-    linear-gradient(
-      180deg,
-      var(--color-warm-beige-500) 0%,
-      var(--color-warm-beige-400) 45%,
-      var(--color-border-dough) 100%
-    );
+    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.5), transparent 45%),
+    linear-gradient(160deg, var(--color-warm-beige-200), var(--color-border-dough) 55%, var(--color-accent-russet));
 }
  
 .intro::before {
@@ -25,37 +20,21 @@
   inset: 0;
   background: url("/img/batik.png") center / 380px repeat;
   opacity: 0.16;
-  opacity: 0.28;
-  pointer-events: none;
-  -webkit-mask-image: radial-gradient(ellipse at center, transparent 30%, #000 85%);
-  mask-image: radial-gradient(ellipse at center, transparent 30%, #000 85%);
+  mix-blend-mode: multiply;
   pointer-events: none;
 }
  
 .intro > * {
   position: relative;
 }
-
-.leaving {
-  transform: translateY(-100%);
-  transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
-  pointer-events: none;
-}
-
-.intro:not(.ready),
-.intro:not(.ready) * {
-  animation-play-state: paused;
-}
-
-.intro {
-  overflow-x: hidden;
-}
  
 .introEyebrow {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  color: var(--color-brown-driftwood);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-brown-base);
+  animation: introFadeUp 0.7s ease both 0.1s;
 }
  
 .introTitle {
@@ -63,51 +42,41 @@
   font-weight: 700;
   line-height: 1.1;
   animation: introFadeUp 0.7s ease both 0.25s;
-  color: var(--color-primary-dark);
 }
  
 .introSub {
   max-width: 460px;
   margin-inline: auto;
+  font-size: 1rem;
   line-height: 1.6;
-  font-size: 0.95rem;
-  color: var(--color-brown-muted);
+  color: var(--color-primary-brown);
   animation: introFadeUp 0.7s ease both 0.4s;
 }
 
 .introTable {
-  --plank: clamp(56px, 13vw, 140px);
-  background:
-    linear-gradient(
-        90deg,
-        rgba(181, 124, 54, 0.4) 0,
-        rgba(181, 124, 54, 0.4) 2px,
-        transparent 2px
-      )
-      calc(50% + var(--plank) / 2) 0 / var(--plank) 100% repeat-x,
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.28), transparent 40%, rgba(107, 66, 38, 0.08)),
-    var(--color-border-gold);
-  border-top: 2px solid rgba(181, 124, 54, 0.45);
-  border-bottom: 2px solid rgba(181, 124, 54, 0.45);
+  background: linear-gradient(to bottom, transparent 0%, rgba(107, 66, 38, 0.18) 55%, rgba(107, 66, 38, 0.3) 100%);
+  border-bottom: 6px solid var(--color-brown-base);
   animation: introWipe 0.9s ease both 0.6s;
 }
  
 .introItem {
-  flex: 0 0 var(--plank);
-  width: var(--plank);
-  display: flex;
-  justify-content: center;
-  will-change: transform, opacity;
-  animation: introSlide 0.8s cubic-bezier(0.22, 1, 0.36, 1) both calc(0.9s + var(--i) * 0.15s);
+  flex: 0 1 auto;
+  min-width: 0;
+  animation:
+    introSlide 0.8s cubic-bezier(0.22, 1, 0.36, 1) both calc(0.9s + var(--i) * 0.15s),
+    introBob 3.5s ease-in-out infinite calc(1.9s + var(--i) * 0.2s);
 }
  
 .introItem img {
-  width: 72%;
-  max-width: 100px;
+  width: clamp(44px, 12vw, 88px);
   height: auto;
-  animation: introBob 3.5s ease-in-out infinite calc(1.9s + var(--i) * 0.2s);
+  filter: drop-shadow(0 8px 8px rgba(59, 35, 20, 0.3));
 }
- 
+
+.intro:not(.ready) .introItem {
+  animation-play-state: paused;
+}
+
 .item0 { --i: 0; --r: -180deg; }
 .item1 { --i: 1; --r: 160deg; }
 .item2 { --i: 2; --r: -140deg; }
