@@ -27,12 +27,23 @@
 }
  
 /* ---------- Teks ---------- */
+.heroText {
+  text-align: left;
+}
+
 .heroTitle {
   font-size: clamp(2rem, 5.5vw, 3.4rem);
   font-weight: 700;
   line-height: 1.15;
   margin-bottom: 12px;
   word-break: break-word;
+  text-align: left;
+}
+
+.heroActions {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
 }
  
 .heroSub {
@@ -41,6 +52,9 @@
   font-size: 1rem;
   line-height: 1.6;
   color: var(--color-primary-brown);
+  margin-left: 0;
+  margin-right: 0;
+  text-align: left;
 }
  
 /* ---------- Tombol ---------- */
@@ -122,6 +136,7 @@
   animation: heroSmoke 4s ease-in-out infinite;
   pointer-events: none;
 }
+
  
 @media (min-width: 768px){
   .papedaArea {
@@ -133,16 +148,33 @@
     padding: 32px 0 72px;
     border-radius: 0 0 50% 50% / 0 0 60px 60px;
   }
- 
-  .heroTitle,
-  .heroSub {
-    margin-inline: auto;
-  }
 
   .heroBtn,
   .heroBtnOutline {
     padding: 11px 24px;
     font-size: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroText {
+    text-align: center;
+  }
+
+  .heroTitle,
+  .heroSub {
+    text-align: center;
+  }
+
+  .heroSub {
+    margin-inline: auto;
+  }
+
+  .heroActions {
+    justify-content: center;
+  }
+  .heroPapeda {
+    padding: 55px 0 65px;
   }
 }
 

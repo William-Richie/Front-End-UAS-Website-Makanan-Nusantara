@@ -15,17 +15,17 @@ export default function Hero({ teksHero }: HeroProps) {
       <div className={`${styles.heroPapeda} position-relative overflow-hidden`}>
         <Container fluid className={styles.heroContent}>
           <Row className="align-items-center g-4">
-            <Col md={6} className="text-start">
+            <Col md={6} className={styles.heroText}>
               <p className="hero-eyebrow reveal" id="hero-eyebrow">
                 Cita Rasa Timur Indonesia
               </p>
               <h1 id="judul-hero" className={`${styles.heroTitle} reveal reveal-d1`}>
                 Welcome to Our Papeda Restaurant
               </h1>
-              <p className={`${styles.heroSub} mx-auto mx-md-0 reveal reveal-d2`} id="hero-sub">
+              <p className={`${styles.heroSub} reveal reveal-d2`} id="hero-sub">
                 Cita rasa asli Timur Indonesia, dari sagu hingga kuah kuning.
               </p>
-              <div className="d-flex gap-2 justify-content-start reveal reveal-d3">
+              <div className={`${styles.heroActions} d-flex gap-2 reveal reveal-d3`}>
                 <Link href="/menu" className={styles.heroBtn}>
                   Lihat Menu
                 </Link>
@@ -78,4 +78,4 @@ export default function Hero({ teksHero }: HeroProps) {
       </div>
     </section>
   );
-}
+}
