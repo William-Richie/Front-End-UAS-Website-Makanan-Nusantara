@@ -4,6 +4,7 @@ import './admin-global.css';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminCharts';
+import { KontenPreview, FooterPreview } from '@/components/Admin/Preview/SitePreview';
 
 // Definisikan Interface TypeScript lengkap untuk membasmi 'any'
 export interface MenuItem {
@@ -984,83 +985,39 @@ export default function AdminPage() {
           <div>
             <h1 className="fs-3 fw-bold mb-3">Kelola Konten & Live Preview</h1>
             <p className="text-muted mb-4">
-              Ubah teks hero banner & bagian Tentang Kami, hasil perubahannya langsung terlihat pada live preview di sebelah kanan.
+              Ubah teks hero banner dan bagian Tentang Kami. Preview di kanan memakai tampilan asli halaman user,
+              jadi hasilnya sama persis setelah disimpan.
             </p>
 
             <div className="row g-4 align-items-start">
-              {/* Form Input Konten */}
-              <div className="col-lg-6">
+              <div className="col-xl-4">
                 <div className="card shadow-sm border-0 p-4">
                   <form onSubmit={handleSaveKonten}>
-                    {/* Hero Banner Form */}
-                    <div className="mb-4">
-                      <h5 className="fw-bold border-bottom pb-2 mb-3">
-                        <i className="fa-solid fa-bullhorn me-2 text-warning"></i>Hero Banner
-                      </h5>
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Teks Eyebrow (Atas Judul)</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={kontenWeb.hero_eyebrow || ''}
-                          onChange={(e) => setKontenWeb({ ...kontenWeb, hero_eyebrow: e.target.value })}
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Teks Sambutan (Judul Hero)</label>
-                        <textarea
-                          className="form-control"
-                          rows={2}
-                          value={kontenWeb.teks_hero || ''}
-                          onChange={(e) => setKontenWeb({ ...kontenWeb, teks_hero: e.target.value })}
-                        />
-                        <small className="text-muted">Gunakan tombol Enter untuk baris baru.</small>
-                      </div>
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Sub-judul / Deskripsi Hero</label>
-                        <textarea
-                          className="form-control"
-                          rows={2}
-                          value={kontenWeb.hero_sub || ''}
-                          onChange={(e) => setKontenWeb({ ...kontenWeb, hero_sub: e.target.value })}
-                        />
-                      </div>
+                    <div className="mb-3">
+                      <label className="form-label small fw-bold" htmlFor="konten-hero">
+                        <i className="fa-solid fa-bullhorn me-2 text-warning"></i>Judul Hero Banner
+                      </label>
+                      <textarea
+                        id="konten-hero"
+                        className="form-control"
+                        rows={3}
+                        value={kontenWeb.teks_hero || ''}
+                        onChange={(e) => setKontenWeb({ ...kontenWeb, teks_hero: e.target.value })}
+                      />
+                      <small className="text-muted">Tekan Enter untuk pindah baris.</small>
                     </div>
-
-                    {/* Tentang Kami Form */}
                     <div className="mb-4">
-                      <h5 className="fw-bold border-bottom pb-2 mb-3">
-                        <i className="fa-solid fa-circle-info me-2 text-warning"></i>Tentang Kami
-                      </h5>
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Teks Eyebrow Tentang Kami</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={kontenWeb.about_eyebrow || ''}
-                          onChange={(e) => setKontenWeb({ ...kontenWeb, about_eyebrow: e.target.value })}
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Judul Tentang Kami</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={kontenWeb.about_title || ''}
-                          onChange={(e) => setKontenWeb({ ...kontenWeb, about_title: e.target.value })}
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Deskripsi Tentang Kami</label>
-                        <textarea
-                          className="form-control"
-                          rows={3}
-                          value={kontenWeb.teks_about || ''}
-                          onChange={(e) => setKontenWeb({ ...kontenWeb, teks_about: e.target.value })}
-                        />
-                      </div>
+                      <label className="form-label small fw-bold" htmlFor="konten-about">
+                        <i className="fa-solid fa-circle-info me-2 text-warning"></i>Deskripsi Tentang Kami
+                      </label>
+                      <textarea
+                        id="konten-about"
+                        className="form-control"
+                        rows={7}
+                        value={kontenWeb.teks_about || ''}
+                        onChange={(e) => setKontenWeb({ ...kontenWeb, teks_about: e.target.value })}
+                      />
                     </div>
-
                     <button type="submit" className="btn btn-warning text-white fw-bold w-100 py-2">
                       Simpan Perubahan Konten
                     </button>
@@ -1068,82 +1025,13 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Preview Tampilan Web User */}
-              <div className="col-lg-6">
+              <div className="col-xl-8">
                 <div className="card shadow-sm border-0 overflow-hidden sticky-top" style={{ top: '20px' }}>
-                  <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <span>
-                      <i className="fa-solid fa-eye me-2"></i> Preview Tampilan User
-                    </span>
-                    <span className="badge bg-success small">Real-time</span>
+                  <div className="preview-bar">
+                    <span><i className="fa-solid fa-eye me-2"></i> Preview Tampilan User</span>
+                    <span className="badge">Real-time</span>
                   </div>
-
-                  <div className="card-body p-0">
-                    {/* Hero Preview */}
-                    <div className="hero-papeda p-4 position-relative overflow-hidden">
-                      <div className="row align-items-center g-3">
-                        <div className="col-7">
-                          <p className="hero-eyebrow mb-1 small">{kontenWeb.hero_eyebrow}</p>
-                          <h4 className="fw-bold mb-2" style={{ whiteSpace: 'pre-line', color: '#4a2c17' }}>
-                            {kontenWeb.teks_hero}
-                          </h4>
-                          <p className="small text-muted mb-3">{kontenWeb.hero_sub}</p>
-                          <div className="d-flex gap-2">
-                            <span className="btn hero-btn btn-sm">Lihat Menu</span>
-                            <span className="btn hero-btn-outline btn-sm">Reservasi</span>
-                          </div>
-                        </div>
-                        <div className="col-5 text-center position-relative">
-                          <img
-                            src="/img/papeda-icon.png"
-                            alt="Papeda"
-                            style={{ width: '100px', height: '100px', objectFit: 'contain' }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* About Section Preview */}
-                    <div className="p-4 bg-white border-top">
-                      <div className="text-center mb-3">
-                        <p className="hero-eyebrow mb-1 small">{kontenWeb.about_eyebrow}</p>
-                        <h5 className="fw-bold" style={{ color: '#4a2c17' }}>
-                          {kontenWeb.about_title}
-                        </h5>
-                        <p className="small text-muted mb-3">{kontenWeb.teks_about}</p>
-                      </div>
-
-                      <div className="row g-2 text-center">
-                        <div className="col-4">
-                          <div className="p-2 border rounded bg-light">
-                            <i className="fa-solid fa-leaf text-success mb-1"></i>
-                            <div className="fw-bold small">{kontenWeb.card1_title}</div>
-                            <small className="text-muted" style={{ fontSize: '10px' }}>
-                              {kontenWeb.card1_desc}
-                            </small>
-                          </div>
-                        </div>
-                        <div className="col-4">
-                          <div className="p-2 border rounded bg-light">
-                            <i className="fa-solid fa-fire text-danger mb-1"></i>
-                            <div className="fw-bold small">{kontenWeb.card2_title}</div>
-                            <small className="text-muted" style={{ fontSize: '10px' }}>
-                              {kontenWeb.card2_desc}
-                            </small>
-                          </div>
-                        </div>
-                        <div className="col-4">
-                          <div className="p-2 border rounded bg-light">
-                            <i className="fa-solid fa-heart text-danger mb-1"></i>
-                            <div className="fw-bold small">{kontenWeb.card3_title}</div>
-                            <small className="text-muted" style={{ fontSize: '10px' }}>
-                              {kontenWeb.card3_desc}
-                            </small>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <KontenPreview teksHero={kontenWeb.teks_hero} teksAbout={kontenWeb.teks_about} />
                 </div>
               </div>
             </div>
@@ -1153,76 +1041,53 @@ export default function AdminPage() {
         {/* TAB 6: FOOTER */}
         {activeTab === 'footer' && (
           <div>
-            <h1 className="fs-3 fw-bold mb-4">Kelola Konten Footer</h1>
-            <div className="card shadow-sm border-0 p-4" style={{ maxWidth: '700px' }}>
-              <form onSubmit={handleSaveFooter}>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold">Judul Footer</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={footerData.judul}
-                    onChange={(e) => setFooterData({ ...footerData, judul: e.target.value })}
-                  />
+            <h1 className="fs-3 fw-bold mb-3">Kelola Konten Footer</h1>
+            <p className="text-muted mb-4">
+              Preview footer di bawah form memakai komponen footer yang sama dengan halaman user.
+            </p>
+
+            <div className="row g-4 align-items-start">
+              <div className="col-xl-5">
+                <div className="card shadow-sm border-0 p-4">
+                  <form onSubmit={handleSaveFooter}>
+                    {(
+                      [
+                        ['judul', 'Judul Footer', 'text'],
+                        ['copyright', 'Copyright Teks', 'text'],
+                        ['link_wa', 'Tautan WhatsApp', 'text'],
+                        ['link_ig', 'Tautan Instagram', 'text'],
+                        ['link_tiktok', 'Tautan TikTok', 'text'],
+                        ['email', 'Email Restoran', 'email'],
+                        ['link_linkedin', 'Tautan LinkedIn', 'text'],
+                      ] as [keyof FooterData, string, string][]
+                    ).map(([kunci, label, tipe]) => (
+                      <div className="mb-3" key={kunci}>
+                        <label className="form-label small fw-bold" htmlFor={`footer-${kunci}`}>{label}</label>
+                        <input
+                          id={`footer-${kunci}`}
+                          type={tipe}
+                          className="form-control"
+                          value={(footerData[kunci] as string | undefined) ?? ''}
+                          onChange={(e) => setFooterData({ ...footerData, [kunci]: e.target.value })}
+                        />
+                      </div>
+                    ))}
+                    <button type="submit" className="btn btn-warning text-white fw-bold w-100 py-2">
+                      Simpan Perubahan Footer
+                    </button>
+                  </form>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold">Copyright Teks</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={footerData.copyright}
-                    onChange={(e) => setFooterData({ ...footerData, copyright: e.target.value })}
-                  />
+              </div>
+
+              <div className="col-xl-7">
+                <div className="card shadow-sm border-0 overflow-hidden sticky-top" style={{ top: '20px' }}>
+                  <div className="preview-bar">
+                    <span><i className="fa-solid fa-eye me-2"></i> Preview Footer</span>
+                    <span className="badge">Real-time</span>
+                  </div>
+                  <FooterPreview data={footerData} />
                 </div>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold">Tautan WhatsApp</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={footerData.link_wa}
-                    onChange={(e) => setFooterData({ ...footerData, link_wa: e.target.value })}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold">Tautan Instagram</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={footerData.link_ig}
-                    onChange={(e) => setFooterData({ ...footerData, link_ig: e.target.value })}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold">Tautan TikTok</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={footerData.link_tiktok}
-                    onChange={(e) => setFooterData({ ...footerData, link_tiktok: e.target.value })}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold">Email Restoran</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    value={footerData.email}
-                    onChange={(e) => setFooterData({ ...footerData, email: e.target.value })}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold">Tautan LinkedIn</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={footerData.link_linkedin}
-                    onChange={(e) => setFooterData({ ...footerData, link_linkedin: e.target.value })}
-                  />
-                </div>
-                <button type="submit" className="btn btn-warning text-white fw-bold">
-                  Simpan Perubahan Footer
-                </button>
-              </form>
+              </div>
             </div>
           </div>
         )}

@@ -18,8 +18,8 @@ export default function Hero({ teksHero }: HeroProps) {
               <p className="hero-eyebrow reveal" id="hero-eyebrow">
                 Cita Rasa Timur Indonesia
               </p>
-              <h1 id="judul-hero" className={`${styles.heroTitle} reveal reveal-d1`}>
-                Welcome to Our Papeda Restaurant
+              <h1
+                id="judul-hero" className={`${styles.heroTitle} reveal reveal-d1`} style={{ whiteSpace: 'pre-line' }} > {teksHero || 'Welcome to Our Papeda Restaurant'}
               </h1>
               <p className={`${styles.heroSub} mx-auto mx-md-0 reveal reveal-d2`} id="hero-sub">
                 Cita rasa asli Timur Indonesia, dari sagu hingga kuah kuning.
