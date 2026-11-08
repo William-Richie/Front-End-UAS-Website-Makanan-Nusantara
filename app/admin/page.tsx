@@ -51,7 +51,57 @@ export interface ReservasiItem {
   ruangan: string;
   status: string;
   catatan?: string | null;
+  email?: string | null;
+  sesi?: string | null;
 }
+
+export interface UserItem {
+  id: string | number;
+  nama: string | null;
+  email: string | null;
+  created_at: string | null;
+  total_reserve?: number | string | null;
+  Is_Active?: boolean | string | number | null;
+  is_active?: boolean | string | number | null;
+}
+
+type ReservasiTabKey = 'user' | 'pending' | 'approved' | 'complete' | 'dibatalkan';
+type UserFilter = '' | 'active' | 'blocked';
+type UserAksi = '' | 'modifikasi' | 'blokir' | 'hapus';
+
+interface ConfirmState {
+  title: string;
+  message: string;
+  buttonText: string;
+  danger: boolean;
+  icon: string;
+  onConfirm: () => void;
+}
+
+const isUserActive = (u: UserItem): boolean => {
+  const raw = u.Is_Active !== undefined ? u.Is_Active : u.is_active;
+  return !(raw === false || raw === 'false' || raw === 0);
+};
+
+const statusMatch = (status: string, tab: ReservasiTabKey): boolean => {
+  if (tab === 'approved') return status === 'approved' || status === 'dikonfirmasi';
+  if (tab === 'complete') return status === 'complete' || status === 'selesai';
+  if (tab === 'dibatalkan') return status === 'dibatalkan' || status === 'cancelled';
+  return status === tab;
+};
+
+const cocokSearch = (data: object, keyword: string): boolean => {
+  if (!keyword) return true;
+  const k = keyword.toLowerCase().trim();
+  return Object.values(data).some((v) => String(v ?? '').toLowerCase().includes(k));
+};
+
+const adminFetch = (url: string, opts: RequestInit = {}) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('papeda_admin_token') : null;
+  const headers: Record<string, string> = { ...((opts.headers as Record<string, string>) || {}) };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return fetch(url, { ...opts, headers });
+};
 
 export interface StatistikData {
   id: number;
@@ -149,6 +199,17 @@ export default function AdminPage() {
     card3_desc: 'Suasana hangat ala rumah, cocok untuk keluarga.',
   });
 
+  // Reservasi & User (port dari Node.js)
+  const [reservasiAdmin, setReservasiAdmin] = useState<ReservasiItem[]>([]);
+  const [usersList, setUsersList] = useState<UserItem[]>([]);
+  const [reservasiTab, setReservasiTab] = useState<ReservasiTabKey>('user');
+  const [globalSearch, setGlobalSearch] = useState<string>('');
+  const [userFilter, setUserFilter] = useState<UserFilter>('');
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [userAksi, setUserAksi] = useState<UserAksi>('');
+  const [aksiOpen, setAksiOpen] = useState<boolean>(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+
   const [pendapatanData, setPendapatanData] = useState<PendapatanSummary | null>(null);
   const [pendapatanRange, setPendapatanRange] = useState<string>('7');
 
@@ -214,6 +275,151 @@ export default function AdminPage() {
       loadAllData();
     }
   }, [isLoggedIn, pendapatanRange]);
+
+  const loadUsers = async () => {
+    try {
+      const res = await adminFetch('/api/admin/users');
+      const json = await res.json();
+      setUsersList(json.data || []);
+    } catch (e) {
+      console.error('Gagal mengambil data user:', e);
+    }
+  };
+
+  const loadReservasiAdmin = async () => {
+    try {
+      const res = await adminFetch('/api/admin/reservasi');
+      const json = await res.json();
+      setReservasiAdmin(json.data || []);
+    } catch (e) {
+      console.error('Gagal mengambil data reservasi:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn || activeTab !== 'reservasi') return;
+    adminFetch('/api/admin/users')
+      .then((r) => r.json())
+      .then((d) => setUsersList(d.data || []))
+      .catch((e) => console.error('Gagal mengambil data user:', e));
+    adminFetch('/api/admin/reservasi')
+      .then((r) => r.json())
+      .then((d) => setReservasiAdmin(d.data || []))
+      .catch((e) => console.error('Gagal mengambil data reservasi:', e));
+  }, [isLoggedIn, activeTab]);
+
+  const bukaConfirm = (c: Omit<ConfirmState, 'danger' | 'icon'> & { danger?: boolean; icon?: string }) =>
+    setConfirmState({ danger: false, icon: '?', ...c });
+
+  const handleUbahStatusReservasi = (id: string, next: 'approved' | 'complete' | 'dibatalkan') => {
+    const cfg = {
+      approved: { title: 'Konfirmasi Reservasi?', message: 'Apakah kamu yakin ingin mengonfirmasi reservasi ini?', buttonText: 'Ya, Konfirmasi', danger: false, icon: '?' },
+      complete: { title: 'Selesaikan Reservasi?', message: 'Apakah kamu yakin reservasi ini sudah selesai?', buttonText: 'Ya, Selesaikan', danger: false, icon: '?' },
+      dibatalkan: { title: 'Batalkan Reservasi?', message: 'Apakah kamu yakin ingin membatalkan reservasi ini?', buttonText: 'Ya, Batalkan', danger: true, icon: '!' },
+    }[next];
+
+    bukaConfirm({
+      ...cfg,
+      onConfirm: async () => {
+        try {
+          const res = await adminFetch(`/api/admin/reservasi/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: next }),
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(json.message || 'Gagal memperbarui status reservasi');
+          await loadReservasiAdmin();
+        } catch (err) {
+          alert(err instanceof Error ? err.message : 'Gagal memperbarui status reservasi');
+        }
+      },
+    });
+  };
+
+  const handleEksekusiAksiUser = () => {
+    if (!userAksi || selectedUsers.length === 0) {
+      alert('Pilih aksi dan minimal 1 akun!');
+      return;
+    }
+    const ids = [...selectedUsers];
+    const pesan =
+      userAksi === 'hapus'
+        ? `Yakin ingin menghapus permanen ${ids.length} akun ini?`
+        : userAksi === 'blokir'
+        ? `Blokir ${ids.length} akun terpilih? Mereka tidak akan bisa login.`
+        : `Ubah status ${ids.length} akun menjadi Active (Buka Blokir)?`;
+
+    bukaConfirm({
+      title: 'Konfirmasi',
+      message: pesan,
+      buttonText: 'Lanjutkan',
+      danger: userAksi === 'hapus' || userAksi === 'blokir',
+      icon: '?',
+      onConfirm: async () => {
+        try {
+          if (userAksi === 'hapus') {
+            const res = await adminFetch('/api/admin/users', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids }),
+            });
+            if (!res.ok) throw new Error('Gagal menghapus di database');
+            setUsersList((prev) => prev.filter((u) => !ids.includes(String(u.id))));
+          } else {
+            const target = userAksi === 'modifikasi';
+            const res = await adminFetch('/api/admin/users/status', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ids, Is_Active: target }),
+            });
+            if (!res.ok) throw new Error('Gagal memperbarui status di database');
+            setUsersList((prev) =>
+              prev.map((u) => (ids.includes(String(u.id)) ? { ...u, Is_Active: target } : u))
+            );
+          }
+          setUserAksi('');
+          setSelectedUsers([]);
+        } catch (err) {
+          console.error(err);
+          alert('Gagal menyimpan perubahan ke database.');
+        }
+      },
+    });
+  };
+
+  const toggleFilterUser = () =>
+    setUserFilter((f) => (f === '' ? 'active' : f === 'active' ? 'blocked' : ''));
+
+  const filteredUsers = usersList.filter((u) => {
+    const aktif = isUserActive(u);
+    if (userFilter === 'active' && !aktif) return false;
+    if (userFilter === 'blocked' && aktif) return false;
+    return cocokSearch(u, globalSearch);
+  });
+
+  const filteredReservasi =
+    reservasiTab === 'user'
+      ? []
+      : reservasiAdmin.filter((r) => statusMatch(r.status, reservasiTab) && cocokSearch(r, globalSearch));
+
+  const countReservasi = (tab: ReservasiTabKey) => reservasiAdmin.filter((r) => statusMatch(r.status, tab)).length;
+
+  const allUsersChecked =
+    filteredUsers.length > 0 && filteredUsers.every((u) => selectedUsers.includes(String(u.id)));
+
+  const toggleUserCheck = (id: string) =>
+    setSelectedUsers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const toggleCheckAll = () =>
+    setSelectedUsers(allUsersChecked ? [] : filteredUsers.map((u) => String(u.id)));
+
+  const AKSI_LABEL: Record<UserAksi, string> = {
+    '': 'Pilih Aksi',
+    modifikasi: '✏️ Modifikasi Akun',
+    blokir: '🚫 Blokir Akun',
+    hapus: '🗑️ Hapus Akun',
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1175,36 +1381,275 @@ export default function AdminPage() {
         {/* TAB 8: RESERVASI */}
         {activeTab === 'reservasi' && (
           <div>
-            <h1 className="fs-3 fw-bold mb-4">Daftar Reservasi Meja</h1>
-            <div className="card shadow-sm border-0 p-3">
-              <table className="table table-hover align-middle">
-                <thead>
-                  <tr>
-                    <th>Pelanggan</th>
-                    <th>Gerai</th>
-                    <th>Tanggal & Jam</th>
-                    <th>Jumlah</th>
-                    <th>Ruangan</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reservasiList.map((r) => (
-                    <tr key={r.id}>
-                      <td>
-                        <div className="fw-bold">{r.nama}</div>
-                        <small className="text-muted">{r.telepon}</small>
-                      </td>
-                      <td>{r.gerai}</td>
-                      <td>{r.tanggal} - {r.jam}</td>
-                      <td>{r.jumlah} orang</td>
-                      <td>{r.ruangan}</td>
-                      <td><span className="badge bg-info text-dark">{r.status}</span></td>
-                    </tr>
+            <div className="card shadow-sm border-0 p-4 mb-4">
+              <h1 className="fs-4 fw-bold mb-4">Kelola User &amp; Reservasi</h1>
+
+              <div className="reservation-toolbar">
+                <div className="reservation-tabs">
+                  {([
+                    ['user', 'Users', usersList.length],
+                    ['pending', 'Pending', countReservasi('pending')],
+                    ['approved', 'Approved', countReservasi('approved')],
+                    ['complete', 'Complete', countReservasi('complete')],
+                    ['dibatalkan', 'Dibatalkan', countReservasi('dibatalkan')],
+                  ] as [ReservasiTabKey, string, number][]).map(([key, label, count]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`tab-btn ${reservasiTab === key ? 'active' : ''}`}
+                      onClick={() => {
+                        setReservasiTab(key);
+                        if (key === 'user') loadUsers();
+                        else loadReservasiAdmin();
+                      }}
+                    >
+                      {label} <span className="badge">{count}</span>
+                    </button>
                   ))}
-                </tbody>
-              </table>
+                </div>
+
+                <div className="reservation-tools">
+                  <button
+                    type="button"
+                    className={`filter-button ${userFilter ? 'on' : ''}`}
+                    title={
+                      reservasiTab === 'user'
+                        ? `Filter user: ${userFilter === '' ? 'semua' : userFilter === 'active' ? 'aktif' : 'diblokir'}`
+                        : 'Filter'
+                    }
+                    onClick={() => reservasiTab === 'user' && toggleFilterUser()}
+                  >
+                    <i className="fa-solid fa-filter"></i>
+                  </button>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Cari data..."
+                    value={globalSearch}
+                    onChange={(e) => setGlobalSearch(e.target.value.trim() === '' ? '' : e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* TAB USERS */}
+              {reservasiTab === 'user' && (
+                <div>
+                  {selectedUsers.length > 0 && (
+                    <div className="user-action-bar d-flex justify-content-between align-items-center p-3 mb-3 rounded border">
+                      <span className="fw-semibold text-secondary">{selectedUsers.length} akun dipilih</span>
+                      <div className="d-flex align-items-center gap-2">
+                        <div className="custom-action-dropdown position-relative">
+                          <button
+                            type="button"
+                            className="btn form-select form-select-sm text-start shadow-none"
+                            onClick={() => setAksiOpen((o) => !o)}
+                          >
+                            {AKSI_LABEL[userAksi]}
+                          </button>
+                          {aksiOpen && (
+                            <ul className="aksi-menu shadow-sm">
+                              {(['', 'modifikasi', 'blokir', 'hapus'] as UserAksi[]).map((a) => (
+                                <li key={a || 'none'}>
+                                  <button
+                                    type="button"
+                                    className={`aksi-item ${a === 'blokir' ? 'text-danger' : a === 'hapus' ? 'text-secondary' : ''}`}
+                                    onClick={() => {
+                                      setUserAksi(a);
+                                      setAksiOpen(false);
+                                    }}
+                                  >
+                                    {a === '' ? 'Pilih Aksi...' : AKSI_LABEL[a]}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <button type="button" className="btn btn-sm btn-dark fw-bold" onClick={handleEksekusiAksiUser}>
+                          Terapkan
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="table-responsive">
+                    <table className="table table-striped align-middle">
+                      <thead className="table-dark">
+                        <tr className="text-center">
+                          <th className="th-checkbox">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              checked={allUsersChecked}
+                              onChange={toggleCheckAll}
+                            />
+                          </th>
+                          <th>User ID</th>
+                          <th>Nama</th>
+                          <th>Email</th>
+                          <th>Tanggal Pembuatan</th>
+                          <th>Jumlah Reserve</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody id="user-table-body">
+                        {usersList.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="text-center text-muted py-4">Belum ada user terdaftar.</td>
+                          </tr>
+                        ) : filteredUsers.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="text-center text-muted py-4">Tidak ada user yang cocok.</td>
+                          </tr>
+                        ) : (
+                          filteredUsers.map((u) => {
+                            const aktif = isUserActive(u);
+                            const idx = usersList.indexOf(u);
+                            return (
+                              <tr key={String(u.id)}>
+                                <td className="text-center">
+                                  <input
+                                    type="checkbox"
+                                    className="form-check-input user-row-check"
+                                    checked={selectedUsers.includes(String(u.id))}
+                                    onChange={() => toggleUserCheck(String(u.id))}
+                                  />
+                                </td>
+                                <td>
+                                  <span className="badge bg-light text-dark border font-monospace">
+                                    {String(idx + 1).padStart(5, '0')}
+                                  </span>
+                                </td>
+                                <td><strong>{u.nama || '-'}</strong></td>
+                                <td>{u.email || '-'}</td>
+                                <td className="text-center">
+                                  {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-'}
+                                </td>
+                                <td className="text-center">
+                                  <span className="badge bg-light text-dark border">{u.total_reserve || '0'}</span>
+                                </td>
+                                <td className="text-center">
+                                  <span className={`badge ${aktif ? 'bg-success' : 'bg-danger'}`}>
+                                    {aktif ? 'Active' : 'Blocked'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB RESERVASI PENDING DLL */}
+              {reservasiTab !== 'user' && (
+                <div className="table-responsive">
+                  <table className="admin-table table table-striped align-middle">
+                    <thead className="table-dark">
+                      <tr>
+                        <th className="text-center">Gerai</th>
+                        <th className="text-center">Nama Tamu</th>
+                        <th className="text-center">Kontak</th>
+                        <th className="text-center">Tanggal &amp; Waktu</th>
+                        <th className="text-center">Jumlah Tamu</th>
+                        <th className="text-center">Ruangan</th>
+                        <th className="text-center">Catatan</th>
+                        <th className="text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="reservation-table-body">
+                      {filteredReservasi.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="text-center text-muted py-4">
+                            Tidak ada reservasi pada status ini.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredReservasi.map((r) => {
+                          const selesai = r.status === 'complete' || r.status === 'selesai';
+                          const batal = r.status === 'dibatalkan' || r.status === 'cancelled';
+                          const approved = r.status === 'approved' || r.status === 'dikonfirmasi';
+                          return (
+                            <tr key={r.id}>
+                              <td><strong>{r.gerai || '-'}</strong></td>
+                              <td>{r.nama || '-'}</td>
+                              <td>
+                                {r.telepon || '-'}
+                                <br />
+                                <small className="text-muted">{r.email || '-'}</small>
+                              </td>
+                              <td>
+                                {r.tanggal || '-'}
+                                <br />
+                                <small>{r.jam || ''}{r.sesi ? ` (${r.sesi})` : ''}</small>
+                              </td>
+                              <td>{r.jumlah || 0} Orang</td>
+                              <td>{r.ruangan || '-'}</td>
+                              <td>{r.catatan || '-'}</td>
+                              <td className="aksi">
+                                {selesai ? (
+                                  <span className="badge bg-success">Selesai</span>
+                                ) : batal ? (
+                                  <span className="badge bg-danger">Dibatalkan</span>
+                                ) : (
+                                  <div className="reservation-actions">
+                                    <button
+                                      type="button"
+                                      className="btn-action-confirm"
+                                      onClick={() => handleUbahStatusReservasi(r.id, approved ? 'complete' : 'approved')}
+                                    >
+                                      {approved ? '✓ Selesaikan' : '✓ Konfirmasi'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn-action-cancel"
+                                      onClick={() => handleUbahStatusReservasi(r.id, 'dibatalkan')}
+                                    >
+                                      ✕ Batalkan
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
+
+            {/* RESERVASI KONFIRMASI */}
+            {confirmState && (
+              <div className="confirm-backdrop" onClick={() => setConfirmState(null)}>
+                <div className="custom-confirm-modal" onClick={(e) => e.stopPropagation()}>
+                  <button type="button" className="btn-close confirm-close" aria-label="Close" onClick={() => setConfirmState(null)} />
+                  <div className="modal-warning-icon">{confirmState.icon}</div>
+                  <h4 className="confirm-title">{confirmState.title}</h4>
+                  <p className="confirm-message">{confirmState.message}</p>
+                  <div className="d-flex justify-content-center gap-2 mt-4">
+                    <button type="button" className="btn-confirm-back" onClick={() => setConfirmState(null)}>
+                      Kembali
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-confirm-danger"
+                      style={confirmState.danger ? undefined : { background: '#4a2c17', borderColor: '#4a2c17' }}
+                      onClick={() => {
+                        const fn = confirmState.onConfirm;
+                        setConfirmState(null);
+                        fn();
+                      }}
+                    >
+                      {confirmState.buttonText}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
