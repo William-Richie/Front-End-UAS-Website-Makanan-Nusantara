@@ -3,6 +3,7 @@
 import './admin-global.css';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminCharts';
 
 // Definisikan Interface TypeScript lengkap untuk membasmi 'any'
 export interface MenuItem {
@@ -151,6 +152,7 @@ export default function AdminPage() {
 
   const [pendapatanData, setPendapatanData] = useState<PendapatanSummary | null>(null);
   const [pendapatanRange, setPendapatanRange] = useState<string>('7');
+  const [tanggalSekarang] = useState<Date | null>(() => new Date());
 
   // Form Tambah Menu State
   const [newMenu, setNewMenu] = useState<{
@@ -409,6 +411,46 @@ export default function AdminPage() {
     loadAllData();
   };
 
+  // Data grafik beranda
+  // Data grafik beranda
+  const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
+  const tglLokal = (d: Date) => d.toLocaleDateString('en-CA');
+
+  const pesananPerHari = tanggalSekarang
+    ? Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(tanggalSekarang);
+        d.setDate(d.getDate() - (6 - i));
+
+        const kunci = tglLokal(d);
+
+        return {
+          label: d.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+          }),
+          value: pesananList.filter(
+            (p) =>
+              p.created_at &&
+              tglLokal(new Date(p.created_at)) === kunci
+          ).length,
+        };
+      })
+    : [];
+  const hitungStatus = (daftar: { status: string }[], cocok: string[]) =>
+    daftar.filter((x) => cocok.includes(x.status)).length;
+  const statusPesananChart = [
+    { label: 'Pending', value: hitungStatus(pesananList, ['pending']), warna: '#e0a526' },
+    { label: 'Diproses', value: hitungStatus(pesananList, ['diproses']), warna: '#4a7fd1' },
+    { label: 'Selesai', value: hitungStatus(pesananList, ['selesai']), warna: '#3d9a5f' },
+  ];
+  const statusReservasiChart = [
+    { label: 'Pending', value: hitungStatus(reservasiList, ['pending']), warna: '#e0a526' },
+    { label: 'Dikonfirmasi', value: hitungStatus(reservasiList, ['approved', 'dikonfirmasi']), warna: '#4a7fd1' },
+    { label: 'Selesai', value: hitungStatus(reservasiList, ['complete', 'selesai']), warna: '#3d9a5f' },
+    { label: 'Dibatalkan', value: hitungStatus(reservasiList, ['dibatalkan', 'cancelled']), warna: '#c0524a' },
+  ];
+  const labelRentang = pendapatanRange === 'hari' ? 'hari ini (per jam)' : `${pendapatanRange} hari terakhir`;
+
   if (!isLoggedIn) {
     return (
       <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
@@ -545,7 +587,7 @@ export default function AdminPage() {
       <main className="admin-main flex-grow-1 p-4 overflow-auto">
         {/* TAB 1: STATISTIK */}
         {activeTab === 'statistik' && (
-          <div>
+          <><div>
             <h1 className="fs-3 fw-bold mb-4">Dashboard Statistik</h1>
             <div className="row g-3 mb-4">
               <div className="col-md-3">
@@ -573,7 +615,44 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </div><div className="row g-3 mb-3">
+              <div className="col-lg-7">
+                <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                  <h5 className="fw-bold">Pesanan 7 Hari Terakhir</h5>
+                  <p className="chart-sub">Jumlah pesanan masuk per hari (semua status)</p>
+                  <BarChart data={pesananPerHari} format={(n) => `${n} pesanan`} kosong="Belum ada pesanan dalam 7 hari terakhir." />
+                </div>
+              </div>
+              <div className="col-lg-5">
+                <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                  <h5 className="fw-bold">Status Pesanan</h5>
+                  <p className="chart-sub">{pesananList.length} pesanan seluruhnya</p>
+                  <StatusBars items={statusPesananChart} />
+                </div>
+              </div>
+            </div><div className="row g-3">
+              <div className="col-lg-7">
+                <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                  <h5 className="fw-bold">Pendapatan</h5>
+                  <p className="chart-sub">Dari pesanan selesai, {labelRentang}</p>
+                  <BarChart
+                    data={(pendapatanData?.grafik || []).map((g) => ({
+                      label: pendapatanRange === 'hari' ? g.label : g.label.slice(5).split('-').reverse().join('/'),
+                      value: g.total,
+                    }))}
+                    format={rupiah}
+                    ringkas={singkat}
+                    kosong="Belum ada pendapatan pada rentang ini." />
+                </div>
+              </div>
+              <div className="col-lg-5">
+                <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                  <h5 className="fw-bold">Status Reservasi</h5>
+                  <p className="chart-sub">{reservasiList.length} reservasi seluruhnya</p>
+                  <StatusBars items={statusReservasiChart} />
+                </div>
+              </div>
+            </div></>
         )}
 
         {/* TAB 2: PENDAPATAN */}
