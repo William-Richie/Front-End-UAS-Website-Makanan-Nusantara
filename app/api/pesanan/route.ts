@@ -8,7 +8,7 @@ export async function GET() {
     // const list = await prisma.pesanan.findMany({
     //   orderBy: { created_at: 'desc' },
     // });
-    const list = await db.orm.public.Pesanan.where({}).orderBy((p) => p.created_at.desc());
+    const list = await db.orm.public.Pesanan.where({}).orderBy((p) => p.created_at.desc()).all();
     return NextResponse.json({ data: list });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal memuat pesanan.';

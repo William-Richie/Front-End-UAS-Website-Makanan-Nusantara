@@ -39,7 +39,7 @@ export async function GET() {
     // const list = await prisma.faqPertanyaan.findMany({
     //   orderBy: { created_at: 'desc' },
     // });
-    const list = await db.orm.public.FaqPertanyaan.where({}).orderBy((pertanyaan) => pertanyaan.created_at.desc());
+    const list = await db.orm.public.FaqPertanyaan.where({}).orderBy((pertanyaan) => pertanyaan.created_at.desc()).all();
     return NextResponse.json({ data: list });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal memuat pertanyaan.';

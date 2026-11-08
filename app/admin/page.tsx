@@ -177,6 +177,27 @@ export default function AdminPage() {
     jawaban: '',
   });
 
+  // kolom item di database bisa berupa JSON keranjang atau teks biasa
+  const ringkasItem = (raw: string): string => {
+    try {
+      const p = JSON.parse(raw);
+      if (Array.isArray(p?.daftar_menu)) {
+        return p.daftar_menu
+          .map((m: { nama_makanan: string; quantity?: number }) => `${m.nama_makanan} x${m.quantity || 1}`)
+          .join(', ');
+      }
+    } catch {
+      // bukan JSON, tampilkan apa adanya
+    }
+    return raw;
+  };
+
+  const STATUS_PESANAN: Record<string, string> = {
+    pending: 'bg-warning text-dark',
+    diproses: 'bg-primary',
+    selesai: 'bg-success',
+  };
+
   // Cek sesi login admin
   useEffect(() => {
     const adminSession = localStorage.getItem('papeda_admin_logged');
@@ -187,32 +208,35 @@ export default function AdminPage() {
   }, []);
 
   const loadAllData = async () => {
-    try {
-      fetch('/api/menu').then((r) => r.json()).then((d) => setMenus(d.data || []));
-      fetch('/api/pesanan').then((r) => r.json()).then((d) => setPesananList(d.data || []));
-      fetch('/api/faq').then((r) => r.json()).then((d) => setFaqList(d.data || []));
-      fetch('/api/faq/pertanyaan').then((r) => r.json()).then((d) => setPertanyaanList(d.data || []));
-      fetch('/api/reservasi').then((r) => r.json()).then((d) => setReservasiList(d.data || []));
-      fetch('/api/pengunjung').then((r) => r.json()).then((d) => setStatistik(d.data || d));
-      fetch('/api/favorit').then((r) => r.json()).then((d) => setFavoritList(d.data || []));
-      fetch('/api/konten').then((r) => r.json()).then((d) => {
-        if (d.data || d) setKontenWeb((prev) => ({ ...prev, ...(d.data || d) }));
-      });
-      fetch('/api/footer').then((r) => r.json()).then((d) => {
-        if (d.data || d) setFooterData(d.data || d);
-      });
-      fetch(`/api/pendapatan?range=${pendapatanRange}`)
-        .then((r) => r.json())
-        .then((d) => setPendapatanData(d));
-    } catch (e) {
-      console.error(e);
-    }
+    const ambil = (url: string) => fetch(url).then((r) => r.json()).catch(() => null);
+    const daftar = <T,>(d: { data?: unknown } | null): T[] => (Array.isArray(d?.data) ? (d.data as T[]) : []);
+    const objek = <T extends object>(d: { data?: unknown } | null): Partial<T> => {
+      const v = d && 'data' in d ? d.data : d;
+      return v && typeof v === 'object' && !Array.isArray(v) ? (v as Partial<T>) : {};
+    };
+    const tanpaNull = <T extends object>(o: Partial<T>) =>
+      Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null && v !== undefined)) as Partial<T>;
+
+    ambil('/api/menu').then((d) => setMenus(daftar<MenuItem>(d)));
+    ambil('/api/pesanan').then((d) => setPesananList(daftar<PesananItem>(d)));
+    ambil('/api/faq').then((d) => setFaqList(daftar<FaqItem>(d)));
+    ambil('/api/faq/pertanyaan').then((d) => setPertanyaanList(daftar<FaqPertanyaanItem>(d)));
+    ambil('/api/reservasi').then((d) => setReservasiList(daftar<ReservasiItem>(d)));
+    ambil('/api/favorit').then((d) => setFavoritList(daftar<FavoritSlot>(d)));
+    ambil('/api/pengunjung').then((d) => {
+      const s = objek<StatistikData>(d);
+      setStatistik(typeof s.jumlah_pengunjung === 'number' ? (s as StatistikData) : null);
+    });
+    ambil('/api/konten').then((d) => setKontenWeb((prev) => ({ ...prev, ...tanpaNull<KontenWebData>(objek<KontenWebData>(d)) })));
+    ambil('/api/footer').then((d) => setFooterData((prev) => ({ ...prev, ...tanpaNull<FooterData>(objek<FooterData>(d)) })));
+    ambil(`/api/pendapatan?range=${pendapatanRange}`).then((d) => setPendapatanData(d?.ringkasan ? d : null));
   };
 
   useEffect(() => {
     if (isLoggedIn) {
       loadAllData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, pendapatanRange]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -582,7 +606,9 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {pendapatanData && (
+            {!pendapatanData ? (
+              <div className="alert alert-warning">Data pendapatan belum bisa dimuat. Coba refresh halaman.</div>
+            ) : (
               <>
                 <div className="row g-3 mb-4">
                   <div className="col-md-3">
@@ -1139,13 +1165,18 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {pesananList.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center text-muted py-4">Belum ada pesanan masuk.</td>
+                    </tr>
+                  )}
                   {pesananList.map((p) => (
                     <tr key={p.id}>
                       <td>#{p.id}</td>
                       <td className="fw-bold">{p.nama}</td>
-                      <td className="small" style={{ maxWidth: '300px' }}>{p.item}</td>
-                      <td>Rp {p.total.toLocaleString('id-ID')}</td>
-                      <td><span className="badge bg-warning text-dark">{p.status}</span></td>
+                      <td className="small" style={{ maxWidth: '300px' }}>{ringkasItem(p.item)}</td>
+                      <td>Rp {Number(p.total || 0).toLocaleString('id-ID')}</td>
+                      <td><span className={`badge ${STATUS_PESANAN[p.status] || 'bg-secondary'}`}>{p.status}</span></td>
                       <td>
                         <div className="btn-group btn-group-sm">
                           <button
