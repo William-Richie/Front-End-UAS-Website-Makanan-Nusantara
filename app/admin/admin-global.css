@@ -20,7 +20,7 @@
 }
 .admin-sidebar h2 {
     font-family: var(--font-playfair), serif;
-    color: #f7ede1;
+    color: #f7ede1 !important;
     font-size: 1.35rem !important;
     padding-bottom: 18px;
     border-bottom: 1px solid rgba(255,255,255,.15);
@@ -105,23 +105,20 @@
     overflow-x: hidden;
     background: #f7f3ed;
 }
-.admin-main h1,
-.admin-main h2,
-.admin-main h3,
-.admin-main h4 {
+.admin-main :is(h1, h2, h3, h4):not(.site-preview *) {
     font-family: var(--font-playfair), serif;
     color: #3b2314;
 }
-.admin-main h1 {
+.admin-main h1:not(.site-preview *) {
     font-size: 1.8rem;
     font-weight: 700;
     margin-bottom: 22px;
 }
-.admin-main h2 {
+.admin-main h2:not(.site-preview *) {
     font-size: 1.3rem;
     font-weight: 700;
 }
-.admin-main p {
+.admin-main p:not(.site-preview *) {
     line-height: 1.6;
 }
 
@@ -255,6 +252,146 @@
     border-radius: 10px;
 }
 
+/* GRAFIK BERANDA */
+.admin-main 
+.chart-card h5 { 
+    font-size: 1.05rem; 
+    margin-bottom: 4px; 
+}
+.admin-main 
+.chart-sub { 
+    font-size: .8rem; 
+    color: #8a7360; 
+    margin-bottom: 16px; 
+}
+.admin-main 
+.chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 210px;
+    padding-top: 6px;
+    margin-bottom: 26px;
+    border-bottom: 1px solid #e3d3c0;
+}
+.admin-main 
+.chart-col {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+.admin-main 
+.chart-val {
+    font-size: .7rem;
+    font-weight: 700;
+    color: #6b4226;
+    height: 16px;
+    line-height: 16px;
+    white-space: nowrap;
+}
+.admin-main 
+.chart-track {
+    flex: 1;
+    width: 100%;
+    max-width: 44px;
+    display: flex;
+    align-items: flex-end;
+}
+.admin-main 
+.chart-bar {
+    width: 100%;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, #c99b63, #8b5e34);
+    transform-origin: bottom;
+    animation: chartGrow .6s cubic-bezier(.22, 1, .36, 1) both;
+}
+.admin-main 
+.chart-col:hover 
+.chart-bar { 
+    background: linear-gradient(180deg, #d9ac74, #6b4226); 
+}
+.admin-main 
+.chart-label {
+    position: absolute;
+    top: 100%;
+    margin-top: 6px;
+    font-size: .68rem;
+    color: #8a7360;
+    white-space: nowrap;
+}
+.admin-main 
+.chart-empty {
+    display: grid;
+    place-items: center;
+    min-height: 120px;
+    color: #8a7360;
+    font-size: .9rem;
+    border: 1px dashed #d8c3ab;
+    border-radius: 10px;
+}
+.admin-main 
+.status-bars { 
+    display: grid; 
+    gap: 12px; 
+}
+.admin-main 
+.status-head { 
+    display: flex; 
+    justify-content: space-between; 
+    font-size: .85rem; 
+    margin-bottom: 4px; 
+}
+.admin-main 
+.status-track { 
+    height: 8px; 
+    border-radius: 99px; 
+    background: #efe4d6; 
+    overflow: hidden; 
+}
+.admin-main 
+.status-fill {
+    height: 100%;
+    border-radius: 99px;
+    animation: statusGrow .7s cubic-bezier(.22, 1, .36, 1) both;
+    transform-origin: left;
+}
+@keyframes chartGrow { from { transform: scaleY(0); } }
+@keyframes statusGrow { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+    .admin-main .chart-bar,
+    .admin-main .status-fill { animation: none; }
+}
+
+/* PREVIEW KONTEN & FOOTER (komponen asli user, diperkecil) */
+.admin-main .site-preview {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-bg-cream, #fff);
+    pointer-events: none;
+    user-select: none;
+}
+.admin-main .site-preview-inner { transform-origin: top left; }
+.admin-main .site-preview .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+}
+.admin-main .site-preview .page-section { margin-bottom: 0; }
+.admin-main .preview-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: #4a2c17;
+    color: #fff;
+    font-weight: 700;
+    font-size: .9rem;
+}
+.admin-main .preview-bar .badge { background: #3d9a5f; }
 /* Kelola Reservasi*/
 .admin-main .reservation-toolbar { 
     display: flex; 
