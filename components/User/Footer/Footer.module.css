@@ -69,25 +69,6 @@
   outline: 2px solid var(--color-accent-gold);
   outline-offset: 3px;
 }
-
-/* .socialBtn i {
-  width: auto;
-  height: auto;
-  display: inline-block;
-  border-radius: 0;
-  box-shadow: none;
-  background-color: transparent;
-  font-size: inherit;
-  font-weight: 400;
-  cursor: inherit;
-  transition: none;
-}
-
-.socialBtn i:hover {
-  transform: none;
-  background-color: var(--color-border-wheat);
-  color: var(--color-primary-brown);
-} */
  
 @media (prefers-reduced-motion: reduce) {
   .socialBtn {

@@ -1,6 +1,6 @@
 .orbitWrapper {
-  --r: 115px;     /* radius cincin */
-  --item: 76px;   /* diameter item */
+  --r: 115px;     
+  --item: 76px; 
   position: relative;
   width: calc(var(--r) * 2 + var(--item));
   max-width: 100%;
@@ -23,8 +23,7 @@
   transform: rotateX(60deg);
   animation: orbitSpin 20s infinite ease-in-out;
 }
- 
-/* garis cincin */
+
 .orbitPath::before {
   content: "";
   position: absolute;
@@ -67,7 +66,6 @@
   opacity: 0.7;
 }
  
-/* ---------- Deskripsi ---------- */
 .descContainer {
   max-width: 520px;
   min-height: 120px;
@@ -87,7 +85,6 @@
   color: var(--color-spicy-red);
 }
  
-/* ---------- Keyframes ---------- */
 @keyframes orbitSpin {
   0%, 15%   { transform: rotateX(60deg) rotateZ(0deg); }
   20%, 35%  { transform: rotateX(60deg) rotateZ(-72deg); }
@@ -113,8 +110,7 @@
   18%  { opacity: 0; transform: translateY(-6px); }
   100% { opacity: 0; }
 }
- 
-/* Tanpa animasi: cincin diam, hanya deskripsi pertama yang tampil */
+
 @media (prefers-reduced-motion: reduce) {
   .orbitPath,
   .orbitItem,

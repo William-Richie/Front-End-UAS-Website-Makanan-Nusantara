@@ -37,7 +37,6 @@
   box-shadow: 0 4px 10px rgba(74, 44, 23, 0.3);
 }
  
-/* ---------- Grup & grid ---------- */
 .menuGroup {
   display: none;
 }
@@ -82,7 +81,6 @@
   .menuGrid { grid-template-columns: repeat(4, 1fr); }
 }
  
-/* ---------- Kartu menu ---------- */
 .menuCard {
   position: relative;
   display: flex;
@@ -96,7 +94,6 @@
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.35s, border-color 0.35s, opacity 0.6s;
 }
  
-/* .reveal (global) juga mengatur transition; pakai specificity lebih tinggi */
 .menuCard:global(.reveal) {
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.35s, border-color 0.35s, opacity 0.6s;
 }
@@ -107,8 +104,7 @@
   border-color: var(--color-ochre-honey);
   box-shadow: 0 20px 34px var(--color-alpha-dark-3d);
 }
- 
-/* segitiga batik di atas kartu */
+
 .menuCard::before,
 .modalCard::before {
   content: "";
@@ -232,7 +228,6 @@
   transform: translate(-50%, 0);
 }
  
-/* ---------- Level pedas ---------- */
 .spicy {
   display: flex;
   justify-content: center;
@@ -269,7 +264,6 @@
   font-size: 10px;
 }
  
-/* ---------- Isi kartu ---------- */
 .body {
   display: flex;
   flex-direction: column;
@@ -358,7 +352,6 @@
   cursor: not-allowed;
 }
  
-/* ---------- Modal detail ---------- */
 .modalCard {
   overflow: hidden;
   border-radius: 20px;
@@ -488,7 +481,6 @@
   padding: 0.55rem 1.4rem;
 }
  
-/* ---------- Keyframes ---------- */
 @keyframes menuFade {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: none; }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import styles from './Navbar.module.css';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Dropdown, Nav } from 'react-bootstrap';
 
 interface NavbarProps {
@@ -13,8 +14,6 @@ interface NavbarProps {
   onOpenProfile?: () => void;
 }
 
-const SECTION_IDS = ['home', 'about', 'favorite-menus', 'menu', 'faq', 'location', 'reservation', 'my-reservation'];
-
 export default function Navbar({
   user = null,
   onOpenAuth,
@@ -23,45 +22,18 @@ export default function Navbar({
 }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [activeId, setActiveId] = useState('home');
-  
-  useEffect(() => {
-    let raf = 0;
-  
-    const hitung = () => {
-      raf = 0;
-      const garis = 90 + window.innerHeight * 0.3;
-      const diDasar = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
-      let aktif = 'home';
-      for (const id of SECTION_IDS) {
-        const el = document.getElementById(id);
-        if (!el || el.offsetHeight === 0) continue;
-        if (diDasar || el.getBoundingClientRect().top <= garis) aktif = id;
-      }
-      setActiveId(aktif);
-    };
+  const pathname = usePathname();
 
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(hitung);
-    };
-    raf = requestAnimationFrame(hitung);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, [user]);
+  const isActive = (href: string) =>
+    href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
 
   const closeMenu = () => setMenuOpen(false);
 
   return (
     <header className="sticky-top">
       <div className={`${styles.headerContainer} d-flex justify-content-between align-items-center position-relative`}>
-        {/* Logo dan autentikasi */}
         <div className={styles.login}>
-          <Link href="#home" className={styles.logo}>
+          <Link href="/" className={styles.logo}>
             <Image
               src="/img/Web-Icon/PAPEDA.png"
               alt="Logo Papeda"
@@ -129,7 +101,7 @@ export default function Navbar({
 
                 <Dropdown.Item
                   as={Link}
-                  href="#my-reservation"
+                  href="/my-reservation"
                   className={styles.userItem}
                   onClick={() => setDropdownOpen(false)}
                 >
@@ -156,7 +128,6 @@ export default function Navbar({
           )}
         </div>
 
-        {/* Hamburger menu */}
         <button
           type="button"
           className={`${styles.hamburger} ${menuOpen ? styles.hamburgerOpen : ''}`}
@@ -177,43 +148,43 @@ export default function Navbar({
         >
           <Nav as="ul">
             <Nav.Item as="li">
-              <Nav.Link href="#home" active={activeId === 'home'} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/" active={isActive('/')} onClick={closeMenu}>
                 Home
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#about" active={activeId === 'about'} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/about" active={isActive('/about')} onClick={closeMenu}>
                 About
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#favorite-menus" active={activeId === 'favorite-menus'} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/favorite" active={isActive('/favorite')} onClick={closeMenu}>
                 Favorite
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#menu" active={activeId === 'menu'} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/menu" active={isActive('/menu')} onClick={closeMenu}>
                 Menu
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#faq" active={activeId === 'faq'} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/faq" active={isActive('/faq')} onClick={closeMenu}>
                 FAQ
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#location" active={activeId === 'location'} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/location" active={isActive('/location')} onClick={closeMenu}>
                 Location
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link href="#reservation" active={activeId === 'reservation'} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/reservation" active={isActive('/reservation')} onClick={closeMenu}>
                 Reservation
               </Nav.Link>
             </Nav.Item>
@@ -221,8 +192,9 @@ export default function Navbar({
             {user && (
               <Nav.Item as="li" id="nav-myres">
                 <Nav.Link
-                  href="#my-reservation"
-                  active={activeId === 'my-reservation'}
+                  as={Link}
+                  href="/my-reservation"
+                  active={isActive('/my-reservation')}
                   onClick={closeMenu}
                 >
                   My Reservation

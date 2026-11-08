@@ -3,6 +3,7 @@ generator client {
 }
 
 datasource db {
+  // provider = "sqlite"
   provider = "postgresql"
 }
 

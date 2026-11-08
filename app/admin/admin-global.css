@@ -392,6 +392,318 @@
     font-size: .9rem;
 }
 .admin-main .preview-bar .badge { background: #3d9a5f; }
+/* Kelola Reservasi*/
+.admin-main .reservation-toolbar { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 16px;
+     width: 100%; 
+     margin-bottom: 14px; 
+}
+
+.admin-main .reservation-tabs { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    flex-wrap: nowrap; 
+    overflow-x: auto; 
+    padding-bottom: 2px;
+}
+
+.admin-main .tab-btn { 
+    flex: 0 0 auto; 
+    padding: 8px 16px; 
+    border: 1px solid #d8c3ab; 
+    background: #f7ede1; 
+    color: #3b2314; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-weight: 700; 
+    transition: .2s ease; 
+}
+
+.admin-main .tab-btn:hover { 
+    box-shadow: 0 4px 12px rgba(118,81,29,.25); 
+}
+
+.admin-main .tab-btn .badge { 
+    background: transparent; 
+    color: #3b2314; 
+    padding: 0 0 0 4px; 
+}
+
+.admin-main .tab-btn.active { 
+    background: #4a2c17; 
+    color: #fff; 
+    border-color: #4a2c17; 
+}
+
+.admin-main .tab-btn.active .badge { 
+    color: #fff; 
+}
+
+.admin-main .reservation-tools { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    width: 100%;
+}
+
+.admin-main .filter-button { 
+    width: 42px; 
+    height: 42px; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 0; 
+    border: 1px solid #d9bea5; 
+    border-radius: 8px; 
+    background: #fffaf4; 
+    color: #2d2926; 
+    cursor: pointer; 
+}
+
+.admin-main .filter-button:hover { 
+    background: #f3e5d5; 
+}
+
+.admin-main .filter-button.on { 
+    background: #4a2c17; color: #fff; 
+    border-color: #4a2c17; 
+}
+
+.admin-main .reservation-tools .form-control { 
+    flex: 1; 
+    min-height: 42px;
+    border-radius: 10px; 
+    border-color: #d9bea5; 
+}
+
+.admin-main .table thead.table-dark th { 
+    background-color: #6b4226 !important; 
+    color: #fff !important; 
+    border-color: #4a2c17 !important; 
+    white-space: nowrap; 
+}
+
+.admin-main .table-striped > tbody > tr:nth-of-type(odd) > * { 
+    background-color: #f7ede1; 
+    color: #5c4433; 
+}
+
+.admin-main .table-striped > tbody > tr:nth-of-type(even) > * { 
+    background-color: #fffaf3; 
+    color: #5c4433; 
+}
+
+.admin-main .th-checkbox { 
+    width: 40px; 
+    text-align: center; 
+}
+
+.admin-main .form-check-input { 
+    width: 22px; 
+    height: 22px; 
+    cursor: pointer; 
+}
+
+.admin-main #user-table-body td { 
+    vertical-align: middle; 
+    text-align: center; 
+    padding-top: 14px; 
+    padding-bottom: 14px; 
+}
+
+.admin-main #user-table-body td:nth-child(3), .admin-main #user-table-body td:nth-child(4) { 
+    text-align: left; 
+    padding-left: 25px; 
+}
+
+.admin-main .admin-table { 
+    min-width: 52rem; 
+}
+
+.admin-main #reservation-table-body td { 
+    vertical-align: middle; 
+}
+
+.admin-main .aksi { 
+    width: 150px; 
+    min-width: 150px; 
+    text-align: center; 
+    padding: 8px !important; 
+}
+
+.admin-main .reservation-actions { 
+    display: flex; 
+    flex-direction: column;
+    width: 100%; 
+    height: 76px; 
+    border: 1px solid #5f3a22; 
+    border-radius: 6px;
+    overflow: hidden; 
+}
+
+.admin-main .reservation-actions button { 
+    flex: 1; 
+    width: 100%; 
+    border: none; 
+    font-size: 14px; 
+    font-weight: 500; 
+    cursor: pointer; 
+    transition: .2s ease; 
+}
+
+.admin-main .btn-action-confirm { 
+    background: #f8f5f0; 
+    color: #3f2b1f; 
+}
+
+.admin-main .btn-action-confirm:hover { 
+    background: #e8dfd4; 
+}
+
+.admin-main .btn-action-cancel { 
+    background: #f8f5f0; 
+    color: #9b2c2c; 
+    border-top: 1px solid #5f3a22 !important; 
+}
+
+.admin-main .btn-action-cancel:hover { 
+    background: #f1dede; 
+    color: #7a2020; 
+}
+
+.admin-main .user-action-bar { 
+    background: #f8f4f0; 
+    flex-wrap: wrap; 
+    gap: .75rem; 
+}
+
+.admin-main .custom-action-dropdown .btn { 
+    border: 1px solid #d3c3b3; 
+    background-color: #fff; 
+    min-width: 190px; 
+    height: 31px; 
+}
+
+.admin-main .aksi-menu { 
+    position: absolute; 
+    top: calc(100% + 4px); 
+    left: 0; 
+    z-index: 50; 
+    min-width: 100%; 
+    list-style: none; 
+    margin: 0; 
+padding: 8px 0;
+    background: #fff; 
+    border: 1px solid #e9ecef; 
+    border-radius: 8px; 
+}
+
+.admin-main .aksi-item { 
+    display: block; 
+    width: 100%; 
+    padding: 8px 16px; 
+    text-align: left; 
+    background: transparent; 
+    border: 0; 
+    font-weight: 500; 
+}
+
+.admin-main .aksi-item:hover { 
+    background: #f8f4f0; 
+}
+
+/* Kelola Reservasi konfirmasi */
+.confirm-backdrop { 
+    position: fixed; 
+    inset: 0; 
+    z-index: 2000; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 16px; 
+    background: rgba(0,0,0,.5); 
+}
+
+.custom-confirm-modal { 
+    position: relative; 
+    width: min(440px, 100%); 
+    padding: 28px 24px 24px; 
+    text-align: center; 
+    background: #fffaf4; 
+    border-radius: 18px; 
+    box-shadow: 0 15px 45px rgba(0,0,0,.25); 
+}
+
+.confirm-close { 
+    position: absolute; 
+    top: 16px;
+    right: 16px; 
+}
+
+.modal-warning-icon { 
+    width: 52px; 
+    height: 52px; 
+    margin: 0 auto 16px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    background: #f3dfcc; 
+    color: #704524; 
+    font-size: 28px; 
+    font-weight: 700; 
+}
+
+.confirm-title { 
+    margin: 8px 0 10px; 
+    color: #4e301e; 
+    font-size: 23px; 
+    font-weight: 700; 
+    font-family: var(--font-playfair), serif; 
+}
+
+.confirm-message { 
+    margin: 0 auto; 
+    max-width: 380px; 
+    color: #765b47; 
+    font-size: 15px; 
+    line-height: 1.6; 
+}
+
+.btn-confirm-back { 
+    min-width: 110px;
+     padding: 9px 18px;
+    border: 1px solid #cdbba9; 
+    border-radius: 8px; 
+    background: #fffaf4; 
+    color: #654936; 
+    font-size: 14px; 
+    font-weight: 600; 
+    transition: .2s ease; 
+}
+
+.btn-confirm-back:hover { 
+    background: #eee3d8; 
+}
+
+.btn-confirm-danger { 
+    min-width: 120px; 
+    padding: 9px 18px; 
+    border: 1px solid #8f3535; 
+    border-radius: 8px; 
+    background: #8f3535; 
+    color: #fff; 
+    font-size: 14px; 
+    font-weight: 600; 
+    transition: .2s ease; 
+}
+
+.btn-confirm-danger:hover { 
+    filter: brightness(.9); 
+}
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
@@ -433,6 +745,7 @@
     .admin-main h1 {
         font-size: 1.45rem;
     }
+    
 }
 
 @media (max-width: 420px) {
@@ -445,4 +758,11 @@
     .admin-main .btn {
         font-size: .8rem;
     }
+}
+
+@media (min-width: 992px) { 
+    .admin-main 
+    .reservation-tabs { 
+        flex-wrap: wrap; 
+    } 
 }

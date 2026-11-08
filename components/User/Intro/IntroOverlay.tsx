@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from './IntroOverlay.module.css';
 import Image from 'next/image';
 import { Container, Button } from 'react-bootstrap';
@@ -9,8 +9,21 @@ interface IntroOverlayProps {
   onEnter: () => void;
 }
 
+const ITEMS = [
+  { src: '/img/intro/spatula.png', alt: 'Spatula' },
+  { src: '/img/intro/tepung.png', alt: 'Tepung sagu' },
+  { src: '/img/intro/rempah.png', alt: 'Rempah' },
+  { src: '/img/intro/kelapa.png', alt: 'Kelapa' },
+  { src: '/img/intro/bumbu.png', alt: 'Bumbu' },
+  { src: '/img/intro/garam.png', alt: 'Garam' },
+];
+
+const MAX_WAIT_MS = 4000;
+
 export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
   const [visible, setVisible] = useState(true);
+  const [imagesReady, setImagesReady] = useState(false);
+  const loaded = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const isEntered = sessionStorage.getItem('hasEntered') === 'true';
@@ -21,6 +34,16 @@ export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
       return () => clearTimeout(timer);
     }
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setImagesReady(true), MAX_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleImageDone = (index: number) => {
+    loaded.current.add(index);
+    if (loaded.current.size >= ITEMS.length) setImagesReady(true);
+  };
 
   const handleStart = () => {
     sessionStorage.setItem('hasEntered', 'true');
@@ -34,7 +57,7 @@ export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
   if (!visible) return null;
 
   return (
-    <div id="intro" className={styles.intro}>
+    <div id="intro" className={`${styles.intro} ${imagesReady ? styles.ready : ''}`}>
       <Container className="mb-4">
         <p className={`${styles.introEyebrow} mb-2`}>Cita Rasa Timur Indonesia</p>
         <h1 className={`${styles.introTitle} mb-2`}>Papeda Restaurant</h1>
@@ -43,24 +66,20 @@ export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
 
       <div className={`${styles.introTable} w-100 py-4`}>
         <div className="d-flex flex-nowrap justify-content-center align-items-center gap-1 gap-md-5 px-2 px-md-3">
-          <div className={`${styles.introItem} ${styles.item0}`}>
-            <Image src="/img/intro/spatula.png" alt="Spatula" width={60} height={60} />
-          </div>
-          <div className={`${styles.introItem} ${styles.item1}`}>
-            <Image src="/img/intro/tepung.png" alt="Tepung sagu" width={60} height={60} />
-          </div>
-          <div className={`${styles.introItem} ${styles.item2}`}>
-            <Image src="/img/intro/rempah.png" alt="Rempah" width={60} height={60} />
-          </div>
-          <div className={`${styles.introItem} ${styles.item3}`}>
-            <Image src="/img/intro/kelapa.png" alt="Kelapa" width={60} height={60} />
-          </div>
-          <div className={`${styles.introItem} ${styles.item4}`}>
-            <Image src="/img/intro/bumbu.png" alt="Bumbu" width={60} height={60} />
-          </div>
-          <div className={`${styles.introItem} ${styles.item5}`}>
-            <Image src="/img/intro/garam.png" alt="Garam" width={60} height={60} />
-          </div>
+          {ITEMS.map((item, i) => (
+            <div key={item.src} className={`${styles.introItem} ${styles[`item${i}`]}`}>
+              <Image
+                src={item.src}
+                alt={item.alt}
+                width={60}
+                height={60}
+                loading="eager"
+                fetchPriority="high"
+                onLoad={() => handleImageDone(i)}
+                onError={() => handleImageDone(i)}
+              />
+            </div>
+          ))}
         </div>
       </div>
 
