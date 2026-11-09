@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-// import prisma from '@/lib/prisma';  //Prisma 7 (lama)
-import { db } from '@/prisma/db';
+import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
@@ -13,11 +12,9 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = String(email || '').trim().toLowerCase();
 
-    // const user = await prisma.user.findUnique({
-    //   where: { email: cleanEmail },
-    // });
-
-    const user = await db.orm.public.User.where({ email: cleanEmail }).first();
+    const user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
 
     if (!user) {
       return NextResponse.json({ error: 'Email atau password salah.' }, { status: 401 });

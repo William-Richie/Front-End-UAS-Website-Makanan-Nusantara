@@ -1,4 +1,4 @@
-// SQLite Lokal (Prisma 7)
+// Sqlite Local
 // import { PrismaClient } from '@prisma/client';
 // import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
@@ -21,8 +21,32 @@
 
 // export default prisma;
 
-// PostgreSQL (Prisma 8), client dibuat di prisma/db.ts
-import { db } from '@/prisma/db';
+// Postgresql prisma.io
+import 'dotenv/config';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-export { db };
-export default db;
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+function createPrismaClient(): PrismaClient {
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString || connectionString.startsWith('file:')) {
+    throw new Error('DATABASE_URL belum menggunakan PostgreSQL.');
+  }
+
+  const adapter = new PrismaPg({ connectionString });
+
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+export default prisma;

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-// import prisma from '@/lib/prisma';  //Prisma 7 (lama)
-import { db } from '@/prisma/db';
+import prisma from '@/lib/prisma';
 
 // PUT /api/reservasi/[id]/batal - Membatalkan reservasi
 export async function PUT(
@@ -10,11 +9,10 @@ export async function PUT(
   try {
     const { id } = await params;
 
-    // const updated = await prisma.reservasi.update({
-    //   where: { id },
-    //   data: { status: 'dibatalkan' },
-    // });
-    const updated = await db.orm.public.Reservasi.where({ id }).update({ status: 'dibatalkan' });
+    const updated = await prisma.reservasi.update({
+      where: { id },
+      data: { status: 'dibatalkan' },
+    });
 
     return NextResponse.json({ pesan: 'Reservasi berhasil dibatalkan.', data: updated });
   } catch (error: unknown) {
