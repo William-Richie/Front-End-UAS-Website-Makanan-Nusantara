@@ -85,6 +85,21 @@
   color: var(--color-spicy-red);
 }
  
+.orbitItem {
+  cursor: pointer;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.orbitItem:hover {
+  border-color: var(--color-accent-tan);
+  box-shadow: 0 10px 25px rgba(59, 35, 20, 0.4);
+}
+
+.orbitItem:focus-visible {
+  outline: 3px solid var(--color-accent-tan);
+  outline-offset: 5px;
+}
+
 @keyframes orbitSpin {
   0%, 15%   { transform: rotateX(60deg) rotateZ(0deg); }
   20%, 35%  { transform: rotateX(60deg) rotateZ(-72deg); }

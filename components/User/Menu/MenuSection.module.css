@@ -481,6 +481,78 @@
   padding: 0.55rem 1.4rem;
 }
  
+.menuSearch {
+  max-width: 650px;
+  margin: 0 auto 35px;
+}
+
+.menuSearch form {
+  padding: 8px 10px 8px 18px;
+  border: 1px solid var(--color-accent-tan);
+  border-radius: 50px;
+  background: var(--color-white);
+  box-shadow: 0 5px 18px rgba(59, 35, 20, 0.08);
+}
+
+.menuSearch form > div {
+  gap: 12px;
+}
+
+.menuSearch i {
+  color: var(--color-accent-tan);
+}
+
+.menuSearch input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.menuSearch input::placeholder {
+  color: #a49a90;
+}
+
+.menuSearch button {
+  flex-shrink: 0;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 30px;
+  background: var(--color-accent-tan);
+  color: var(--color-white);
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.menuSearch button:hover {
+  filter: brightness(0.9);
+}
+
+@media (max-width: 576px) {
+  .menuSearch {
+    margin-inline: 15px;
+  }
+
+  .menuSearch form {
+    padding-left: 14px;
+  }
+
+  .menuSearch button {
+    padding: 9px 17px;
+  }
+}
+
+.clearSearch {
+  border: none;
+  background: transparent;
+  color: var(--color-accent-tan);
+  cursor: pointer;
+  padding: 5px 8px;
+}
+
 @keyframes menuFade {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: none; }

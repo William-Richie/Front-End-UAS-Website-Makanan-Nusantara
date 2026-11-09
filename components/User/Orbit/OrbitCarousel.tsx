@@ -7,6 +7,7 @@ import styles from './OrbitCarousel.module.css';
 
 export interface FavoriteItem {
   id?: number;
+  menu_id?: number;
   nama_makanan?: string;
   gambar?: string;
   pedas?: number;
@@ -16,9 +17,13 @@ export interface FavoriteItem {
 
 interface OrbitCarouselProps {
   favorites?: FavoriteItem[];
+  onFavoriteClick?: (menuId: number) => void;
 }
 
-export default function OrbitCarousel({ favorites = [] }: OrbitCarouselProps) {
+export default function OrbitCarousel({
+  favorites = [],
+  onFavoriteClick,
+}: OrbitCarouselProps) {
   const items = useMemo(() => {
     const list: (FavoriteItem | null)[] = [];
     for (let i = 0; i < 5; i++) {
@@ -55,6 +60,26 @@ export default function OrbitCarousel({ favorites = [] }: OrbitCarouselProps) {
                   key={index}
                   className={`${styles.orbitItem} ${isFilled ? '' : styles.empty}`}
                   style={{ '--angle': `${180 + index * 72}deg` } as React.CSSProperties}
+                  role={isFilled ? 'button' : undefined}
+                  tabIndex={isFilled ? 0 : undefined}
+                  aria-label={isFilled ? `Lihat ${item?.nama_makanan}` : undefined}
+                  onClick={() => {
+                    if (item?.menu_id) {
+                      onFavoriteClick?.(item.menu_id);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (
+                      isFilled &&
+                      (e.key === 'Enter' || e.key === ' ')
+                    ) {
+                      e.preventDefault();
+
+                      if (item?.menu_id) {
+                        onFavoriteClick?.(item.menu_id);
+                      }
+                    }
+                  }}
                 >
                   {isFilled && item?.gambar ? (
                     <Image
