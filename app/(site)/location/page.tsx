@@ -1,11 +1,5 @@
-'use client';
-
-import LocationSection from '@/components/User/Location/LocationSection';
-import { useSite } from '@/components/User/Site/SiteContext';
-import { useReveal } from '@/hooks/useReveal';
+import { redirect } from 'next/navigation';
 
 export default function LocationPage() {
-  const { branches } = useSite();
-  useReveal([branches]);
-  return <LocationSection branches={branches} />;
+  redirect('/#location');
 }

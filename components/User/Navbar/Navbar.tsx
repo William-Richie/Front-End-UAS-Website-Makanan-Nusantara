@@ -25,7 +25,9 @@ export default function Navbar({
   const pathname = usePathname();
 
   const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
+  href === '/reservation' || href === '/my-reservation'
+    ? pathname === href || pathname.startsWith(href + '/')
+    : pathname === '/' && href.startsWith('/#');
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -148,43 +150,42 @@ export default function Navbar({
         >
           <Nav as="ul">
             <Nav.Item as="li">
-              <Nav.Link as={Link} href="/" active={isActive('/')} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/#home" onClick={closeMenu}>
                 Home
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link as={Link} href="/about" active={isActive('/about')} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/#about" onClick={closeMenu}>
                 About
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link as={Link} href="/favorite" active={isActive('/favorite')} onClick={closeMenu}>
-                Favorite
-              </Nav.Link>
-            </Nav.Item>
-
-            <Nav.Item as="li">
-              <Nav.Link as={Link} href="/menu" active={isActive('/menu')} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/menu" onClick={closeMenu}>
                 Menu
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link as={Link} href="/faq" active={isActive('/faq')} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/#faq" onClick={closeMenu}>
                 FAQ
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link as={Link} href="/location" active={isActive('/location')} onClick={closeMenu}>
+              <Nav.Link as={Link} href="/#location" onClick={closeMenu}>
                 Location
               </Nav.Link>
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link as={Link} href="/reservation" active={isActive('/reservation')} onClick={closeMenu}>
+              <Nav.Link
+                as={Link}
+                href="/reservation"
+                active={isActive('/reservation')}
+                onClick={closeMenu}
+              >
                 Reservation
               </Nav.Link>
             </Nav.Item>

@@ -1107,7 +1107,18 @@ main {
     box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
     animation: authSlide .4s ease;
 }
- 
+
+html {
+  scroll-behavior: smooth;
+}
+
+#home,
+#about,
+#faq,
+#location {
+  scroll-margin-top: 90px;
+}
+
 @media (prefers-reduced-motion: reduce) {
 .auth-pane.active {
         animation: none;
