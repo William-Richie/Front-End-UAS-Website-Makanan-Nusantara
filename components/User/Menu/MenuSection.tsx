@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Container, Modal, Row, Col, Button } from 'react-bootstrap';
 import styles from './MenuSection.module.css';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 export interface MenuItem {
   id: number;
@@ -19,6 +19,8 @@ export interface MenuItem {
 interface MenuSectionProps {
   menus?: MenuItem[];
   onAddToCart?: (menu: MenuItem, qty?: number) => void;
+  focusMenuId?: number | null;
+  onFocusComplete?: () => void;
 }
 
 const URUTAN_KATEGORI = ['APPETIZER', 'MAIN COURSE', 'DESSERT', 'MINUMAN', 'DRINK', 'ADDITIONAL'];
@@ -44,28 +46,69 @@ function Chili({ level }: { level: number }) {
   );
 }
 
-export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProps) {
+export default function MenuSection({
+  menus = [],
+  onAddToCart,
+  focusMenuId,
+  onFocusComplete,
+}: MenuSectionProps) {
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [modalQty, setModalQty] = useState(1);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentTab, setCurrentTab] = useState('');
   const [justAddedId, setJustAddedId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredMenus = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+
+    if (!keyword) return menus;
+
+    return menus.filter((menu) =>
+      menu.nama_makanan.toLowerCase().includes(keyword) ||
+      menu.nama_kategori.toLowerCase().includes(keyword) ||
+      (menu.deskripsi || '').toLowerCase().includes(keyword)
+    );
+  }, [menus, searchTerm]);
 
   const { grouped, categories } = useMemo(() => {
     const groupedData: Record<string, MenuItem[]> = {};
-    menus.forEach((item) => {
+
+    filteredMenus.forEach((item) => {
       const kat = (item.nama_kategori || 'LAINNYA').trim();
       (groupedData[kat] ||= []).push(item);
     });
+
     const getOrder = (k: string) => {
       const idx = URUTAN_KATEGORI.indexOf(k.toUpperCase());
       return idx === -1 ? 99 : idx;
     };
-    const sortedCats = Object.keys(groupedData).sort((a, b) => getOrder(a) - getOrder(b));
-    return { grouped: groupedData, categories: sortedCats };
-  }, [menus]);
+
+    const sortedCats = Object.keys(groupedData).sort(
+      (a, b) => getOrder(a) - getOrder(b)
+    );
+
+    return {
+      grouped: groupedData,
+      categories: sortedCats,
+    };
+  }, [filteredMenus]);
 
   const activeTab = categories.includes(currentTab) ? currentTab : categories[0] || '';
+  useEffect(() => {
+  if (!focusMenuId) return;
+
+  const targetMenu = menus.find((menu) => menu.id === focusMenuId);
+
+  if (targetMenu) {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedMenu(targetMenu);
+    setModalQty(1);
+    setModalVisible(true);
+  }
+
+  onFocusComplete?.();
+}, [focusMenuId, menus, onFocusComplete]);
 
   const openDetail = (menu: MenuItem) => {
       setModalQty(1);
@@ -116,8 +159,42 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
         </div>
 
         <div className="content-container" id="tempat-menu-dinamis">
+        <div className={`${styles.menuSearch} mb-4`}>
+          <form className="d-flex align-items-center gap-2">
+            <i className="fa-solid fa-magnifying-glass"></i>
+
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Cari menu favoritmu..."
+              aria-label="Cari menu makanan"
+            />
+
+          </form>
+        </div>
           {menus.length === 0 ? (
             <p className="text-center py-4">Memuat menu restoran...</p>
+          ) : filteredMenus.length === 0 ? (
+            <div className="text-center py-5">
+              <i className="fa-solid fa-magnifying-glass fa-2x mb-3"></i>
+
+              <h5>Menu Tidak Ditemukan</h5>
+
+              <p className="text-muted">
+                Coba gunakan kata kunci lainnya.
+              </p>
+
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => {
+                  setSearchTerm('');
+                }}
+              >
+                Reset Pencarian
+              </button>
+            </div>
           ) : (
             <>
               <div className={styles.menuTabs}>
@@ -142,6 +219,7 @@ export default function MenuSection({ menus = [], onAddToCart }: MenuSectionProp
                       const pedas = clampPedas(makanan.pedas);
                       return (
                         <div
+                          id={`menu-card-${makanan.id}`}
                           key={makanan.id}
                           className={`${styles.menuCard} reveal ${tersedia ? '' : styles.menuKosong}`}
                           onClick={() => openDetail(makanan)}
