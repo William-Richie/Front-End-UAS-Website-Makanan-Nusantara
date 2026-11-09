@@ -214,7 +214,12 @@ export default function AdminPage() {
 
   const [pendapatanData, setPendapatanData] = useState<PendapatanSummary | null>(null);
   const [pendapatanRange, setPendapatanRange] = useState<string>('7');
-  const [tanggalSekarang] = useState<Date | null>(() => new Date());
+  const [tanggalSekarang, setTanggalSekarang] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setTanggalSekarang(new Date()), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   // Form Tambah Menu State
   const [newMenu, setNewMenu] = useState<{
