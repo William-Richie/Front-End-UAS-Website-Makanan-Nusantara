@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-// import prisma from '@/lib/prisma';  //Prisma 7 (lama)
-import { db } from '@/prisma/db';
+import prisma from '@/lib/prisma';
 
 // GET /api/maps
 export async function GET() {
   try {
-    // const list = await prisma.map.findMany({
-    //   orderBy: { id: 'asc' },
-    // });
-    const list = await db.orm.public.Map.where({}).orderBy((m) => m.id.asc()).all();
+    const list = await prisma.map.findMany({
+      orderBy: { id: 'asc' },
+    });
     return NextResponse.json({ data: list });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal memuat cabang.';
@@ -22,19 +20,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { nama, alamat, latitude, longitude } = body;
 
-    // const created = await prisma.map.create({
-    //   data: {
-    //     nama: String(nama || ''),
-    //     alamat: String(alamat || ''),
-    //     latitude: Number(latitude || 0),
-    //     longitude: Number(longitude || 0),
-    //   },
-    // });
-    const created = await db.orm.public.Map.create({
-      nama: String(nama || ''),
-      alamat: String(alamat || ''),
-      latitude: Number(latitude || 0),
-      longitude: Number(longitude || 0),
+    const created = await prisma.map.create({
+      data: {
+        nama: String(nama || ''),
+        alamat: String(alamat || ''),
+        latitude: Number(latitude || 0),
+        longitude: Number(longitude || 0),
+      },
     });
 
     return NextResponse.json({ pesan: 'Cabang berhasil ditambahkan!', id_baru: created.id, data: created });

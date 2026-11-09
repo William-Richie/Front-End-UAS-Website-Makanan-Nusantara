@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "contract:emit": "prisma contract emit"
+    "contract:emit": "prisma contract emit",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.3.1",
-    "@prisma/orm-postgres": "^8.0.0-rc.20",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "bcryptjs": "^3.0.3",
@@ -20,6 +22,7 @@
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "next": "16.4.0",
+    "pg": "^8.23.1",
     "react": "^19.3.0",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.3.0"
@@ -28,12 +31,13 @@
     "@prisma/cli-engine": "^0.9.0",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
-    "prisma": "^8.0.0-rc.27",
+    "prisma": "^7.10.1",
     "tsx": "^4.23.15",
     "typescript": "^5"
   }

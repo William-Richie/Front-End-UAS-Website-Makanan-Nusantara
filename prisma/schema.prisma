@@ -29,7 +29,7 @@ model Menu {
 model Pesanan {
   id         Int      @id @default(autoincrement())
   nama       String
-  item       String   // Format JSON string atau teks daftar pesanan/keranjang
+  item       String   
   total      Float
   status     String   @default("pending")
   created_at DateTime @default(now())
@@ -40,7 +40,7 @@ model Pesanan {
 // 3. Reservasi
 model Reservasi {
   id         String   @id @default(uuid())
-  user_id    String?  // Relasi opsional/fleksibel ke tabel User
+  user_id    String?  
   gerai      String
   nama       String
   telepon    String
@@ -95,11 +95,11 @@ model FaqPertanyaan {
   @@map("faq_pertanyaan")
 }
 
-// 7. Favorit (Top 5 Menu / Orbit Carousel)
+// 7. Favorit (Top 5 Menu)
 model Favorit {
   id         Int      @id @default(autoincrement())
   menu_id    Int
-  slot       Int      // Slot posisi 1 sampai 5 di animasi orbit
+  slot       Int      
   created_at DateTime @default(now())
 
   menu       Menu     @relation(fields: [menu_id], references: [id], onDelete: Cascade)
@@ -107,7 +107,7 @@ model Favorit {
   @@map("favorit")
 }
 
-// 8. Konten Web (Hero & About Landing Page - Row Tunggal ID: 1)
+// 8. Konten Web (Hero & About Landing Page)
 model KontenWeb {
   id         Int      @id @default(1)
   teks_hero  String?
@@ -117,7 +117,7 @@ model KontenWeb {
   @@map("konten_web")
 }
 
-// 9. Konten Footer (Kontak & Media Sosial - Row Tunggal ID: 1)
+// 9. Konten Footer (Kontak & Media Sosial)
 model KontenFooter {
   id            Int      @id @default(1)
   judul         String?
