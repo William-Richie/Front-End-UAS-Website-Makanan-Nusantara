@@ -7,7 +7,7 @@ import { useSite } from '@/components/User/Site/SiteContext';
 import { useReveal } from '@/hooks/useReveal';
 
 export default function MenuPage() {
-  const { menus, favorites, addToCart } = useSite();
+  const { menus, favorites, orbitSetting, addToCart } = useSite();
   const [selectedFavoriteId, setSelectedFavoriteId] = useState<number | null>(null);
 
   useReveal([menus, favorites]);
@@ -16,6 +16,7 @@ export default function MenuPage() {
     <>
       <OrbitCarousel
         favorites={favorites}
+        setting={orbitSetting}
         onFavoriteClick={setSelectedFavoriteId}
       />
 

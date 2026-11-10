@@ -21,7 +21,7 @@
   inset: 0;
   transform-style: preserve-3d;
   transform: rotateX(60deg);
-  animation: orbitSpin 20s infinite ease-in-out;
+  animation: orbitSpin var(--dur, 20s) infinite ease-in-out;
 }
 
 .orbitPath::before {
@@ -41,12 +41,12 @@
   height: var(--item);
   margin: calc(var(--item) / -2) 0 0 calc(var(--item) / -2);
   overflow: hidden;
-  border: 3px solid var(--color-white);
+  border: 3px solid var(--orbit-warna, var(--color-white));
   border-radius: 50%;
   background: var(--color-bg-light);
   box-shadow: 0 8px 18px rgba(59, 35, 20, 0.3);
   transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateX(-60deg);
-  animation: orbitCounter 20s infinite ease-in-out;
+  animation: orbitCounter var(--dur, 20s) infinite ease-in-out;
 }
  
 .orbitItem.empty {
@@ -75,8 +75,8 @@
   position: absolute;
   inset: 0;
   opacity: 0;
-  animation: orbitDesc 20s infinite both;
-  animation-delay: calc(var(--k) * 4s);
+  animation: orbitDesc var(--dur, 20s) infinite both;
+  animation-delay: calc(var(--k) * var(--dur, 20s) / 5);
 }
  
 .chili {
@@ -91,7 +91,6 @@
 }
 
 .orbitItem:hover {
-  border-color: var(--color-accent-tan);
   box-shadow: 0 10px 25px rgba(59, 35, 20, 0.4);
 }
 
@@ -124,6 +123,50 @@
   14%  { opacity: 1; transform: none; }
   18%  { opacity: 0; transform: translateY(-6px); }
   100% { opacity: 0; }
+}
+
+/* ===== Bentuk frame (diatur dari admin) ===== */
+.bentukLingkaran .orbitItem { border-radius: 50%; }
+.bentukRounded .orbitItem   { border-radius: 26%; }
+.bentukKotak .orbitItem     { border-radius: 6px; }
+.bentukDaun .orbitItem      { border-radius: 50% 4% 50% 4%; }
+.bentukTelur .orbitItem     { border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; }
+
+/* ===== Gerakan: berputar halus (tanpa jeda) ===== */
+.gerakHalus .orbitPath {
+  animation-name: orbitSpinHalus;
+  animation-timing-function: linear;
+}
+
+.gerakHalus .orbitItem {
+  animation-name: orbitCounterHalus;
+  animation-timing-function: linear;
+}
+
+/* deskripsi digeser supaya muncul tepat saat menunya lewat di depan */
+.gerakHalus .descItem {
+  animation-delay: calc(var(--k) * var(--dur, 20s) / 5 - var(--dur, 20s) * 0.085);
+}
+
+/* ===== Gerakan: diam ===== */
+.gerakDiam .orbitPath,
+.gerakDiam .orbitItem,
+.gerakDiam .descItem {
+  animation: none;
+}
+
+.gerakDiam .descItem:first-child {
+  opacity: 1;
+}
+
+@keyframes orbitSpinHalus {
+  from { transform: rotateX(60deg) rotateZ(0deg); }
+  to   { transform: rotateX(60deg) rotateZ(-360deg); }
+}
+
+@keyframes orbitCounterHalus {
+  from { transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateZ(0deg)   rotateX(-60deg); }
+  to   { transform: rotateZ(var(--angle)) translateY(calc(var(--r) * -1)) rotateZ(calc(var(--angle) * -1)) rotateZ(360deg) rotateX(-60deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -152,3 +152,15 @@ model Statistik {
 
   @@map("statistik")
 }
+
+// 12. Pengaturan Orbit
+model PengaturanOrbit {
+  id        Int    @id @default(1)
+  mode      String @default("manual")
+  gerak     String @default("bertahap")
+  kecepatan String @default("normal")
+  bentuk    String @default("lingkaran")
+  warna     String @default("#ffffff")
+
+  @@map("pengaturan_orbit")
+}

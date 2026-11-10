@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import Image from 'next/image';
 import { Container } from 'react-bootstrap';
 import styles from './OrbitCarousel.module.css';
+import { durasiOrbit, rapikanOrbit, type OrbitBentuk, type OrbitGerak, type OrbitSetting } from '@/lib/orbit';
 
 export interface FavoriteItem {
   id?: number;
@@ -17,13 +18,30 @@ export interface FavoriteItem {
 
 interface OrbitCarouselProps {
   favorites?: FavoriteItem[];
+  setting?: OrbitSetting | null;
   onFavoriteClick?: (menuId: number) => void;
 }
 
+const kelasBentuk: Record<OrbitBentuk, string> = {
+  lingkaran: styles.bentukLingkaran,
+  rounded: styles.bentukRounded,
+  kotak: styles.bentukKotak,
+  daun: styles.bentukDaun,
+  telur: styles.bentukTelur,
+};
+
+const kelasGerak: Record<OrbitGerak, string> = {
+  bertahap: '',
+  halus: styles.gerakHalus,
+  diam: styles.gerakDiam,
+};
+
 export default function OrbitCarousel({
   favorites = [],
+  setting,
   onFavoriteClick,
 }: OrbitCarouselProps) {
+  const tampilan = rapikanOrbit(setting);
   const items = useMemo(() => {
     const list: (FavoriteItem | null)[] = [];
     for (let i = 0; i < 5; i++) {
@@ -46,7 +64,16 @@ export default function OrbitCarousel({
   };
 
   return (
-    <section id="favorite-menus" className="page-section py-5">
+    <section
+      id="favorite-menus"
+      className={`page-section py-5 ${kelasBentuk[tampilan.bentuk]} ${kelasGerak[tampilan.gerak]}`}
+      style={
+        {
+          '--dur': `${durasiOrbit(tampilan.kecepatan)}s`,
+          '--orbit-warna': tampilan.warna,
+        } as React.CSSProperties
+      }
+    >
       <Container className="content-container text-content text-center">
         <p className="hero-eyebrow reveal">Chef&apos;s Recommendation</p>
         <h2 className="section-title reveal">Our Favorite Menus</h2>
