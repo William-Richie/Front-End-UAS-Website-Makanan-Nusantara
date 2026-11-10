@@ -841,7 +841,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="admin-layout d-flex vh-100 overflow-hidden">
+    <div className="admin-layout d-flex">
       {/* Sidebar */}
       <aside className="admin-sidebar sidebar text-white p-3 d-flex flex-column shadow-sm">
         <h2 className="text-center mb-4 fs-4 fw-bold mt-2">
@@ -1235,8 +1235,8 @@ export default function AdminPage() {
               Atur menu dan tampilan orbit di kiri, hasilnya langsung terlihat di preview kanan.
             </p>
 
-            <div className="row g-4 align-items-start">
-              <div className="col-lg-5">
+            <div className="row g-4 align-items-start orbit-layout">
+              <div className="col-lg-5 orbit-controls">
                 <div className="d-flex flex-wrap gap-2 mb-3">
                   {ORBIT_TAB.map((m) => (
                     <button
@@ -1423,7 +1423,7 @@ export default function AdminPage() {
               </div>
 
               {/* Visual Preview Menu Favorit */}
-              <div className="col-lg-7">
+              <div className="col-lg-7 orbit-preview-column">
                 <div className="card shadow-sm border-0 overflow-hidden sticky-top" style={{ top: '20px' }}>
                   <div className="preview-bar">
                     <span><i className="fa-solid fa-eye me-2"></i> Preview Orbit</span>

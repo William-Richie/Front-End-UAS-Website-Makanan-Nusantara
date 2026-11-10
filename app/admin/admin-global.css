@@ -1,6 +1,10 @@
+/* MAIN LAYOUT */
 .admin-layout {
+    display: flex;
+    width: 100%;
     height: 100vh;
     height: 100dvh;
+    min-height: 0;
     background: #f7f3ed;
     color: #3b2314;
     font-family: var(--font-lato), sans-serif;
@@ -9,15 +13,17 @@
 
 /* SIDEBAR */
 .admin-sidebar {
+    flex: 0 0 270px;
     width: 270px;
     min-width: 270px;
     height: 100%;
-    flex-shrink: 0;
+    min-height: 0;
     background: #3b2314 !important;
     border-right: 1px solid #5c4433;
     overflow: hidden;
     z-index: 10;
 }
+
 .admin-sidebar h2 {
     font-family: var(--font-playfair), serif;
     color: #f7ede1 !important;
@@ -97,8 +103,9 @@
 
 /* MAIN CONTENT */
 .admin-main {
-    flex: 1;
+    flex: 1 1 0;
     min-width: 0;
+    min-height: 0;
     height: 100%;
     padding: 30px !important;
     overflow-y: auto;
@@ -705,6 +712,36 @@ padding: 8px 0;
     filter: brightness(.9); 
 }
 
+/* Layout tampilan laptop */
+.orbit-layout {
+    width: 100%;
+    min-width: 0;
+}
+
+.orbit-controls,
+.orbit-preview-column {
+    min-width: 0;
+}
+
+.orbit-controls .orbit-opsi {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.orbit-controls .orbit-opsi-btn {
+    max-width: 100%;
+    white-space: normal;
+}
+
+.orbit-controls .d-flex.flex-wrap {
+    min-width: 0;
+}
+
+.orbit-controls button {
+    max-width: 100%;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
     .admin-layout {
@@ -823,3 +860,19 @@ padding: 8px 0;
 }
 .admin-main .orbit-warna:hover { transform: scale(1.1); }
 .admin-main .orbit-warna.aktif { box-shadow: 0 0 0 3px #4a2c17; }
+
+@media (max-width: 1199.98px) {
+
+    .orbit-layout > .orbit-controls,
+    .orbit-layout > .orbit-preview-column {
+        flex: 0 0 100%;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .orbit-preview-column .sticky-top {
+        position: static !important;
+        top: auto !important;
+    }
+
+}
