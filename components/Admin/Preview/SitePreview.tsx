@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Hero from '@/components/User/Hero/Hero';
 import About from '@/components/User/About/About';
+import FaqSection, { type FaqItem } from '@/components/User/Faq/FaqSection';
+import LocationSection from '@/components/User/Location/LocationSection';
 import Footer from '@/components/User/Footer/Footer';
+import OrbitCarousel, { type FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
+import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
+import type { OrbitSetting } from '@/lib/orbit';
 
-// Preview memakai komponen yang sama persis dengan halaman user,
-// dirender selebar layar desktop lalu diperkecil mengikuti lebar kartu.
 function Frame({ lebar, children }: { lebar: number; children: ReactNode }) {
   const wadah = useRef<HTMLDivElement>(null);
   const [skala, setSkala] = useState(0.5);
@@ -30,19 +33,36 @@ function Frame({ lebar, children }: { lebar: number; children: ReactNode }) {
   );
 }
 
-export function KontenPreview({ teksHero, teksAbout }: { teksHero?: string | null; teksAbout?: string | null }) {
+type FooterData = React.ComponentProps<typeof Footer>['data'];
+
+export function HalamanPreview({
+  teksHero,
+  teksAbout,
+  faqList,
+  branches,
+  footer,
+}: {
+  teksHero?: string | null;
+  teksAbout?: string | null;
+  faqList: FaqItem[];
+  branches: BranchMap[];
+  footer: FooterData;
+}) {
   return (
     <Frame lebar={1280}>
       <Hero teksHero={teksHero} />
       <About teksAbout={teksAbout} />
+      <FaqSection faqList={faqList} />
+      <LocationSection key={branches.map((b) => b.id).join('-')} branches={branches} />
+      <Footer data={footer} />
     </Frame>
   );
 }
 
-export function FooterPreview({ data }: { data: React.ComponentProps<typeof Footer>['data'] }) {
+export function OrbitPreview({ favorites, setting }: { favorites: FavoriteItem[]; setting: OrbitSetting }) {
   return (
-    <Frame lebar={1000}>
-      <Footer data={data} />
+    <Frame lebar={900}>
+      <OrbitCarousel favorites={favorites} setting={setting} />
     </Frame>
   );
 }

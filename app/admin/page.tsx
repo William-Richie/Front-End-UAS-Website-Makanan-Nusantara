@@ -1,10 +1,22 @@
 'use client';
 
 import './admin-global.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminCharts';
-import { KontenPreview, FooterPreview } from '@/components/Admin/Preview/SitePreview';
+import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePreview';
+import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
+import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
+import {
+  BENTUK_ORBIT,
+  GERAK_ORBIT,
+  KECEPATAN_ORBIT,
+  MODE_ORBIT,
+  ORBIT_DEFAULT,
+  PALET_ORBIT,
+  rapikanOrbit,
+  type OrbitSetting,
+} from '@/lib/orbit';
 
 // Definisikan Interface TypeScript lengkap untuk membasmi 'any'
 export interface MenuItem {
@@ -105,6 +117,30 @@ const adminFetch = (url: string, opts: RequestInit = {}) => {
   return fetch(url, { ...opts, headers });
 };
 
+const ambilJson = (url: string) => fetch(url).then((r) => r.json()).catch(() => null);
+
+const ambilDaftar = <T,>(url: string): Promise<T[]> =>
+  ambilJson(url).then((d: { data?: unknown } | null) => (Array.isArray(d?.data) ? (d.data as T[]) : []));
+
+// Menu di halaman Kelola: tiap tombol punya bagian di preview yang ikut digulir
+const KELOLA_MENU = [
+  { key: 'home', label: 'Home & About', icon: 'fa-house', target: '#home' },
+  { key: 'faq', label: 'FAQ', icon: 'fa-circle-question', target: '#faq' },
+  { key: 'lokasi', label: 'Lokasi', icon: 'fa-location-dot', target: '#location' },
+  { key: 'footer', label: 'Footer', icon: 'fa-shoe-prints', target: 'footer' },
+] as const;
+
+type KelolaKey = (typeof KELOLA_MENU)[number]['key'];
+
+// Tab di halaman Kelola Menu Favorit
+const ORBIT_TAB = [
+  { key: 'menu', label: 'Menu', icon: 'fa-utensils' },
+  { key: 'gerak', label: 'Gerakan', icon: 'fa-rotate' },
+  { key: 'bentuk', label: 'Bentuk & Warna', icon: 'fa-shapes' },
+] as const;
+
+type OrbitTabKey = (typeof ORBIT_TAB)[number]['key'];
+
 export interface StatistikData {
   id: number;
   jumlah_pengunjung: number;
@@ -115,6 +151,8 @@ export interface FavoritSlot {
   menu_id: number | null;
   nama_makanan: string | null;
   gambar: string | null;
+  deskripsi?: string | null;
+  pedas?: number;
 }
 
 export interface FooterData {
@@ -164,7 +202,7 @@ export default function AdminPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    'statistik' | 'menu' | 'favorit' | 'konten' | 'footer' | 'faq' | 'pesanan' | 'reservasi' | 'pendapatan'
+    'statistik' | 'menu' | 'favorit' | 'konten' | 'pesanan' | 'reservasi' | 'pendapatan'
   >('statistik');
 
   // Typed Data States
@@ -175,6 +213,13 @@ export default function AdminPage() {
   const [reservasiList, setReservasiList] = useState<ReservasiItem[]>([]);
   const [statistik, setStatistik] = useState<StatistikData | null>(null);
   const [favoritList, setFavoritList] = useState<FavoritSlot[]>([]);
+  const [favoritTerlaris, setFavoritTerlaris] = useState<FavoritSlot[]>([]);
+  const [orbitSetting, setOrbitSetting] = useState<OrbitSetting>(ORBIT_DEFAULT);
+  const [branches, setBranches] = useState<BranchMap[]>([]);
+  const [newBranch, setNewBranch] = useState({ nama: '', alamat: '', latitude: '', longitude: '' });
+  const [kelolaTab, setKelolaTab] = useState<KelolaKey>('home');
+  const [orbitTab, setOrbitTab] = useState<OrbitTabKey>('menu');
+  const previewRef = useRef<HTMLDivElement>(null);
   const [footerData, setFooterData] = useState<FooterData>({
     judul: 'Ikuti Kami',
     copyright: '© 2026 Papeda Restaurant. All Rights Reserved.',
@@ -276,6 +321,14 @@ export default function AdminPage() {
     }
   }, []);
 
+  // Reload sebagian data saja, supaya isian form yang belum disimpan tidak ikut ter-reset
+  const loadFavorit = () => {
+    ambilDaftar<FavoritSlot>('/api/favorit?sumber=manual').then(setFavoritList);
+    ambilDaftar<FavoritSlot>('/api/favorit?sumber=terlaris').then(setFavoritTerlaris);
+  };
+  const loadFaq = () => ambilDaftar<FaqItem>('/api/faq').then(setFaqList);
+  const loadBranches = () => ambilDaftar<BranchMap>('/api/maps').then(setBranches);
+
   const loadAllData = async () => {
     const ambil = (url: string) => fetch(url).then((r) => r.json()).catch(() => null);
     const daftar = <T,>(d: { data?: unknown } | null): T[] => (Array.isArray(d?.data) ? (d.data as T[]) : []);
@@ -291,7 +344,9 @@ export default function AdminPage() {
     ambil('/api/faq').then((d) => setFaqList(daftar<FaqItem>(d)));
     ambil('/api/faq/pertanyaan').then((d) => setPertanyaanList(daftar<FaqPertanyaanItem>(d)));
     ambil('/api/reservasi').then((d) => setReservasiList(daftar<ReservasiItem>(d)));
-    ambil('/api/favorit').then((d) => setFavoritList(daftar<FavoritSlot>(d)));
+    loadFavorit();
+    loadBranches();
+    ambil('/api/orbit').then((d) => setOrbitSetting(rapikanOrbit(objek<OrbitSetting>(d))));
     ambil('/api/pengunjung').then((d) => {
       const s = objek<StatistikData>(d);
       setStatistik(typeof s.jumlah_pengunjung === 'number' ? (s as StatistikData) : null);
@@ -307,6 +362,19 @@ export default function AdminPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, pendapatanRange]);
+
+  // Preview di halaman Kelola menggulir ke bagian yang sedang diedit
+  useEffect(() => {
+    if (activeTab !== 'konten') return;
+    const box = previewRef.current;
+    const tujuan = KELOLA_MENU.find((m) => m.key === kelolaTab)?.target;
+    const el = box && tujuan ? box.querySelector<HTMLElement>(tujuan) : null;
+    if (!box || !el) return;
+    box.scrollTo({
+      top: box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top,
+      behavior: 'smooth',
+    });
+  }, [kelolaTab, activeTab]);
 
   const loadUsers = async () => {
     try {
@@ -547,7 +615,7 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        loadAllData();
+        loadFavorit();
       }
     } catch {
       alert('Gagal memperbarui menu favorit');
@@ -588,6 +656,71 @@ export default function AdminPage() {
     }
   };
 
+  // Tampilan orbit favorit
+  const ubahOrbit = (perubahan: Partial<OrbitSetting>) =>
+    setOrbitSetting((prev) => ({ ...prev, ...perubahan }));
+
+  const handleSaveOrbit = async () => {
+    try {
+      const res = await fetch('/api/orbit', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orbitSetting),
+      });
+      if (res.ok) {
+        alert('Tampilan orbit berhasil disimpan!');
+      } else {
+        const json = await res.json().catch(() => null);
+        alert(`Gagal menyimpan tampilan orbit.\n\n${json?.error || 'Server tidak merespons.'}`);
+      }
+    } catch {
+      alert('Gagal menyimpan tampilan orbit. Cek koneksi atau terminal npm run dev.');
+    }
+  };
+
+  // Ubah data slot (dari admin) jadi bentuk yang dibaca komponen orbit user
+  const keItemOrbit = (daftar: FavoritSlot[]): FavoriteItem[] =>
+    [...daftar]
+      .sort((a, b) => a.slot - b.slot)
+      .filter((f) => f.menu_id)
+      .map((f) => {
+        const m = menus.find((x) => x.id === f.menu_id);
+        return {
+          slot: f.slot,
+          menu_id: f.menu_id ?? undefined,
+          nama_makanan: m?.nama_makanan ?? f.nama_makanan ?? undefined,
+          gambar: m?.gambar ?? f.gambar ?? undefined,
+          pedas: m?.pedas ?? f.pedas ?? 0,
+          deskripsi: m?.deskripsi ?? f.deskripsi ?? null,
+        };
+      });
+
+  // Cabang (Lokasi)
+  const handleAddBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/maps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBranch),
+      });
+      if (res.ok) {
+        alert('Cabang berhasil ditambahkan!');
+        setNewBranch({ nama: '', alamat: '', latitude: '', longitude: '' });
+        loadBranches();
+      }
+    } catch {
+      alert('Gagal menambah cabang');
+    }
+  };
+
+  const handleDeleteBranch = async (id: number) => {
+    if (!confirm('Hapus cabang ini?')) return;
+    const res = await fetch(`/api/maps/${id}`, { method: 'DELETE' });
+    if (!res.ok) alert('Gagal menghapus cabang. Mungkin masih dipakai data lain.');
+    loadBranches();
+  };
+
   // FAQ Handlers
   const handleAddFaq = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -600,7 +733,7 @@ export default function AdminPage() {
       if (res.ok) {
         alert('FAQ berhasil ditambahkan!');
         setNewFaq({ pertanyaan: '', jawaban: '' });
-        loadAllData();
+        loadFaq();
       }
     } catch {
       alert('Gagal menambah FAQ');
@@ -610,7 +743,7 @@ export default function AdminPage() {
   const handleDeleteFaq = async (id: number) => {
     if (!confirm('Hapus FAQ ini?')) return;
     await fetch(`/api/faq/${id}`, { method: 'DELETE' });
-    loadAllData();
+    loadFaq();
   };
 
   // Pesanan Handlers
@@ -752,7 +885,7 @@ export default function AdminPage() {
               className={`nav-link text-white text-start w-100 ${activeTab === 'konten' ? 'active bg-warning' : ''}`}
               onClick={() => setActiveTab('konten')}
             >
-              <i className="fa-solid fa-pen-to-square me-2"></i> Kelola Konten & Preview
+              <i className="fa-solid fa-pen-to-square me-2"></i> Kelola Halaman
             </button>
           </li>
           <li className="nav-item mb-2">
@@ -769,22 +902,6 @@ export default function AdminPage() {
               onClick={() => setActiveTab('reservasi')}
             >
               <i className="fa-solid fa-calendar-check me-2"></i> Kelola Reservasi
-            </button>
-          </li>
-          <li className="nav-item mb-2">
-            <button
-              className={`nav-link text-white text-start w-100 ${activeTab === 'faq' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('faq')}
-            >
-              <i className="fa-solid fa-circle-question me-2"></i> Kelola FAQ
-            </button>
-          </li>
-          <li className="nav-item mb-2">
-            <button
-              className={`nav-link text-white text-start w-100 ${activeTab === 'footer' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('footer')}
-            >
-              <i className="fa-solid fa-shoe-prints me-2"></i> Kelola Footer
             </button>
           </li>
         </ul>
@@ -1110,193 +1227,486 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: FAVORIT */}
+        {/* TAB 4: FAVORIT (pilih menu + atur tampilan orbit) */}
         {activeTab === 'favorit' && (
           <div>
             <h1 className="fs-3 fw-bold mb-2">Kelola Menu Favorit (Chef&apos;s Recommendation)</h1>
             <p className="text-muted mb-4">
-              Pilih 5 menu yang akan ditampilkan pada animasi orbit di halaman utama pengunjung.
+              Atur menu dan tampilan orbit di kiri, hasilnya langsung terlihat di preview kanan.
             </p>
 
-            <div className="row g-4">
-              <div className="col-lg-7">
-                <div className="card shadow-sm border-0 p-4">
-                  {[1, 2, 3, 4, 5].map((slotNum) => {
-                    const currentSlot = favoritList.find((f) => f.slot === slotNum);
-                    const slotLabels = [
-                      'Slot 1 (Tengah Bawah)',
-                      'Slot 2 (Kiri Bawah)',
-                      'Slot 3 (Kiri Atas)',
-                      'Slot 4 (Kanan Atas)',
-                      'Slot 5 (Kanan Bawah)',
-                    ];
+            <div className="row g-4 align-items-start">
+              <div className="col-lg-5">
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                  {ORBIT_TAB.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      className={`btn btn-sm fw-bold ${orbitTab === m.key ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setOrbitTab(m.key)}
+                    >
+                      <i className={`fa-solid ${m.icon} me-2`}></i>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
 
-                    return (
-                      <div key={slotNum} className="mb-3 p-3 border rounded bg-white">
-                        <label className="form-label fw-bold text-warning small mb-1">
-                          {slotLabels[slotNum - 1]}
-                        </label>
-                        <select
-                          className="form-select"
-                          value={currentSlot?.menu_id || ''}
-                          onChange={(e) => handleSaveFavorit(slotNum, Number(e.target.value))}
-                        >
-                          <option value="">-- Pilih Menu --</option>
-                          {menus.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.nama_makanan} - ({m.nama_kategori})
-                            </option>
-                          ))}
-                        </select>
+                <div className="card shadow-sm border-0 p-4 mb-3">
+                  {/* Menu */}
+                  {orbitTab === 'menu' && (
+                    <>
+                      <label className="form-label small fw-bold">Sumber Menu</label>
+                      <div className="orbit-opsi mb-2">
+                        {MODE_ORBIT.map((o) => (
+                          <button
+                            key={o.nilai}
+                            type="button"
+                            className={`orbit-opsi-btn ${orbitSetting.mode === o.nilai ? 'aktif' : ''}`}
+                            onClick={() => ubahOrbit({ mode: o.nilai })}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
                       </div>
-                    );
-                  })}
+
+                      {orbitSetting.mode === 'manual' ? (
+                        <>
+                          <small className="text-muted d-block mb-3">
+                            Pilih sendiri 5 menu. Pilihan menu langsung tersimpan.
+                          </small>
+                          {[1, 2, 3, 4, 5].map((slotNum) => {
+                            const currentSlot = favoritList.find((f) => f.slot === slotNum);
+                            const slotLabels = [
+                              'Slot 1 (Tengah Bawah)',
+                              'Slot 2 (Kiri Bawah)',
+                              'Slot 3 (Kiri Atas)',
+                              'Slot 4 (Kanan Atas)',
+                              'Slot 5 (Kanan Bawah)',
+                            ];
+
+                            return (
+                              <div key={slotNum} className="mb-2">
+                                <label className="form-label fw-bold text-warning small mb-1">
+                                  {slotLabels[slotNum - 1]}
+                                </label>
+                                <select
+                                  className="form-select form-select-sm"
+                                  value={currentSlot?.menu_id || ''}
+                                  onChange={(e) => handleSaveFavorit(slotNum, Number(e.target.value))}
+                                >
+                                  <option value="">-- Pilih Menu --</option>
+                                  {menus.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.nama_makanan} - ({m.nama_kategori})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            );
+                          })}
+                        </>
+                      ) : (
+                        <>
+                          <small className="text-muted d-block mb-3">
+                            Orbit otomatis menampilkan 5 menu dengan penjualan terbanyak (dari pesanan berstatus
+                            selesai). Kalau data penjualan belum cukup, sisanya diisi dari pilihan manual.
+                          </small>
+                          <ol className="mb-0 ps-3">
+                            {favoritTerlaris.length === 0 ? (
+                              <li className="text-muted">Belum ada data penjualan.</li>
+                            ) : (
+                              favoritTerlaris.map((f) => (
+                                <li key={f.slot} className="mb-1">
+                                  {f.nama_makanan}
+                                </li>
+                              ))
+                            )}
+                          </ol>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {/* Gerakan */}
+                  {orbitTab === 'gerak' && (
+                    <>
+                      <label className="form-label small fw-bold">Gerakan</label>
+                      <div className="orbit-opsi mb-4">
+                        {GERAK_ORBIT.map((o) => (
+                          <button
+                            key={o.nilai}
+                            type="button"
+                            className={`orbit-opsi-btn ${orbitSetting.gerak === o.nilai ? 'aktif' : ''}`}
+                            onClick={() => ubahOrbit({ gerak: o.nilai })}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <label className="form-label small fw-bold">Kecepatan</label>
+                      <div className="orbit-opsi">
+                        {KECEPATAN_ORBIT.map((o) => (
+                          <button
+                            key={o.nilai}
+                            type="button"
+                            disabled={orbitSetting.gerak === 'diam'}
+                            className={`orbit-opsi-btn ${orbitSetting.kecepatan === o.nilai ? 'aktif' : ''}`}
+                            onClick={() => ubahOrbit({ kecepatan: o.nilai })}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                      {orbitSetting.gerak === 'diam' && (
+                        <small className="text-muted d-block mt-2">Kecepatan tidak berlaku kalau orbit diam.</small>
+                      )}
+                    </>
+                  )}
+
+                  {/* Bentuk & Warna */}
+                  {orbitTab === 'bentuk' && (
+                    <>
+                      <label className="form-label small fw-bold">Bentuk Frame</label>
+                      <div className="orbit-opsi mb-4">
+                        {BENTUK_ORBIT.map((o) => (
+                          <button
+                            key={o.nilai}
+                            type="button"
+                            className={`orbit-opsi-btn ${orbitSetting.bentuk === o.nilai ? 'aktif' : ''}`}
+                            onClick={() => ubahOrbit({ bentuk: o.nilai })}
+                          >
+                            <span className={`bentuk-contoh bentuk-contoh-${o.nilai}`}></span>
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <label className="form-label small fw-bold">Warna Outline</label>
+                      <div className="d-flex flex-wrap gap-2 mb-1">
+                        {PALET_ORBIT.map((w) => (
+                          <button
+                            key={w.hex}
+                            type="button"
+                            title={w.nama}
+                            aria-label={`Warna ${w.nama}`}
+                            className={`orbit-warna ${orbitSetting.warna === w.hex ? 'aktif' : ''}`}
+                            style={{ background: w.hex }}
+                            onClick={() => ubahOrbit({ warna: w.hex })}
+                          />
+                        ))}
+                      </div>
+                      <small className="text-muted d-block">
+                        Terpilih: {PALET_ORBIT.find((w) => w.hex === orbitSetting.warna)?.nama}
+                      </small>
+                    </>
+                  )}
+                </div>
+
+                {/* Tombol simpan selalu terlihat, apa pun tab-nya */}
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-warning text-white fw-bold flex-grow-1 py-2"
+                    onClick={handleSaveOrbit}
+                  >
+                    Simpan Tampilan Orbit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setOrbitSetting({ ...ORBIT_DEFAULT, mode: orbitSetting.mode })}
+                  >
+                    Reset Tampilan
+                  </button>
                 </div>
               </div>
 
               {/* Visual Preview Menu Favorit */}
-              <div className="col-lg-5">
-                <div className="card bg-white shadow-sm border-0 p-4 h-100 d-flex flex-column align-items-center justify-content-center">
-                  <h5 className="fw-bold mb-1 text-center">
-                    <i className="fa-solid fa-eye me-2"></i>Visual Preview
-                  </h5>
-                  <p className="small text-muted mb-4 text-center">
-                    Gambaran posisi menu favorit di halaman depan pengunjung.
-                  </p>
-
-                  <div className="orbit-preview-container mx-auto position-relative">
-                    {[1, 2, 3, 4, 5].map((slotNum) => {
-                      const item = favoritList.find((f) => f.slot === slotNum);
-                      return (
-                        <div
-                          key={slotNum}
-                          id={`prev-slot-${slotNum}`}
-                          className="preview-item"
-                          title={`Slot ${slotNum}`}
-                        >
-                          <div className={`prev-img-wrap ${item?.gambar ? 'filled' : ''}`}>
-                            <img
-                              src={item?.gambar || '/img/Web-Icon/Papeda-icon.png'}
-                              alt={item?.nama_makanan || `Slot ${slotNum}`}
-                            />
-                          </div>
-                          <span className="prev-label">Slot {slotNum}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 5: KELOLA KONTEN & PREVIEW */}
-        {activeTab === 'konten' && (
-          <div>
-            <h1 className="fs-3 fw-bold mb-3">Kelola Konten & Live Preview</h1>
-            <p className="text-muted mb-4">
-              Ubah teks hero banner dan bagian Tentang Kami. Preview di kanan memakai tampilan asli halaman user,
-              jadi hasilnya sama persis setelah disimpan.
-            </p>
-
-            <div className="row g-4 align-items-start">
-              <div className="col-xl-4">
-                <div className="card shadow-sm border-0 p-4">
-                  <form onSubmit={handleSaveKonten}>
-                    <div className="mb-3">
-                      <label className="form-label small fw-bold" htmlFor="konten-hero">
-                        <i className="fa-solid fa-bullhorn me-2 text-warning"></i>Judul Hero Banner
-                      </label>
-                      <textarea
-                        id="konten-hero"
-                        className="form-control"
-                        rows={3}
-                        value={kontenWeb.teks_hero || ''}
-                        onChange={(e) => setKontenWeb({ ...kontenWeb, teks_hero: e.target.value })}
-                      />
-                      <small className="text-muted">Tekan Enter untuk pindah baris.</small>
-                    </div>
-                    <div className="mb-4">
-                      <label className="form-label small fw-bold" htmlFor="konten-about">
-                        <i className="fa-solid fa-circle-info me-2 text-warning"></i>Deskripsi Tentang Kami
-                      </label>
-                      <textarea
-                        id="konten-about"
-                        className="form-control"
-                        rows={7}
-                        value={kontenWeb.teks_about || ''}
-                        onChange={(e) => setKontenWeb({ ...kontenWeb, teks_about: e.target.value })}
-                      />
-                    </div>
-                    <button type="submit" className="btn btn-warning text-white fw-bold w-100 py-2">
-                      Simpan Perubahan Konten
-                    </button>
-                  </form>
-                </div>
-              </div>
-
-              <div className="col-xl-8">
+              <div className="col-lg-7">
                 <div className="card shadow-sm border-0 overflow-hidden sticky-top" style={{ top: '20px' }}>
                   <div className="preview-bar">
-                    <span><i className="fa-solid fa-eye me-2"></i> Preview Tampilan User</span>
+                    <span><i className="fa-solid fa-eye me-2"></i> Preview Orbit</span>
                     <span className="badge">Real-time</span>
                   </div>
-                  <KontenPreview teksHero={kontenWeb.teks_hero} teksAbout={kontenWeb.teks_about} />
+                  <OrbitPreview
+                    favorites={keItemOrbit(orbitSetting.mode === 'terlaris' ? favoritTerlaris : favoritList)}
+                    setting={orbitSetting}
+                  />
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 6: FOOTER */}
-        {activeTab === 'footer' && (
+        {/* TAB 5: KELOLA (Home, About, FAQ, Lokasi, Footer + preview satu halaman) */}
+        {activeTab === 'konten' && (
           <div>
-            <h1 className="fs-3 fw-bold mb-3">Kelola Konten Footer</h1>
+            <h1 className="fs-3 fw-bold mb-3">Kelola Halaman Utama</h1>
             <p className="text-muted mb-4">
-              Preview footer di bawah form memakai komponen footer yang sama dengan halaman user.
+              Home, About, FAQ, Lokasi, dan Footer tampil dalam satu halaman di sisi pengunjung. Ubah di kiri, lihat
+              hasilnya langsung di preview kanan.
             </p>
 
             <div className="row g-4 align-items-start">
               <div className="col-xl-5">
-                <div className="card shadow-sm border-0 p-4">
-                  <form onSubmit={handleSaveFooter}>
-                    {(
-                      [
-                        ['judul', 'Judul Footer', 'text'],
-                        ['copyright', 'Copyright Teks', 'text'],
-                        ['link_wa', 'Tautan WhatsApp', 'text'],
-                        ['link_ig', 'Tautan Instagram', 'text'],
-                        ['link_tiktok', 'Tautan TikTok', 'text'],
-                        ['email', 'Email Restoran', 'email'],
-                        ['link_linkedin', 'Tautan LinkedIn', 'text'],
-                      ] as [keyof FooterData, string, string][]
-                    ).map(([kunci, label, tipe]) => (
-                      <div className="mb-3" key={kunci}>
-                        <label className="form-label small fw-bold" htmlFor={`footer-${kunci}`}>{label}</label>
-                        <input
-                          id={`footer-${kunci}`}
-                          type={tipe}
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                  {KELOLA_MENU.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      className={`btn btn-sm fw-bold ${kelolaTab === m.key ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setKelolaTab(m.key)}
+                    >
+                      <i className={`fa-solid ${m.icon} me-2`}></i>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Home & About */}
+                {kelolaTab === 'home' && (
+                  <div className="card shadow-sm border-0 p-4">
+                    <form onSubmit={handleSaveKonten}>
+                      <div className="mb-3">
+                        <label className="form-label small fw-bold" htmlFor="konten-hero">
+                          <i className="fa-solid fa-bullhorn me-2 text-warning"></i>Judul Hero Banner
+                        </label>
+                        <textarea
+                          id="konten-hero"
                           className="form-control"
-                          value={(footerData[kunci] as string | undefined) ?? ''}
-                          onChange={(e) => setFooterData({ ...footerData, [kunci]: e.target.value })}
+                          rows={3}
+                          value={kontenWeb.teks_hero || ''}
+                          onChange={(e) => setKontenWeb({ ...kontenWeb, teks_hero: e.target.value })}
+                        />
+                        <small className="text-muted">Tekan Enter untuk pindah baris.</small>
+                      </div>
+                      <div className="mb-4">
+                        <label className="form-label small fw-bold" htmlFor="konten-about">
+                          <i className="fa-solid fa-circle-info me-2 text-warning"></i>Deskripsi Tentang Kami
+                        </label>
+                        <textarea
+                          id="konten-about"
+                          className="form-control"
+                          rows={7}
+                          value={kontenWeb.teks_about || ''}
+                          onChange={(e) => setKontenWeb({ ...kontenWeb, teks_about: e.target.value })}
                         />
                       </div>
-                    ))}
-                    <button type="submit" className="btn btn-warning text-white fw-bold w-100 py-2">
-                      Simpan Perubahan Footer
-                    </button>
-                  </form>
-                </div>
+                      <button type="submit" className="btn btn-warning text-white fw-bold w-100 py-2">
+                        Simpan Perubahan Konten
+                      </button>
+                    </form>
+                  </div>
+                )}
+
+                {/* FAQ */}
+                {kelolaTab === 'faq' && (
+                  <>
+                    <div className="card shadow-sm border-0 p-4 mb-4">
+                      <h5 className="fw-bold mb-3">Tambah FAQ</h5>
+                      <form onSubmit={handleAddFaq}>
+                        <div className="mb-3">
+                          <label className="form-label small fw-bold">Pertanyaan</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            required
+                            value={newFaq.pertanyaan}
+                            onChange={(e) => setNewFaq({ ...newFaq, pertanyaan: e.target.value })}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label className="form-label small fw-bold">Jawaban</label>
+                          <textarea
+                            className="form-control"
+                            rows={3}
+                            required
+                            value={newFaq.jawaban}
+                            onChange={(e) => setNewFaq({ ...newFaq, jawaban: e.target.value })}
+                          />
+                        </div>
+                        <button type="submit" className="btn btn-warning text-white fw-bold">
+                          Simpan FAQ
+                        </button>
+                      </form>
+                    </div>
+
+                    <div className="card shadow-sm border-0 p-3 mb-4">
+                      <h5 className="fw-bold mb-3">Daftar FAQ</h5>
+                      <ul className="list-group list-group-flush">
+                        {faqList.map((f) => (
+                          <li key={f.id} className="list-group-item d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                              <div className="fw-bold">{f.pertanyaan}</div>
+                              <div className="small text-muted">{f.jawaban}</div>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => handleDeleteFaq(f.id)}
+                            >
+                              Hapus
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="card shadow-sm border-0 p-3">
+                      <h5 className="fw-bold mb-3">Pertanyaan Masuk dari Pengunjung (Modal)</h5>
+                      <ul className="list-group list-group-flush">
+                        {pertanyaanList.length === 0 ? (
+                          <li className="list-group-item text-muted">Belum ada pertanyaan masuk.</li>
+                        ) : (
+                          pertanyaanList.map((q) => (
+                            <li key={q.id} className="list-group-item">
+                              <div className="fw-bold">{q.pertanyaan}</div>
+                              <small className="text-muted">Dari: {q.nama} ({q.email || 'tanpa email'})</small>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    </div>
+                  </>
+                )}
+
+                {/* Lokasi */}
+                {kelolaTab === 'lokasi' && (
+                  <>
+                    <div className="card shadow-sm border-0 p-4 mb-4">
+                      <h5 className="fw-bold mb-3">Tambah Cabang</h5>
+                      <form onSubmit={handleAddBranch}>
+                        <div className="mb-3">
+                          <label className="form-label small fw-bold">Nama Cabang</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            required
+                            value={newBranch.nama}
+                            onChange={(e) => setNewBranch({ ...newBranch, nama: e.target.value })}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label className="form-label small fw-bold">Alamat</label>
+                          <textarea
+                            className="form-control"
+                            rows={2}
+                            required
+                            value={newBranch.alamat}
+                            onChange={(e) => setNewBranch({ ...newBranch, alamat: e.target.value })}
+                          />
+                        </div>
+                        <div className="row g-2 mb-3">
+                          <div className="col-6">
+                            <label className="form-label small fw-bold">Latitude</label>
+                            <input
+                              type="number"
+                              step="any"
+                              className="form-control"
+                              required
+                              value={newBranch.latitude}
+                              onChange={(e) => setNewBranch({ ...newBranch, latitude: e.target.value })}
+                            />
+                          </div>
+                          <div className="col-6">
+                            <label className="form-label small fw-bold">Longitude</label>
+                            <input
+                              type="number"
+                              step="any"
+                              className="form-control"
+                              required
+                              value={newBranch.longitude}
+                              onChange={(e) => setNewBranch({ ...newBranch, longitude: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <button type="submit" className="btn btn-warning text-white fw-bold">
+                          Simpan Cabang
+                        </button>
+                      </form>
+                    </div>
+
+                    <div className="card shadow-sm border-0 p-3">
+                      <h5 className="fw-bold mb-1">Daftar Cabang</h5>
+                      <small className="text-muted d-block mb-3">
+                        Dipakai untuk peta lokasi dan pilihan gerai saat reservasi.
+                      </small>
+                      <ul className="list-group list-group-flush">
+                        {branches.length === 0 ? (
+                          <li className="list-group-item text-muted">Belum ada cabang.</li>
+                        ) : (
+                          branches.map((b) => (
+                            <li key={b.id} className="list-group-item d-flex justify-content-between align-items-start gap-2">
+                              <div>
+                                <div className="fw-bold">{b.nama}</div>
+                                <div className="small text-muted">{b.alamat}</div>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => handleDeleteBranch(b.id)}
+                              >
+                                Hapus
+                              </button>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    </div>
+                  </>
+                )}
+
+                {/* Footer */}
+                {kelolaTab === 'footer' && (
+                  <div className="card shadow-sm border-0 p-4">
+                    <form onSubmit={handleSaveFooter}>
+                      {(
+                        [
+                          ['judul', 'Judul Footer', 'text'],
+                          ['copyright', 'Copyright Teks', 'text'],
+                          ['link_wa', 'Tautan WhatsApp', 'text'],
+                          ['link_ig', 'Tautan Instagram', 'text'],
+                          ['link_tiktok', 'Tautan TikTok', 'text'],
+                          ['email', 'Email Restoran', 'email'],
+                          ['link_linkedin', 'Tautan LinkedIn', 'text'],
+                        ] as [keyof FooterData, string, string][]
+                      ).map(([kunci, label, tipe]) => (
+                        <div className="mb-3" key={kunci}>
+                          <label className="form-label small fw-bold" htmlFor={`footer-${kunci}`}>{label}</label>
+                          <input
+                            id={`footer-${kunci}`}
+                            type={tipe}
+                            className="form-control"
+                            value={(footerData[kunci] as string | undefined) ?? ''}
+                            onChange={(e) => setFooterData({ ...footerData, [kunci]: e.target.value })}
+                          />
+                        </div>
+                      ))}
+                      <button type="submit" className="btn btn-warning text-white fw-bold w-100 py-2">
+                        Simpan Perubahan Footer
+                      </button>
+                    </form>
+                  </div>
+                )}
               </div>
 
+              {/* Preview satu halaman: Home > About > FAQ > Lokasi > Footer */}
               <div className="col-xl-7">
                 <div className="card shadow-sm border-0 overflow-hidden sticky-top" style={{ top: '20px' }}>
                   <div className="preview-bar">
-                    <span><i className="fa-solid fa-eye me-2"></i> Preview Footer</span>
+                    <span><i className="fa-solid fa-eye me-2"></i> Preview Halaman Utama</span>
                     <span className="badge">Real-time</span>
                   </div>
-                  <FooterPreview data={footerData} />
+                  <div className="preview-scroll" ref={previewRef}>
+                    <HalamanPreview
+                      teksHero={kontenWeb.teks_hero}
+                      teksAbout={kontenWeb.teks_about}
+                      faqList={faqList}
+                      branches={branches}
+                      footer={footerData}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1630,78 +2040,6 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* TAB 9: FAQ */}
-        {activeTab === 'faq' && (
-          <div>
-            <h1 className="fs-3 fw-bold mb-4">Kelola FAQ</h1>
-            <div className="card shadow-sm border-0 p-4 mb-4">
-              <h5 className="fw-bold mb-3">Tambah FAQ</h5>
-              <form onSubmit={handleAddFaq}>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold">Pertanyaan</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    required
-                    value={newFaq.pertanyaan}
-                    onChange={(e) => setNewFaq({ ...newFaq, pertanyaan: e.target.value })}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label small fw-bold">Jawaban</label>
-                  <textarea
-                    className="form-control"
-                    rows={3}
-                    required
-                    value={newFaq.jawaban}
-                    onChange={(e) => setNewFaq({ ...newFaq, jawaban: e.target.value })}
-                  />
-                </div>
-                <button type="submit" className="btn btn-warning text-white fw-bold">
-                  Simpan FAQ
-                </button>
-              </form>
-            </div>
-
-            <div className="card shadow-sm border-0 p-3 mb-4">
-              <h5 className="fw-bold mb-3">Daftar FAQ</h5>
-              <ul className="list-group list-group-flush">
-                {faqList.map((f) => (
-                  <li key={f.id} className="list-group-item d-flex justify-content-between align-items-start">
-                    <div>
-                      <div className="fw-bold">{f.pertanyaan}</div>
-                      <div className="small text-muted">{f.jawaban}</div>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => handleDeleteFaq(f.id)}
-                    >
-                      Hapus
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="card shadow-sm border-0 p-3">
-              <h5 className="fw-bold mb-3">Pertanyaan Masuk dari Pengunjung (Modal)</h5>
-              <ul className="list-group list-group-flush">
-                {pertanyaanList.length === 0 ? (
-                  <li className="list-group-item text-muted">Belum ada pertanyaan masuk.</li>
-                ) : (
-                  pertanyaanList.map((q) => (
-                    <li key={q.id} className="list-group-item">
-                      <div className="fw-bold">{q.pertanyaan}</div>
-                      <small className="text-muted">Dari: {q.nama} ({q.email || 'tanpa email'})</small>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
           </div>
         )}
       </main>
