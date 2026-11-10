@@ -21,6 +21,7 @@ import type { MenuItem } from '@/components/User/Menu/MenuSection';
 import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
 import type { FaqItem } from '@/components/User/Faq/FaqSection';
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
+import { ORBIT_DEFAULT, rapikanOrbit, type OrbitSetting } from '@/lib/orbit';
 
 export interface UserData {
   id: string;
@@ -51,6 +52,7 @@ interface SiteContextValue {
   userReady: boolean;
   menus: MenuItem[];
   favorites: FavoriteItem[];
+  orbitSetting: OrbitSetting;
   faqs: FaqItem[];
   branches: BranchMap[];
   kontenWeb: KontenWebData | null;
@@ -83,6 +85,7 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   // State Data Database
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [orbitSetting, setOrbitSetting] = useState<OrbitSetting>(ORBIT_DEFAULT);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [branches, setBranches] = useState<BranchMap[]>([]);
   const [kontenWeb, setKontenWeb] = useState<KontenWebData | null>(null);
@@ -171,6 +174,11 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
         fetch('/api/favorit')
           .then((r) => r.json())
           .then((d) => setFavorites(d.data || []))
+          .catch(() => { });
+
+        fetch('/api/orbit')
+          .then((r) => r.json())
+          .then((d) => setOrbitSetting(rapikanOrbit(d.data)))
           .catch(() => { });
 
         fetch('/api/faq')
@@ -269,6 +277,7 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     userReady,
     menus,
     favorites,
+    orbitSetting,
     faqs,
     branches,
     kontenWeb,

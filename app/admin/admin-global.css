@@ -766,3 +766,60 @@ padding: 8px 0;
         flex-wrap: wrap; 
     } 
 }
+
+/* KELOLA HALAMAN */
+.admin-main .preview-scroll {
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+}
+
+/* KELOLA FAVORIT */
+.admin-main .orbit-opsi {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.admin-main .orbit-opsi-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid #d8c3ab;
+    border-radius: 10px;
+    background: #fff;
+    color: #4a2c17;
+    font-size: .9rem;
+    font-weight: 600;
+    transition: .15s ease;
+}
+.admin-main .orbit-opsi-btn:hover:not(:disabled) { border-color: #c9622a; }
+.admin-main .orbit-opsi-btn.aktif {
+    background: #4a2c17;
+    border-color: #4a2c17;
+    color: #fff;
+}
+.admin-main .orbit-opsi-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.admin-main .bentuk-contoh {
+    width: 20px;
+    height: 20px;
+    border: 2px solid currentColor;
+}
+.admin-main .bentuk-contoh-lingkaran { border-radius: 50%; }
+.admin-main .bentuk-contoh-rounded   { border-radius: 26%; }
+.admin-main .bentuk-contoh-kotak     { border-radius: 3px; }
+.admin-main .bentuk-contoh-daun      { border-radius: 50% 4% 50% 4%; }
+.admin-main .bentuk-contoh-telur     { border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; }
+
+.admin-main .orbit-warna {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #c9b8a4;
+    cursor: pointer;
+    transition: transform .15s ease;
+}
+.admin-main .orbit-warna:hover { transform: scale(1.1); }
+.admin-main .orbit-warna.aktif { box-shadow: 0 0 0 3px #4a2c17; }
