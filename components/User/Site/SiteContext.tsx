@@ -326,8 +326,8 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
         branches={branches}
         userName={user?.nama}
         onClose={() => setCheckoutModalOpen(false)}
+        onOrderCreated={() => setCartItems([])}
         onSuccess={(orderId) => {
-          setCartItems([]);
           showToast(`Pesanan #${orderId} berhasil diproses!`);
         }}
       />

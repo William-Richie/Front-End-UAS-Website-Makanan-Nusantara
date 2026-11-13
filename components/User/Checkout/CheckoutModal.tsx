@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Modal, Form, Button } from 'react-bootstrap';
+import { useEffect, useState } from 'react';
+import { Modal, Form, Button, Spinner } from 'react-bootstrap';
 import { CartItem } from '../FloatingButton/FloatingButton';
 import { BranchMap } from '../Reservation/ReservationSection';
+import { hitungJarakKm, hitungOngkir, formatKm, ZONA_MANUAL, ONGKIR_TARIF } from '@/lib/ongkir';
 import styles from './CheckoutModal.module.css';
+import { buildReceiptHtml, type Receipt, type OrderType } from './receiptPrint';
 
 interface CheckoutModalProps {
   show: boolean;
@@ -12,7 +14,60 @@ interface CheckoutModalProps {
   branches: BranchMap[];
   userName?: string;
   onClose: () => void;
+  onOrderCreated?: (orderId: number) => void;
   onSuccess: (orderId: number) => void;
+}
+
+type PayKey = 'cash' | 'qris' | 'ewallet';
+type Step = 'form' | 'cashier' | 'qris' | 'ewallet' | 'verifying' | 'receipt' | 'cancelled';
+
+const EWALLETS = ['GoPay', 'OVO', 'DANA', 'ShopeePay'];
+const PAY_TIMEOUT = 10 * 60; // batas waktu bayar
+const POLL_MS = 4000;
+
+const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
+const mmss = (s: number) =>
+  `${String(Math.floor(Math.max(s, 0) / 60)).padStart(2, '0')}:${String(Math.max(s, 0) % 60).padStart(2, '0')}`;
+const hasCoord = (b: BranchMap) => Number.isFinite(b.latitude) && Number.isFinite(b.longitude);
+
+const payOptions = (type: OrderType): { key: PayKey; icon: string; title: string; desc: string }[] => [
+  type === 'dine-in'
+    ? { key: 'cash', icon: 'fa-cash-register', title: 'Bayar di Kasir', desc: 'Tunai / kartu' }
+    : { key: 'cash', icon: 'fa-money-bill-wave', title: 'Bayar di Tempat (COD)', desc: 'Bayar tunai ke kurir saat pesanan tiba' },
+  { key: 'qris', icon: 'fa-qrcode', title: 'QRIS', desc: 'Scan dari aplikasi bank atau e-wallet' },
+  { key: 'ewallet', icon: 'fa-wallet', title: 'E-Wallet', desc: 'GoPay, OVO, DANA, ShopeePay' },
+];
+
+// QR tiruan (bukan QR asli)
+function QrPlaceholder({ seed }: { seed: number }) {
+  const N = 21;
+  let x = (seed * 9301 + 49297) % 233280;
+  const rand = () => {
+    x = (x * 9301 + 49297) % 233280;
+    return x / 233280;
+  };
+  const rects: React.ReactNode[] = [];
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const tl = r < 7 && c < 7;
+      const tr = r < 7 && c >= N - 7;
+      const bl = r >= N - 7 && c < 7;
+      let on: boolean;
+      if (tl || tr || bl) {
+        const lr = r >= N - 7 ? r - (N - 7) : r;
+        const lc = c >= N - 7 ? c - (N - 7) : c;
+        on = lr === 0 || lr === 6 || lc === 0 || lc === 6 || (lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4);
+      } else {
+        on = rand() > 0.5;
+      }
+      if (on) rects.push(<rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} />);
+    }
+  }
+  return (
+    <svg viewBox={`0 0 ${N} ${N}`} className={styles.qrSvg} shapeRendering="crispEdges" aria-label="Kode QRIS">
+      {rects}
+    </svg>
+  );
 }
 
 export default function CheckoutModal({
@@ -21,69 +76,266 @@ export default function CheckoutModal({
   branches,
   userName = 'Pelanggan',
   onClose,
+  onOrderCreated,
   onSuccess,
 }: CheckoutModalProps) {
-  const [orderType, setOrderType] = useState<'dine-in' | 'online'>('dine-in');
+  const [step, setStep] = useState<Step>('form');
+  const [orderType, setOrderType] = useState<OrderType>('dine-in');
+  const [payment, setPayment] = useState<PayKey>('cash');
   const [selectedBranch, setSelectedBranch] = useState('');
+  const [deliveryBranchId, setDeliveryBranchId] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [userCoord, setUserCoord] = useState<{ lat: number; lng: number } | null>(null);
+  const [useManual, setUseManual] = useState(false);
+  const [manualKm, setManualKm] = useState('');
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState('');
+  const [ewallet, setEwallet] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState(PAY_TIMEOUT);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
+
+  // timer batas bayar
+  useEffect(() => {
+    if (step !== 'qris' && step !== 'ewallet') return;
+    const t = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearInterval(t);
+  }, [step]);
+
+  // cek ke server tiap beberapa detik, struk baru muncul setelah kasir menandai lunas
+  const waitingId = step === 'cashier' ? receipt?.id : undefined;
+  useEffect(() => {
+    if (!waitingId) return;
+    const t = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/pesanan/${waitingId}`);
+        if (!res.ok) return;
+        const { data } = await res.json();
+        if (data.status === 'dibatalkan') {
+          setStep('cancelled');
+        } else if (data.status !== 'menunggu_bayar') {
+          onSuccess(waitingId);
+          setReceipt((r) =>
+            r ? { ...r, statusBayar: 'Lunas', catatan: 'Terima kasih, pembayaran Anda sudah kami terima.' } : r
+          );
+          setStep('receipt');
+        }
+      } catch {
+      }
+    }, POLL_MS);
+    return () => clearInterval(t);
+  }, [waitingId]);
 
   if (!show) return null;
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.harga * item.quantity, 0);
-  const ongkir = orderType === 'online' ? 15000 : 0;
-  const totalBayar = subtotal + ongkir;
+  const deliveryBranch = branches.find((b) => String(b.id) === deliveryBranchId);
+  const jarakKm: number | null = useManual
+    ? manualKm
+      ? Number(manualKm)
+      : null
+    : userCoord && deliveryBranch && hasCoord(deliveryBranch)
+      ? hitungJarakKm(userCoord.lat, userCoord.lng, deliveryBranch.latitude, deliveryBranch.longitude)
+      : null;
+  const ongkirHitung = jarakKm !== null ? hitungOngkir(jarakKm) : null;
+  const diLuarJangkauan = jarakKm !== null && ongkirHitung === null;
 
-  const handleConfirmPay = async () => {
+  const subtotal = cartItems.reduce((acc, item) => acc + item.harga * item.quantity, 0);
+  const ongkir = orderType === 'online' ? (ongkirHitung ?? 0) : 0;
+  const totalBayar = subtotal + ongkir;
+  const options = payOptions(orderType);
+  const expired = secondsLeft <= 0;
+
+  const resetAll = () => {
+    setStep('form');
+    setReceipt(null);
+    setErrorMsg('');
+    setEwallet('');
+    setSecondsLeft(PAY_TIMEOUT);
+  };
+
+  const updateOrder = (id: number, body: Record<string, string>) =>
+    fetch(`/api/pesanan/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  const handleClose = () => {
+    if ((step === 'qris' || step === 'ewallet') && receipt) {
+      updateOrder(receipt.id, { status: 'dibatalkan' }).catch(() => {});
+    }
+    resetAll();
+    onClose();
+  };
+
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoError('Browser tidak mendukung lokasi. Pilih perkiraan jarak secara manual.');
+      setUseManual(true);
+      return;
+    }
+    setGeoLoading(true);
+    setGeoError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserCoord(coord);
+        setUseManual(false);
+        // akan otomatis pilih gerai terdekat kalau tidak pilih gerai
+        if (!deliveryBranchId) {
+          let best: { id: number; km: number } | null = null;
+          branches.filter(hasCoord).forEach((b) => {
+            const km = hitungJarakKm(coord.lat, coord.lng, b.latitude, b.longitude);
+            if (!best || km < best.km) best = { id: b.id, km };
+          });
+          if (best) setDeliveryBranchId(String((best as { id: number }).id));
+        }
+        setGeoLoading(false);
+      },
+      () => {
+        setGeoError('Lokasi tidak bisa diakses. Izinkan akses lokasi atau pilih perkiraan jarak manual.');
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleConfirm = async () => {
     if (orderType === 'dine-in' && !selectedBranch) {
       setErrorMsg('Pilih gerai restoran terlebih dahulu.');
       return;
     }
-    if (orderType === 'online' && !deliveryAddress.trim()) {
-      setErrorMsg('Masukkan alamat pengiriman Anda.');
-      return;
+    if (orderType === 'online') {
+      if (!deliveryBranch) return setErrorMsg('Pilih gerai yang akan mengantar pesanan Anda.');
+      if (!deliveryAddress.trim()) return setErrorMsg('Masukkan alamat pengiriman Anda.');
+      if (jarakKm === null) return setErrorMsg('Tentukan jarak pengantaran dulu (pakai lokasi Anda atau pilih perkiraan jarak).');
+      if (diLuarJangkauan) return setErrorMsg(`Alamat di luar jangkauan pengantaran (maksimal ${ONGKIR_TARIF.maksKm} km).`);
     }
+
+    const metodeBayar = options.find((o) => o.key === payment)!.title;
+    const isCod = orderType === 'online' && payment === 'cash';
+    const gerai = orderType === 'dine-in' ? selectedBranch : deliveryBranch!.nama;
+    const alamat = orderType === 'online' ? deliveryAddress.trim() : '';
+    const statusPesanan = isCod ? 'pending' : 'menunggu_bayar';
+    const statusBayar = 'Belum Dibayar';
 
     setLoading(true);
     setErrorMsg('');
 
     try {
-      const orderPayload = {
-        nama: userName || 'Pelanggan',
-        item: JSON.stringify({
-          metode: orderType,
-          lokasi_atau_alamat: orderType === 'dine-in' ? selectedBranch : deliveryAddress,
-          daftar_menu: cartItems,
-          ongkir,
-        }),
-        total: totalBayar,
-        status: 'pending',
-      };
-
       const res = await fetch('/api/pesanan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload),
+        body: JSON.stringify({
+          nama: userName || 'Pelanggan',
+          item: JSON.stringify({
+            metode: orderType,
+            gerai,
+            lokasi_atau_alamat: orderType === 'dine-in' ? gerai : alamat,
+            jarak_km: orderType === 'online' ? Number(jarakKm!.toFixed(1)) : null,
+            daftar_menu: cartItems,
+            ongkir,
+            metode_bayar: metodeBayar,
+            status_bayar: statusBayar,
+          }),
+          total: totalBayar,
+          status: statusPesanan,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal memproses pesanan.');
 
-      onSuccess(data.pesanan?.id || 1);
-      onClose();
+      const orderId: number = data.pesanan?.id || 1;
+      const created = data.pesanan?.created_at ? new Date(data.pesanan.created_at) : new Date();
+
+      setReceipt({
+        id: orderId,
+        tanggal: created.toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' }),
+        nama: userName || 'Pelanggan',
+        orderType,
+        gerai,
+        alamat,
+        jarakKm: orderType === 'online' ? jarakKm : null,
+        items: cartItems.map((i) => ({ ...i })),
+        subtotal,
+        ongkir,
+        total: totalBayar,
+        metodeBayar,
+        statusBayar,
+        catatan: isCod ? 'Siapkan uang pas dan bayar ke kurir saat pesanan tiba.' : '',
+      });
+      onOrderCreated?.(orderId);
+      if (isCod) onSuccess(orderId);
+
+      setSecondsLeft(PAY_TIMEOUT);
+      if (isCod) setStep('receipt');
+      else if (payment === 'cash') setStep('cashier');
+      else setStep(payment);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan saat memproses pembayaran.';
-      setErrorMsg(msg);
+      setErrorMsg(err instanceof Error ? err.message : 'Terjadi kesalahan saat memproses pembayaran.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSimulatePaid = async () => {
+    if (!receipt) return;
+    const from = step;
+    const metode = payment === 'ewallet' ? `E-Wallet (${ewallet})` : 'QRIS';
+    setStep('verifying');
+    setErrorMsg('');
+    try {
+      await new Promise((r) => setTimeout(r, 2000));
+      const res = await updateOrder(receipt.id, { status: 'pending', status_bayar: 'Lunas', metode_bayar: metode });
+      if (!res.ok) throw new Error('Gagal memverifikasi pembayaran.');
+      setReceipt({
+        ...receipt,
+        metodeBayar: metode,
+        statusBayar: 'Lunas',
+        catatan: 'Terima kasih, pembayaran Anda sudah kami terima.',
+      });
+      setStep('receipt');
+      onSuccess(receipt.id);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Pembayaran gagal diverifikasi.');
+      setStep(from);
+    }
+  };
+
+  const handleCancelPayment = () => {
+    if (receipt) updateOrder(receipt.id, { status: 'dibatalkan' }).catch(() => {});
+    resetAll();
+    onClose();
+  };
+
+  const handlePrint = () => {
+    if (!receipt) return;
+    const w = window.open('', '_blank', 'width=420,height=700');
+    if (!w) return;
+    w.document.write(buildReceiptHtml(receipt));
+    w.document.close();
+  };
+
+  const lunas = receipt?.statusBayar === 'Lunas';
+  const header: Record<Step, { icon: string; title: string }> = {
+    form: { icon: 'fa-receipt', title: 'Konfirmasi Pesanan' },
+    cashier: { icon: 'fa-cash-register', title: 'Menunggu Pembayaran' },
+    qris: { icon: 'fa-qrcode', title: 'Bayar dengan QRIS' },
+    ewallet: { icon: 'fa-wallet', title: 'Bayar dengan E-Wallet' },
+    verifying: { icon: 'fa-hourglass-half', title: 'Memverifikasi Pembayaran' },
+    receipt: { icon: 'fa-check', title: lunas ? 'Pembayaran Berhasil' : 'Pesanan Diterima' },
+    cancelled: { icon: 'fa-xmark', title: 'Pesanan Dibatalkan' },
+  };
+
+  const confirmLabel =
+    payment === 'cash' ? 'Konfirmasi Pesanan' : payment === 'qris' ? 'Lanjut ke QRIS' : 'Lanjut ke E-Wallet';
+
   return (
     <Modal
       show={show}
-      onHide={onClose}
+      onHide={handleClose}
       centered
       backdrop="static"
       className={styles.checkoutModal}
@@ -93,114 +345,406 @@ export default function CheckoutModal({
       <Modal.Header closeButton className={styles.checkoutHeader}>
         <Modal.Title className={`${styles.checkoutTitle} fw-bold d-flex align-items-center gap-2`}>
           <div className={styles.gateIcon}>
-            <i className="fa-solid fa-receipt"></i>
+            <i className={`fa-solid ${header[step].icon}`}></i>
           </div>
-          Konfirmasi Pesanan
+          {header[step].title}
         </Modal.Title>
       </Modal.Header>
 
-      <Modal.Body className={styles.checkoutBody}>
-        <div className="mb-4 text-center">
-          <p className={`fw-bold mb-2 ${styles.checkoutOrderTypeTitle}`}>
-            Pilih metode pesanan Anda:
-          </p>
-          <div className={`${styles.checkoutTypeGroup} w-100 d-flex gap-2`} role="group">
-            <Button
-              variant="outline-secondary"
-              active={orderType === 'dine-in'}
-              className={`${styles.checkoutTypeBtn} flex-fill`}
-              onClick={() => setOrderType('dine-in')}
-            >
-              <i className="fa-solid fa-store me-1"></i> Makan di Tempat
-            </Button>
-            <Button
-              variant="outline-secondary"
-              active={orderType === 'online'}
-              className={`${styles.checkoutTypeBtn} flex-fill`}
-              onClick={() => setOrderType('online')}
-            >
-              <i className="fa-solid fa-motorcycle me-1"></i> Pesan Antar
-            </Button>
-          </div>
-        </div>
-
-        {orderType === 'dine-in' ? (
-          <Form.Group className="mb-3" controlId="dineInForm">
-            <Form.Label className={`fw-bold small text-uppercase ${styles.checkoutFormLabel}`}>
-              Pilih Gerai Restoran
-            </Form.Label>
-            <Form.Select
-              className={styles.customInput}
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-            >
-              <option value="" disabled>-- Pilih Lokasi --</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.nama}>
-                  {b.nama} - {b.alamat}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-        ) : (
-          <Form.Group className="mb-3" controlId="onlineForm">
-            <Form.Label className={`fw-bold small text-uppercase ${styles.checkoutFormLabel}`}>
-              Alamat Pengiriman
-            </Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              className={styles.customInput}
-              placeholder="Masukkan alamat lengkap Anda..."
-              value={deliveryAddress}
-              onChange={(e) => setDeliveryAddress(e.target.value)}
-            />
-          </Form.Group>
-        )}
-
-        <div className={styles.checkoutSummary}>
-          <div className={`${styles.summaryRow} d-flex justify-content-between mb-1`}>
-            <span>Subtotal Makanan</span>
-            <span id="modalSubtotal" className="fw-bold">
-              Rp {subtotal.toLocaleString('id-ID')}
-            </span>
-          </div>
-          {orderType === 'online' && (
-            <div className={`${styles.summaryRow} ${styles.summaryOngkir} d-flex justify-content-between mb-1`}>
-              <span>Ongkos Kirim</span>
-              <span id="modalOngkir" className="fw-bold">
-                + Rp {ongkir.toLocaleString('id-ID')}
-              </span>
+      {/* Bayar di kasir */}
+      {step === 'cashier' && receipt && (
+        <>
+          <Modal.Body className={styles.checkoutBody}>
+            <div className={styles.stepWrap}>
+              <div className={styles.stepIcon}><i className="fa-solid fa-cash-register"></i></div>
+              <h5 className={styles.stepTitle}>Silakan datang ke kasir</h5>
+              <p className={styles.stepDesc}>
+                Sebutkan nomor pesanan ini ke kasir di <strong>{receipt.gerai}</strong> dan lakukan pembayaran.
+              </p>
+              <div className={styles.orderBox}>
+                <span className={styles.orderBoxLabel}>No. Pesanan</span>
+                <span className={styles.orderBoxNumber}>#{receipt.id}</span>
+                <span className={styles.orderBoxLabel}>Total yang dibayar</span>
+                <strong>{rupiah(receipt.total)}</strong>
+              </div>
+              <div className={styles.waitRow}>
+                <Spinner animation="border" size="sm" /> Menunggu konfirmasi kasir...
+              </div>
+              <p className={styles.hint}>Struk akan muncul otomatis begitu kasir menerima pembayaran Anda.</p>
             </div>
-          )}
-          <hr />
-          <div className={`${styles.summaryTotal} d-flex justify-content-between fs-5 fw-bold`}>
-            <span>Total Bayar</span>
-            <span id="modalTotalBayar" className="text-papeda">
-              Rp {totalBayar.toLocaleString('id-ID')}
-            </span>
+          </Modal.Body>
+          <Modal.Footer className={styles.checkoutFooter}>
+            <Button variant="outline-secondary" className={`${styles.receiptBtn} w-100`} onClick={handleClose}>
+              Tutup
+            </Button>
+          </Modal.Footer>
+        </>
+      )}
+
+      {/* QRIS */}
+      {step === 'qris' && receipt && (
+        <>
+          <Modal.Body className={styles.checkoutBody}>
+            <div className={styles.stepWrap}>
+              <p className={styles.stepDesc}>Scan kode di bawah dengan aplikasi bank atau e-wallet Anda.</p>
+              <div className={styles.qrBox}><QrPlaceholder seed={receipt.id} /></div>
+              <div className={styles.orderBox}>
+                <span className={styles.orderBoxLabel}>Total yang dibayar</span>
+                <strong>{rupiah(receipt.total)}</strong>
+              </div>
+              <div className={`${styles.timer} ${expired ? styles.timerExpired : ''}`}>
+                {expired ? 'Waktu pembayaran habis' : `Selesaikan dalam ${mmss(secondsLeft)}`}
+              </div>
+              <p className={styles.hint}>QR di atas hanya contoh. Klik &quot;Saya Sudah Bayar&quot; untuk melanjutkan.</p>
+            </div>
+            {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
+          </Modal.Body>
+          <Modal.Footer className={styles.checkoutFooter}>
+            <Button variant="outline-secondary" className={`${styles.receiptBtn} flex-fill`} onClick={handleCancelPayment}>
+              Batalkan
+            </Button>
+            <Button variant="papeda" className="flex-fill text-white fw-bold" disabled={expired} onClick={handleSimulatePaid}>
+              Saya Sudah Bayar
+            </Button>
+          </Modal.Footer>
+        </>
+      )}
+
+      {/* E-WALLET */}
+      {step === 'ewallet' && receipt && (
+        <>
+          <Modal.Body className={styles.checkoutBody}>
+            <div className={styles.stepWrap}>
+              <p className={styles.stepDesc}>Pilih e-wallet yang ingin dipakai.</p>
+              <div className={styles.providerGrid}>
+                {EWALLETS.map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    className={`${styles.providerBtn} ${ewallet === w ? styles.providerBtnActive : ''}`}
+                    onClick={() => setEwallet(w)}
+                  >
+                    {w}
+                  </button>
+                ))}
+              </div>
+              <div className={styles.orderBox}>
+                <span className={styles.orderBoxLabel}>Total yang dibayar</span>
+                <strong>{rupiah(receipt.total)}</strong>
+              </div>
+              <div className={`${styles.timer} ${expired ? styles.timerExpired : ''}`}>
+                {expired ? 'Waktu pembayaran habis' : `Selesaikan dalam ${mmss(secondsLeft)}`}
+              </div>
+              <p className={styles.hint}>Catatan: aplikasi e-wallet tidak benar-benar dibuka.</p>
+            </div>
+            {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
+          </Modal.Body>
+          <Modal.Footer className={styles.checkoutFooter}>
+            <Button variant="outline-secondary" className={`${styles.receiptBtn} flex-fill`} onClick={handleCancelPayment}>
+              Batalkan
+            </Button>
+            <Button
+              variant="papeda"
+              className="flex-fill text-white fw-bold"
+              disabled={!ewallet || expired}
+              onClick={handleSimulatePaid}
+            >
+              {ewallet ? `Bayar via ${ewallet}` : 'Pilih e-wallet'}
+            </Button>
+          </Modal.Footer>
+        </>
+      )}
+
+      {step === 'verifying' && (
+        <Modal.Body className={styles.checkoutBody}>
+          <div className={styles.stepWrap}>
+            <Spinner animation="border" />
+            <h5 className={styles.stepTitle}>Memverifikasi pembayaran...</h5>
+            <p className={styles.stepDesc}>Mohon tunggu sebentar, jangan tutup jendela ini.</p>
           </div>
-        </div>
+        </Modal.Body>
+      )}
 
-        {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
-      </Modal.Body>
+      {step === 'cancelled' && (
+        <>
+          <Modal.Body className={styles.checkoutBody}>
+            <div className={styles.stepWrap}>
+              <div className={styles.stepIcon}><i className="fa-solid fa-xmark"></i></div>
+              <h5 className={styles.stepTitle}>Pesanan dibatalkan</h5>
+              <p className={styles.stepDesc}>Pesanan ini dibatalkan oleh kasir. Silakan pesan ulang atau hubungi gerai.</p>
+            </div>
+          </Modal.Body>
+          <Modal.Footer className={styles.checkoutFooter}>
+            <Button variant="papeda" className="w-100 text-white fw-bold" onClick={handleClose}>Tutup</Button>
+          </Modal.Footer>
+        </>
+      )}
 
-      <Modal.Footer className={styles.checkoutFooter}>
-        <Button
-          variant="papeda"
-          className="w-100 text-white fw-bold py-2"
-          disabled={loading || cartItems.length === 0}
-          onClick={handleConfirmPay}
-        >
-          {loading ? (
-            'Memproses...'
-          ) : (
-            <>
-              Konfirmasi & Bayar <i className="fa-solid fa-arrow-right ms-2"></i>
-            </>
-          )}
-        </Button>
-      </Modal.Footer>
+      {/* STRUK */}
+      {step === 'receipt' && receipt && (
+        <>
+          <Modal.Body className={styles.checkoutBody}>
+            <div className={styles.receiptWrap}>
+              <div className={styles.receiptPaper}>
+                <div className={styles.receiptBrand}>PAPEDA</div>
+                <div className={styles.receiptSub}>Restoran Makanan Nusantara</div>
+                <div className={styles.receiptSub}><strong>{lunas ? 'STRUK PEMBAYARAN' : 'NOTA PESANAN'}</strong></div>
+
+                <div className={styles.receiptDivider} />
+                <div className={styles.receiptRow}><span>No. Pesanan</span><strong>#{receipt.id}</strong></div>
+                <div className={styles.receiptRow}><span>Tanggal</span><span>{receipt.tanggal}</span></div>
+                <div className={styles.receiptRow}><span>Pelanggan</span><span>{receipt.nama}</span></div>
+                <div className={styles.receiptRow}>
+                  <span>Metode</span>
+                  <span>{receipt.orderType === 'dine-in' ? 'Makan di Tempat' : 'Pesan Antar'}</span>
+                </div>
+                <div className={styles.receiptRow}>
+                  <span>Gerai</span>
+                  <span className={styles.receiptRight}>{receipt.gerai}</span>
+                </div>
+                {receipt.orderType === 'online' && (
+                  <>
+                    <div className={styles.receiptRow}>
+                      <span>Alamat</span>
+                      <span className={styles.receiptRight}>{receipt.alamat}</span>
+                    </div>
+                    {receipt.jarakKm !== null && (
+                      <div className={styles.receiptRow}>
+                        <span>Jarak</span><span>± {formatKm(receipt.jarakKm)}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div className={styles.receiptDivider} />
+                {receipt.items.map((i) => (
+                  <div key={i.id} className={styles.receiptItem}>
+                    <div className={styles.receiptRow}>
+                      <span>{i.nama_makanan}</span>
+                      <span>{rupiah(i.harga * i.quantity)}</span>
+                    </div>
+                    <div className={styles.receiptItemSub}>{i.quantity} x {rupiah(i.harga)}</div>
+                  </div>
+                ))}
+
+                <div className={styles.receiptDivider} />
+                <div className={styles.receiptRow}><span>Subtotal</span><span>{rupiah(receipt.subtotal)}</span></div>
+                {receipt.ongkir > 0 && (
+                  <div className={styles.receiptRow}><span>Ongkos Kirim</span><span>{rupiah(receipt.ongkir)}</span></div>
+                )}
+                <div className={`${styles.receiptRow} ${styles.receiptTotal}`}>
+                  <span>TOTAL</span><span>{rupiah(receipt.total)}</span>
+                </div>
+
+                <div className={styles.receiptDivider} />
+                <div className={styles.receiptRow}><span>Pembayaran</span><span>{receipt.metodeBayar}</span></div>
+                <div className={styles.receiptRow}>
+                  <span>Status</span>
+                  <span className={`${styles.receiptBadge} ${lunas ? styles.badgePaid : styles.badgeUnpaid}`}>
+                    {receipt.statusBayar}
+                  </span>
+                </div>
+
+                <div className={styles.receiptNote}>{receipt.catatan}</div>
+                <div className={styles.receiptThanks}>
+                  {receipt.orderType === 'dine-in' ? 'Terima kasih telah makan di Papeda' : 'Terima kasih telah memesan di Papeda'}
+                </div>
+              </div>
+            </div>
+          </Modal.Body>
+
+          <Modal.Footer className={styles.checkoutFooter}>
+            <Button variant="outline-secondary" className={`${styles.receiptBtn} flex-fill`} onClick={handlePrint}>
+              <i className="fa-solid fa-print me-2"></i>{lunas ? 'Cetak Struk' : 'Cetak Nota'}
+            </Button>
+            <Button variant="papeda" className="flex-fill text-white fw-bold" onClick={handleClose}>
+              Selesai
+            </Button>
+          </Modal.Footer>
+        </>
+      )}
+
+      {step === 'form' && (
+        <>
+          <Modal.Body className={styles.checkoutBody}>
+            <p className={styles.sectionTitle}>Metode pesanan</p>
+            <div className={styles.typeGroup} role="group">
+              <button
+                type="button"
+                className={`${styles.typeBtn} ${orderType === 'dine-in' ? styles.typeBtnActive : ''}`}
+                onClick={() => setOrderType('dine-in')}
+              >
+                <i className="fa-solid fa-store"></i> Makan di Tempat
+              </button>
+              <button
+                type="button"
+                className={`${styles.typeBtn} ${orderType === 'online' ? styles.typeBtnActive : ''}`}
+                onClick={() => setOrderType('online')}
+              >
+                <i className="fa-solid fa-motorcycle"></i> Pesan Antar
+              </button>
+            </div>
+
+            {orderType === 'dine-in' ? (
+              <Form.Group className="mb-4" controlId="dineInForm">
+                <Form.Label className={styles.sectionTitle}>Pilih gerai restoran</Form.Label>
+                <Form.Select
+                  className={styles.customInput}
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                >
+                  <option value="" disabled>-- Pilih Lokasi --</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.nama}>
+                      {b.nama} - {b.alamat}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            ) : (
+              <>
+                <Form.Group className="mb-3" controlId="deliveryBranch">
+                  <Form.Label className={styles.sectionTitle}>Gerai yang mengantar</Form.Label>
+                  <Form.Select
+                    className={styles.customInput}
+                    value={deliveryBranchId}
+                    onChange={(e) => setDeliveryBranchId(e.target.value)}
+                  >
+                    <option value="" disabled>-- Pilih Gerai --</option>
+                    {branches.map((b) => {
+                      const km = userCoord && hasCoord(b) ? hitungJarakKm(userCoord.lat, userCoord.lng, b.latitude, b.longitude) : null;
+                      return (
+                        <option key={b.id} value={String(b.id)}>
+                          {b.nama} - {b.alamat}{km !== null ? ` (± ${formatKm(km)})` : ''}
+                        </option>
+                      );
+                    })}
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3" controlId="onlineForm">
+                  <Form.Label className={styles.sectionTitle}>Alamat pengiriman</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    className={styles.customInput}
+                    placeholder="Masukkan alamat lengkap Anda..."
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                  />
+                </Form.Group>
+
+                <p className={styles.sectionTitle}>Jarak pengantaran</p>
+                {!useManual ? (
+                  <div className="mb-4">
+                    <Button
+                      variant="outline-secondary"
+                      className={`${styles.receiptBtn} w-100`}
+                      disabled={geoLoading}
+                      onClick={handleUseLocation}
+                    >
+                      {geoLoading ? (
+                        <><Spinner animation="border" size="sm" className="me-2" />Mencari lokasi...</>
+                      ) : (
+                        <><i className="fa-solid fa-location-crosshairs me-2"></i>{userCoord ? 'Perbarui lokasi saya' : 'Gunakan lokasi saya'}</>
+                      )}
+                    </Button>
+                    {geoError && <div className={styles.hint}>{geoError}</div>}
+                    {deliveryBranch && !hasCoord(deliveryBranch) && (
+                      <div className={styles.hint}>Gerai ini belum punya koordinat, pilih perkiraan jarak manual.</div>
+                    )}
+                    {jarakKm !== null && (
+                      <div className={diLuarJangkauan ? styles.distanceBad : styles.distanceInfo}>
+                        {diLuarJangkauan
+                          ? `Jarak ± ${formatKm(jarakKm)}, di luar jangkauan (maks ${ONGKIR_TARIF.maksKm} km).`
+                          : `Jarak ± ${formatKm(jarakKm)} dari ${deliveryBranch?.nama}`}
+                      </div>
+                    )}
+                    <button type="button" className={styles.linkBtn} onClick={() => setUseManual(true)}>
+                      Pilih perkiraan jarak secara manual
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    <Form.Select
+                      className={styles.customInput}
+                      value={manualKm}
+                      onChange={(e) => setManualKm(e.target.value)}
+                    >
+                      <option value="">-- Perkiraan jarak --</option>
+                      {ZONA_MANUAL.map((z) => (
+                        <option key={z.km} value={z.km}>{z.label}</option>
+                      ))}
+                    </Form.Select>
+                    <button type="button" className={styles.linkBtn} onClick={() => setUseManual(false)}>
+                      Hitung otomatis dari lokasi saya
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            <p className={styles.sectionTitle}>Metode pembayaran</p>
+            <div className={styles.payList} role="radiogroup">
+              {options.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={payment === o.key}
+                  className={`${styles.payCard} ${payment === o.key ? styles.payCardActive : ''}`}
+                  onClick={() => setPayment(o.key)}
+                >
+                  <span className={styles.payIcon}><i className={`fa-solid ${o.icon}`}></i></span>
+                  <span className={styles.payText}>
+                    <strong>{o.title}</strong>
+                    <small>{o.desc}</small>
+                  </span>
+                  <span className={styles.payRadio}></span>
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.checkoutSummary}>
+              <div className={styles.summaryRow}>
+                <span>Subtotal Makanan</span>
+                <span className="fw-bold">{rupiah(subtotal)}</span>
+              </div>
+              {orderType === 'online' && (
+                <div className={styles.summaryRow}>
+                  <span>Ongkos Kirim{jarakKm !== null && !diLuarJangkauan ? ` (± ${formatKm(jarakKm)})` : ''}</span>
+                  <span className="fw-bold">
+                    {ongkirHitung !== null ? `+ ${rupiah(ongkirHitung)}` : 'Tentukan jarak dulu'}
+                  </span>
+                </div>
+              )}
+              <div className={styles.summaryTotal}>
+                <span>Total Bayar</span>
+                <span>{rupiah(totalBayar)}</span>
+              </div>
+            </div>
+
+            {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
+          </Modal.Body>
+
+          <Modal.Footer className={styles.checkoutFooter}>
+            <Button
+              variant="papeda"
+              className="w-100 text-white fw-bold py-2"
+              disabled={loading || cartItems.length === 0}
+              onClick={handleConfirm}
+            >
+              {loading ? (
+                'Memproses...'
+              ) : (
+                <>
+                  {confirmLabel} <i className="fa-solid fa-arrow-right ms-2"></i>
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        </>
+      )}
     </Modal>
   );
 }
