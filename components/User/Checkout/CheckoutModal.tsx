@@ -5,11 +5,11 @@ import { Modal, Form, Button, Spinner } from 'react-bootstrap';
 import { CartItem } from '../FloatingButton/FloatingButton';
 import { BranchMap } from '../Reservation/ReservationSection';
 import { hitungJarakKm, hitungOngkir, formatKm, ONGKIR_TARIF } from '@/lib/deliveryFee';
-import { BATAS_BAYAR_EWALLET_DETIK } from '@/lib/paymentTimeout';
+import { BATAS_BAYAR_EWALLET_DETIK, BATAS_BAYAR_KASIR_DETIK } from '@/lib/paymentTimeout';
 import DeliveryPicker from './DeliveryPicker';
 import BranchSelect from './BranchSelect';
 import styles from './CheckoutModal.module.css';
-import { buildReceiptHtml, type Receipt, type OrderType } from './receiptPrint';
+import { buildReceiptHtml, type Receipt, type OrderType } from '@/lib/receiptPrint';
 
 interface CheckoutModalProps {
   show: boolean;
@@ -482,6 +482,9 @@ export default function CheckoutModal({
               </div>
               <p className={styles.hint}>Struk akan muncul otomatis begitu kasir menerima pembayaran Anda.</p>
               <p className={styles.hint}>
+                Pesanan dibatalkan otomatis jika belum dibayar dalam {Math.round(BATAS_BAYAR_KASIR_DETIK / 60)} menit.
+              </p>
+              <p className={styles.hint}>
                 Jendela ini boleh ditutup. Pesanan tetap tersimpan dan bisa dibuka lagi lewat tombol &quot;Pesanan menunggu pembayaran&quot;.
               </p>
             </div>
@@ -561,7 +564,7 @@ export default function CheckoutModal({
               <p className={styles.stepDesc}>
                 {receipt?.metodeBayar.startsWith('E-Wallet')
                   ? 'Pesanan ini dibatalkan karena waktu pembayaran habis atau oleh kasir. Silakan pesan ulang atau hubungi gerai.'
-                  : 'Pesanan ini dibatalkan oleh kasir. Silakan pesan ulang atau hubungi gerai.'}
+                  : 'Pesanan ini dibatalkan karena belum dibayar dalam batas waktu atau dibatalkan oleh kasir. Silakan pesan ulang atau hubungi gerai.'}
               </p>
             </div>
           </Modal.Body>

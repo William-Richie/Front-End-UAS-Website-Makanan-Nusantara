@@ -886,3 +886,358 @@ padding: 8px 0;
     }
 
 }
+
+/* PANTAU PESANAN */
+.admin-main .order-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+.admin-main .order-head h1 { margin-bottom: 2px; }
+.admin-main .order-sub {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .8rem;
+    color: #8a7360;
+}
+.admin-main .order-live {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3d9a5f;
+    animation: orderPulse 1.8s ease infinite;
+}
+@keyframes orderPulse {
+    0% { box-shadow: 0 0 0 0 rgba(61,154,95,.5); }
+    70% { box-shadow: 0 0 0 7px rgba(61,154,95,0); }
+    100% { box-shadow: 0 0 0 0 rgba(61,154,95,0); }
+}
+.admin-main .order-search {
+    position: relative;
+    flex: 1 1 260px;
+    min-width: 240px;
+}
+.admin-main .order-search i {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    color: #98704b;
+    font-size: .85rem;
+}
+.admin-main .order-search .form-control { padding-left: 38px; }
+.admin-main .order-tabs {
+    flex-wrap: wrap;
+    gap: 8px;
+    overflow-x: visible;
+    margin-bottom: 18px;
+}
+.admin-main .order-tabs .tab-btn { border-radius: 20px; padding: 7px 14px; font-size: .85rem; }
+.admin-main .order-clean {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: .85rem;
+    color: #7a4a3a;
+    background: #fbeeea;
+    border: 1px dashed #e3b8ad;
+    border-radius: 12px;
+}
+.admin-main .order-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px;
+}
+.admin-main .order-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: #fffaf3;
+    border: 1px solid #eee2d5;
+    border-left: 4px solid #c9a17a;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(59,35,20,.06);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.admin-main .order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(59,35,20,.12);
+}
+.admin-main .order-card.status-menunggu_bayar { border-left-color: #4aa3c7; }
+.admin-main .order-card.status-pending { border-left-color: #e0a526; }
+.admin-main .order-card.status-diproses { border-left-color: #4a7fd1; }
+.admin-main .order-card.status-selesai { border-left-color: #3d9a5f; }
+.admin-main .order-card.status-dibatalkan { border-left-color: #c0524a; opacity: .85; }
+.admin-main .order-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+.admin-main .order-id {
+    font-family: var(--font-playfair), serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #3b2314;
+}
+.admin-main .order-time { font-size: .75rem; color: #8a7360; }
+.admin-main .order-status {
+    padding: 4px 11px;
+    font-size: .72rem;
+    font-weight: 700;
+    border-radius: 20px;
+    white-space: nowrap;
+    background: #eee2d5;
+    color: #4a2c17;
+}
+.admin-main .order-status.status-menunggu_bayar { background: #dff1f8; color: #1f6b88; }
+.admin-main .order-status.status-pending { background: #fbf0d3; color: #8a6310; }
+.admin-main .order-status.status-diproses { background: #dfe9f8; color: #2c58a0; }
+.admin-main .order-status.status-selesai { background: #dcf1e4; color: #266e43; }
+.admin-main .order-status.status-dibatalkan { background: #f7dfdc; color: #9a3a33; }
+.admin-main .order-name { font-weight: 700; color: #3b2314; }
+.admin-main .order-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-main .order-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    font-size: .72rem;
+    font-weight: 700;
+    color: #6b4226;
+    background: #f0e1cf;
+    border-radius: 20px;
+}
+.admin-main .order-chip.paid { background: #dcf1e4; color: #266e43; }
+.admin-main .order-items {
+    list-style: none;
+    margin: 0;
+    padding: 10px 12px;
+    flex: 1;
+    font-size: .83rem;
+    color: #514337;
+    background: #fff;
+    border: 1px dashed #e3d3c0;
+    border-radius: 10px;
+}
+.admin-main .order-items li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 0;
+}
+.admin-main .order-items li b { color: #6b4226; }
+.admin-main .order-items li.more { color: #8a7360; font-style: italic; }
+.admin-main .order-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.admin-main .order-total {
+    display: flex;
+    flex-direction: column;
+    font-weight: 700;
+    color: #3b2314;
+    line-height: 1.2;
+}
+.admin-main .order-total small { font-size: .7rem; font-weight: 400; color: #8a7360; }
+.admin-main .order-actions { display: flex; gap: 6px; }
+.admin-main .order-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 50px 20px;
+    color: #8a7360;
+    background: #fffaf3;
+    border: 1px dashed #d8c3ab;
+    border-radius: 14px;
+}
+.admin-main .order-empty i { font-size: 2rem; color: #c9a17a; }
+.admin-main .order-more { display: flex; justify-content: center; margin-top: 20px; }
+.admin-main .order-tools {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    flex: 1 1 420px;
+    justify-content: flex-end;
+}
+.admin-main .order-tools .order-search { flex: 1 1 220px; }
+.admin-main .order-gerai { position: relative; flex: 0 0 auto; min-width: 230px; }
+.admin-main .order-gerai-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 12px;
+    text-align: left;
+    font-family: inherit;
+    color: #3b2314;
+    background: #fffaf3;
+    border: 1.5px solid #e3d3c0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .order-gerai-btn:hover,
+.admin-main .order-gerai-btn.open {
+    border-color: #98704b;
+    box-shadow: 0 0 0 3px rgba(152,112,75,.15);
+}
+.admin-main .order-gerai-ico {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    font-size: .85rem;
+    color: #f2c879;
+    background: linear-gradient(135deg, #6b4226, #4a2c17);
+    border-radius: 50%;
+}
+.admin-main .order-gerai-txt { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.2; }
+.admin-main .order-gerai-txt small { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: #8a7360; }
+.admin-main .order-gerai-txt strong { font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-main .order-gerai-n {
+    padding: 1px 8px;
+    font-size: .72rem;
+    color: #4a2c17;
+    background: #f2c879;
+    border-radius: 20px;
+}
+.admin-main .order-gerai-arrow { font-size: .75rem; color: #6b4226; transition: transform .25s ease; }
+.admin-main .order-gerai-btn.open .order-gerai-arrow { transform: rotate(180deg); }
+.admin-main .order-gerai-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    background: #fffaf3;
+    border: 1.5px solid #e3d3c0;
+    border-radius: 12px;
+    box-shadow: 0 12px 26px rgba(59,35,20,.18);
+}
+.admin-main .order-gerai-opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 10px;
+    text-align: left;
+    font-family: inherit;
+    font-size: .86rem;
+    font-weight: 700;
+    color: #3b2314;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.admin-main .order-gerai-opt:hover { background: #f0e1cf; }
+.admin-main .order-gerai-opt.active { background: #f1e6d9; }
+.admin-main .order-gerai-opt > i:first-child { width: 18px; text-align: center; color: #98704b; }
+.admin-main .order-gerai-opt span { flex: 1; min-width: 0; }
+.admin-main .order-gerai-opt em { font-style: normal; font-size: .72rem; font-weight: 400; color: #8a7360; }
+.admin-main .order-gerai-check { font-size: .75rem; color: #3d9a5f; opacity: 0; }
+.admin-main .order-gerai-opt.active .order-gerai-check { opacity: 1; }
+
+/* PANTAU PESANAN: filter tanggal */
+.admin-main .order-date {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: #fffaf3;
+    border: 1.5px solid #e3d3c0;
+    border-radius: 14px;
+}
+.admin-main .order-date-mode {
+    display: inline-flex;
+    padding: 3px;
+    background: #f1e6d7;
+    border-radius: 10px;
+}
+.admin-main .order-date-mode button {
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: .82rem;
+    font-weight: 700;
+    color: #6b4226;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .order-date-mode button.active {
+    color: #fff;
+    background: #4a2c17;
+    box-shadow: 0 2px 6px rgba(59,35,20,.25);
+}
+.admin-main .order-date-range { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.admin-main .order-date-sep { color: #98704b; font-weight: 700; }
+.admin-main .order-date-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0 10px;
+    background: #fff;
+    border: 1.5px solid #e3d3c0;
+    border-radius: 10px;
+}
+.admin-main .order-date-field:focus-within { border-color: #98704b; box-shadow: 0 0 0 3px rgba(152,112,75,.15); }
+.admin-main .order-date-field i { color: #98704b; font-size: .85rem; }
+.admin-main .order-date-field small {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #8a7360;
+}
+.admin-main .order-date-field input {
+    min-height: 38px;
+    font-family: inherit;
+    font-size: .88rem;
+    color: #3b2314;
+    background: transparent;
+    border: 0;
+    outline: none;
+}
+.admin-main .order-date-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.admin-main .order-date-quick button {
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: .78rem;
+    font-weight: 600;
+    color: #6b4226;
+    background: #fff;
+    border: 1.5px solid #e3d3c0;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .order-date-quick button:hover { color: #fff; background: #6b4226; border-color: #6b4226; }
+@media (max-width: 576px) {
+    .admin-main .order-date-mode { width: 100%; }
+    .admin-main .order-date-mode button { flex: 1; padding: 8px 6px; }
+    .admin-main .order-date-quick { margin-left: 0; }
+}
