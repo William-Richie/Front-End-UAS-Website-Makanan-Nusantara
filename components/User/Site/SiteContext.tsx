@@ -11,10 +11,11 @@ import {
   type ReactNode,
 } from 'react';
 import Navbar from '@/components/User/Navbar/Navbar';
+import styles from './PendingOrderBar.module.css';
 import Footer from '@/components/User/Footer/Footer';
 import IntroOverlay from '@/components/User/Intro/IntroOverlay';
 import CartFloating, { CartItem } from '@/components/User/FloatingButton/FloatingButton';
-import CheckoutModal from '@/components/User/Checkout/CheckoutModal';
+import CheckoutModal, { PENDING_ORDER_KEY } from '@/components/User/Checkout/CheckoutModal';
 import AuthModal from '@/components/User/Auth/AuthModal';
 import ProfileModal from '@/components/User/Profile/ProfileModal';
 import type { MenuItem } from '@/components/User/Menu/MenuSection';
@@ -95,6 +96,8 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const cartHydrated = useRef(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
+  const [pendingOrderId, setPendingOrderId] = useState<number | null>(null); // pesanan yang menunggu konfirmasi kasir
+  const [resumeOrderId, setResumeOrderId] = useState<number | null>(null); // pesanan yang sedang dibuka lagi di modal
 
   // Toast Notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -260,6 +263,33 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     setCartItems((prev) => prev.filter((i) => i.id !== id));
   };
 
+  // cek apakah ada pesanan "bayar di kasir" yang masih menunggu (misalnya modal sempat ditutup / halaman di-refresh)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const saved = localStorage.getItem(PENDING_ORDER_KEY);
+        const id = saved ? parseInt(saved, 10) : NaN;
+        if (!Number.isFinite(id)) return;
+        const res = await fetch(`/api/pesanan/${id}`);
+        if (cancelled) return;
+        const json = res.ok ? await res.json() : null;
+        if (json?.data?.status === 'menunggu_bayar') setPendingOrderId(id);
+        else if (res.status === 404 || json?.data) localStorage.removeItem(PENDING_ORDER_KEY);
+      } catch {
+        // koneksi bermasalah, coba lagi saat halaman dibuka berikutnya
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleCheckoutClose = useCallback(() => {
+    setCheckoutModalOpen(false);
+    setResumeOrderId(null);
+  }, []);
+
   const openAuth = useCallback((tab: 'login' | 'register') => {
     setAuthTab(tab);
     setAuthKey((k) => k + 1);
@@ -268,6 +298,8 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
 
   const handleLogout = () => {
     localStorage.removeItem('papeda_user');
+    localStorage.removeItem(PENDING_ORDER_KEY);
+    setPendingOrderId(null);
     setUser(null);
     showToast('Berhasil logout.');
   };
@@ -319,15 +351,41 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
         }}
       />
 
+      {/* Pesanan yang masih menunggu konfirmasi kasir */}
+      {user && pendingOrderId && !checkoutModalOpen && (
+        <button
+          type="button"
+          className={styles.bar}
+          aria-label={`Buka pesanan #${pendingOrderId} yang menunggu pembayaran`}
+          onClick={() => {
+            setResumeOrderId(pendingOrderId);
+            setCheckoutModalOpen(true);
+          }}
+        >
+          <span className={styles.icon}>
+            <i className="fa-solid fa-cash-register"></i>
+          </span>
+          <span className={styles.text}>
+            <small>Menunggu pembayaran</small>
+            <strong>Pesanan #{pendingOrderId}</strong>
+          </span>
+          <span className={styles.go}>
+            <i className="fa-solid fa-chevron-right"></i>
+          </span>
+        </button>
+      )}
+
       {/* Modals */}
       <CheckoutModal
         show={checkoutModalOpen}
         cartItems={cartView}
         branches={branches}
         userName={user?.nama}
-        onClose={() => setCheckoutModalOpen(false)}
-        onOrderCreated={() => setCartItems([])}
+        resumeOrderId={resumeOrderId}
+        onPendingChange={setPendingOrderId}
+        onClose={handleCheckoutClose}
         onSuccess={(orderId) => {
+          setCartItems([]);
           showToast(`Pesanan #${orderId} berhasil diproses!`);
         }}
       />
