@@ -8,6 +8,8 @@ import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePre
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
 import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
 import { JAM_RESERVASI } from '@/lib/jam';
+import KotakMeja, { type MejaItem } from '@/components/Admin/Meja/KotakMeja';
+import { TIPE_MEJA, INFO_TIPE, type TipeMeja } from '@/lib/mejaTipe';
 import {
   BENTUK_ORBIT,
   GERAK_ORBIT,
@@ -63,6 +65,7 @@ export interface ReservasiItem {
   tanggal: string;
   jumlah: number;
   ruangan: string;
+  nomor_meja?: number | null;
   status: string;
   catatan?: string | null;
   email?: string | null;
@@ -78,16 +81,6 @@ export interface UserItem {
   total_reserve?: number | string | null;
   Is_Active?: boolean | string | number | null;
   is_active?: boolean | string | number | null;
-}
-interface InfoRuangan {
-  ruangan: string;
-  label: string;
-  grup: 'Reguler' | 'VIP Room';
-  jumlah: number | null;
-  terpakai: number;
-  sisa: number | null;
-  status: boolean;
-  tersedia: boolean;
 }
 
 type ReservasiTabKey = 'user' | 'pending' | 'approved' | 'complete' | 'dibatalkan';
@@ -113,12 +106,6 @@ const statusMatch = (status: string, tab: ReservasiTabKey): boolean => {
   if (tab === 'complete') return status === 'complete' || status === 'selesai';
   if (tab === 'dibatalkan') return status === 'dibatalkan' || status === 'cancelled';
   return status === tab;
-};
-
-const statusRoomInfo = (r: InfoRuangan): string => {
-  if (!r.status) return 'Dalam Perbaikan';
-  if (r.grup === 'VIP Room') return r.terpakai > 0 ? 'Dipesan' : '';
-  return r.sisa === 0 ? 'Penuh' : '';
 };
 
 const cocokSearch = (data: object, keyword: string): boolean => {
@@ -281,7 +268,6 @@ export default function AdminPage() {
   const [ruanganGerai, setRuanganGerai] = useState<string>('');
   const [ruanganTanggal, setRuanganTanggal] = useState<string>('');
   const [ruanganSesi, setRuanganSesi] = useState<string>('08:00');
-  const [ruanganList, setRuanganList] = useState<InfoRuangan[]>([]);
   const [ruanganPesan, setRuanganPesan] = useState<string>('');
   const [reservasiMenu, setReservasiMenu] = useState<ReservasiMenuKey>('reservasi');
   const [aksiOpen, setAksiOpen] = useState<boolean>(false);
@@ -291,7 +277,6 @@ export default function AdminPage() {
   const [pendapatanRange, setPendapatanRange] = useState<string>('7');
   const [tanggalSekarang, setTanggalSekarang] = useState<Date | null>(null);
   const geraiAktif = ruanganGerai || branches[0]?.nama || '';
-  const ruanganTampil = geraiAktif && ruanganTanggal ? ruanganList : [];
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -320,59 +305,53 @@ export default function AdminPage() {
     deskripsi: '',
   });
 
-  // Cek Ruangan Reservasi
-  const loadRuangan = async () => {
-    if (!geraiAktif || !ruanganTanggal) return;
-    try {
-      const p = new URLSearchParams({ gerai: geraiAktif, tanggal: ruanganTanggal, sesi: ruanganSesi });
-      const res = await adminFetch(`/api/admin/ruangan?${p}`);
-      const json = await res.json().catch(() => ({}));
-      setRuanganList(json.data || []);
-    } catch (e) {
-      console.error('Gagal mengambil data ruangan:', e);
-    }
-  };
-
-  const kirimRuangan = async (body: object) => {
-  try {
-    const res = await adminFetch('/api/admin/ruangan', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gerai: geraiAktif, ...body }),
-    });
-    const json = await res.json().catch(() => ({}));
-    setRuanganPesan(res.ok ? 'Tersimpan.' : json.error || 'Gagal menyimpan.');
-  } catch {
-    setRuanganPesan('Gagal menyimpan.');
-  }
-  loadRuangan();
-};
+  // Meja (menggantikan pengaturan ruangan lama)
+  const [mejaList, setMejaList] = useState<MejaItem[]>([]);
+  const [muatUlang, setMuatUlang] = useState(0);
 
   useEffect(() => {
     if (!isLoggedIn || activeTab !== 'reservasi' || reservasiMenu !== 'ruangan') return;
     if (!geraiAktif || !ruanganTanggal) return;
 
     let batal = false;
-    const p = new URLSearchParams({ gerai: geraiAktif, tanggal: ruanganTanggal, sesi: ruanganSesi });
+    const p = new URLSearchParams({ gerai: geraiAktif, tanggal: ruanganTanggal, jam: ruanganSesi });
 
-    adminFetch(`/api/admin/ruangan?${p}`)
+    adminFetch(`/api/admin/meja?${p}`)
       .then((r) => r.json().catch(() => ({})))
       .then((json) => {
-        if (!batal) setRuanganList(json.data || []);
+        if (!batal) setMejaList(json.data || []);
       })
-      .catch((e) => console.error('Gagal mengambil data ruangan:', e));
+      .catch((e) => console.error('Gagal mengambil data meja:', e));
 
     return () => {
       batal = true;
     };
-  }, [isLoggedIn, activeTab, reservasiMenu, geraiAktif, ruanganTanggal, ruanganSesi]);
+  }, [isLoggedIn, activeTab, reservasiMenu, geraiAktif, ruanganTanggal, ruanganSesi, muatUlang]);
 
-  const ubahJumlahRuangan = (r: InfoRuangan, n: number) => {
-    if (!Number.isInteger(n) || n < 0 || n > 50) return;
-    kirimRuangan({ ruangan: r.ruangan, jumlah: n });
+  const kirimMeja = async (body: object) => {
+    try {
+      const res = await adminFetch('/api/admin/meja', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tanggal: ruanganTanggal, jam: ruanganSesi, ...body }),
+      });
+      const json = await res.json().catch(() => ({}));
+      setRuanganPesan(res.ok ? 'Tersimpan.' : json.error || 'Gagal menyimpan.');
+    } catch {
+      setRuanganPesan('Gagal menyimpan.');
+    }
+    setMuatUlang((v) => v + 1);
   };
 
-  const toggleStatusRuangan = (r: InfoRuangan) => kirimRuangan({ ruangan: r.ruangan, status: !r.status });
+  const ubahJumlahMeja = async (tipe: TipeMeja, n: number) => {
+    if (n < 0 || n > 50) return;
+    await adminFetch('/api/admin/meja', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gerai: geraiAktif, tipe, jumlah: n }),
+    });
+    setMuatUlang((v) => v + 1);
+  };
 
   // id menu yang sedang diedit (null = form dipakai untuk menambah menu baru)
   const [editMenuId, setEditMenuId] = useState<number | null>(null);
@@ -885,7 +864,6 @@ export default function AdminPage() {
   };
 
   // Data grafik beranda
-  // Data grafik beranda
   const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
   const tglLokal = (d: Date) => d.toLocaleDateString('en-CA');
 
@@ -1332,6 +1310,7 @@ export default function AdminPage() {
                   {menus.map((m) => (
                     <tr key={m.id}>
                       <td>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={m.gambar} alt={m.nama_makanan} width="48" height="48" style={{ objectFit: 'cover', borderRadius: '4px' }} />
                       </td>
                       <td className="fw-bold">{m.nama_makanan}</td>
@@ -2138,7 +2117,10 @@ export default function AdminPage() {
                                   <small className="text-muted">{r.sesi || r.jam || '-'}</small>
                                 </td>
                                 <td>{r.jumlah || 0} Orang</td>
-                                <td>{r.ruangan || '-'}</td>
+                                <td>
+                                  {r.ruangan || '-'}
+                                  {r.nomor_meja ? ` #${String(r.nomor_meja).padStart(2, '0')}` : ''}
+                                </td>
                                 <td>{r.catatan || '-'}</td>
                                 <td className="aksi">
                                   {selesai ? (
@@ -2211,120 +2193,42 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <h2 className="fs-5 fw-bold mt-2">Ruangan Reguler</h2>
-                <p className="text-muted small">
-                  Jumlah berlaku untuk semua tanggal dan sesi di gerai ini. Terpakai, Sisa, dan Ketersediaan mengikuti
-                  tanggal dan sesi di atas. Tutup Paksa menutup ruangan untuk semua tanggal sampai dibuka kembali.
-                </p>
-                <div className="table-responsive mb-4">
-                  <table className="table table-striped align-middle">
-                    <thead className="table-dark">
-                      <tr className="text-center">
-                        <th>Ruangan</th>
-                        <th>Jumlah</th>
-                        <th>Terpakai</th>
-                        <th>Sisa</th>
-                        <th>Ketersediaan</th>
-                        <th>Pengaturan</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ruanganTampil.filter((r) => r.grup === 'Reguler').map((r) => (
-                        <tr key={r.ruangan} className="text-center">
-                          <td className="text-start">{r.label}</td>
-                          <td>
-                            <div className="d-inline-flex align-items-center gap-2">
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-secondary"
-                                disabled={(r.jumlah ?? 0) <= 0}
-                                onClick={() => ubahJumlahRuangan(r, (r.jumlah ?? 0) - 1)}
-                              >
-                                −
-                              </button>
-                              <input
-                                key={`${r.ruangan}-${r.jumlah}`}
-                                type="number"
-                                min={0}
-                                max={50}
-                                className="form-control form-control-sm text-center"
-                                style={{ width: 70 }}
-                                defaultValue={r.jumlah ?? 0}
-                                onBlur={(e) => {
-                                  const n = Number(e.target.value);
-                                  if (n !== r.jumlah) ubahJumlahRuangan(r, n);
-                                }}
-                              />
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-secondary"
-                                disabled={(r.jumlah ?? 0) >= 50}
-                                onClick={() => ubahJumlahRuangan(r, (r.jumlah ?? 0) + 1)}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td>{r.terpakai}</td>
-                          <td><strong>{r.sisa}</strong></td>
-                          <td>
-                            <span className={`badge ${r.tersedia ? 'bg-success' : 'bg-danger'}`}>
-                              {r.tersedia ? 'Tersedia' : 'Tidak Tersedia'}
-                            </span>
-                            {statusRoomInfo(r) && <div className="small text-muted">{statusRoomInfo(r)}</div>}
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className={`btn btn-sm ${r.status ? 'btn-outline-danger' : 'btn-success'}`}
-                              onClick={() => toggleStatusRuangan(r)}
-                            >
-                              {r.status ? 'Maintenance' : 'Buka Kembali'}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {TIPE_MEJA.map((t) => {
+                  const items = mejaList.filter((m) => m.tipe === t);
+                  return (
+                    <section key={t} className="mb-4">
+                      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h2 className="fs-5 fw-bold mb-0">{INFO_TIPE[t].judul}</h2>
+                        <div className="d-inline-flex align-items-center gap-2">
+                          <small className="text-muted">Jumlah meja</small>
+                          <button type="button" className="btn btn-sm btn-outline-secondary"
+                            disabled={items.length <= 0}
+                            onClick={() => ubahJumlahMeja(t, items.length - 1)}>−</button>
+                          <strong>{items.length}</strong>
+                          <button type="button" className="btn btn-sm btn-outline-secondary"
+                            disabled={items.length >= 50}
+                            onClick={() => ubahJumlahMeja(t, items.length + 1)}>+</button>
+                        </div>
+                      </div>
 
-                <h2 className="fs-5 fw-bold">Ruangan VIP</h2>
-                <p className="text-muted small">
-                  Ruangan otomatis Tidak Tersedia pada tanggal dan sesi yang sudah dipesan.
-                </p>
-                <div className="table-responsive">
-                  <table className="table table-striped align-middle">
-                    <thead className="table-dark">
-                      <tr className="text-center">
-                        <th>Ruangan</th>
-                        <th>Ketersediaan</th>
-                        <th>Pengaturan</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ruanganTampil.filter((r) => r.grup === 'VIP Room').map((r) => (
-                        <tr key={r.ruangan} className="text-center">
-                          <td className="text-start">{r.label}</td>
-                          <td>
-                            <span className={`badge ${r.tersedia ? 'bg-success' : 'bg-danger'}`}>
-                              {r.tersedia ? 'Tersedia' : 'Tidak Tersedia'}
-                            </span>
-                            {statusRoomInfo(r) && <div className="small text-muted">{statusRoomInfo(r)}</div>}
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className={`btn btn-sm ${r.status ? 'btn-outline-danger' : 'btn-success'}`}
-                              onClick={() => toggleStatusRuangan(r)}
-                            >
-                              {r.status ? 'Maintenance' : 'Buka Kembali'}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      {items.length === 0 ? (
+                        <p className="text-muted small">Belum ada meja. Tekan + untuk menambah.</p>
+                      ) : (
+                        <div className="meja-grid">
+                          {items.map((m) => (
+                            <KotakMeja
+                              key={`${m.id}-${ruanganTanggal}-${ruanganSesi}`}
+                              meja={m}
+                              gambar={INFO_TIPE[t].gambar}
+                              jam={ruanganSesi}
+                              onUbah={kirimMeja}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
 
                 {ruanganPesan && <small className="text-muted">{ruanganPesan}</small>}
               </div>

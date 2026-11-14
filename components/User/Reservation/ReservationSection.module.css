@@ -495,3 +495,37 @@
 .shake {
   animation: shake 0.35s ease-in-out;
 }
+
+.mejaScroll {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 6px 2px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+.mejaTab {
+  flex: 0 0 auto;
+  min-width: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  scroll-snap-align: start;
+  border: 1px solid #d9bea5;
+  border-radius: 12px;
+  background: #fffaf4;
+  color: #4a2c17;
+  cursor: pointer;
+  transition: .15s ease;
+}
+.mejaTab strong { padding: 0 8px; border-radius: 20px; border: 1px solid #cdbba9; }
+.tag_indoor strong  { background: #fff; color: #3b2314; }
+.tag_outdoor strong { background: #1f1f1f; border-color: #1f1f1f; color: #fff; }
+.tag_vip strong     { background: #d4a73a; border-color: #b98b1f; color: #3b2314; }
+.mejaTab small { font-size: .65rem; }
+.mejaTab:hover:not(:disabled) { border-color: #4a2c17; }
+.mejaTab:disabled { opacity: .45; cursor: not-allowed; }
+.mejaAktif { background: #4a2c17; color: #fff; border-color: #4a2c17; }

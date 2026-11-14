@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Container, Row, Col, Form, Button } from 'react-bootstrap';
 import styles from './ReservationSection.module.css';
+import { JAM_RESERVASI } from '@/lib/jam';
+import { KODE_RUANGAN, type TipeMeja } from '@/lib/mejaTipe';
 
 // tanggal & jam hari ini menurut jam perangkat pengguna (format YYYY-MM-DD dan HH:MM)
 const sekarangLokal = () => {
@@ -21,6 +23,17 @@ export interface BranchMap {
   alamat: string;
   latitude: number;
   longitude: number;
+}
+
+interface MejaPublik {
+  id: number;
+  tipe: TipeMeja;
+  nomor: number;
+  kapMin: number;
+  kapMaks: number;
+  open: boolean;
+  dipesan: boolean;
+  bisaDipilih: boolean;
 }
 
 interface ReservationSectionProps {
@@ -44,8 +57,9 @@ export default function ReservationSection({
   const [jumlah, setJumlah] = useState<number>(0);
   const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [sesi, setSesi] = useState('');
-  const [ruangan, setRuangan] = useState('');
-  const [terisi, setTerisi] = useState<string[]>([]);
+  const [tipe, setTipe] = useState<TipeMeja | ''>('');
+  const [mejaId, setMejaId] = useState<number | null>(null);
+  const [mejaList, setMejaList] = useState<MejaPublik[]>([]);
   const [catatan, setCatatan] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -66,54 +80,33 @@ export default function ReservationSection({
     }, 400);
   };
 
-  const availableTimes = Array.from(
-    { length: 27 },
-    (_, i) => {
-      const totalMinutes = 8 * 60 + i * 30;
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-
-      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    }
-  );
-
   useEffect(() => {
     const timer = setTimeout(() => setHariIni(sekarangLokal().tanggal), 0);
     return () => clearTimeout(timer);
   }, []);
 
-  
+  // ambil daftar meja setiap gerai / tanggal / jam / tipe berubah
   useEffect(() => {
-    if (!selectedBranch || !tanggal || !sesi) {
-      return;
-    }
-
+    if (!selectedBranch || !tanggal || !sesi || !tipe) return;
     let batal = false;
+    const params = new URLSearchParams({ gerai: selectedBranch, tanggal, jam: sesi, tipe });
 
-    const params = new URLSearchParams({
-      terisi: '1',
-      gerai: selectedBranch,
-      tanggal,
-      sesi,
-    });
-
-    fetch(`/api/reservasi?${params}`)
+    fetch(`/api/meja?${params}`)
       .then((r) => r.json())
       .then((d) => {
-      if (batal) return;
-
-        const daftar: string[] = d.terisi ?? [];
-        setTerisi(daftar);
-        setRuangan((cur) =>
-          daftar.includes(cur) ? '' : cur
-        );
+        if (!batal) setMejaList(d.data ?? []);
       })
-    .catch(() => {});
+      .catch(() => {});
 
     return () => {
       batal = true;
     };
-  }, [selectedBranch, tanggal, sesi]);
+  }, [selectedBranch, tanggal, sesi, tipe]);
+
+  const isReady = !!selectedBranch && !!tanggal && !!sesi && jumlah >= 1 && jumlah <= 20;
+  const daftarMeja = isReady && tipe ? mejaList.filter((m) => m.tipe === tipe) : [];
+  const bisaPilih = (m: MejaPublik) => m.bisaDipilih && jumlah >= m.kapMin && jumlah <= m.kapMaks;
+  const mejaTerpilih = daftarMeja.find((m) => m.id === mejaId && bisaPilih(m)) ?? null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +130,11 @@ export default function ReservationSection({
       triggerShake();
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/.test(email.trim())) {
+      setErrorMsg('Format email tidak valid!');
+      triggerShake();
+      return;
+    }
     if (!/^08[0-9]{8,11}$/.test(telepon.trim())) {
       setErrorMsg('Nomor telepon harus diawali 08 dan berisi 10-13 digit angka!');
       triggerShake();
@@ -157,8 +155,13 @@ export default function ReservationSection({
       triggerShake();
       return;
     }
-    if (!ruangan) {
+    if (!tipe) {
       setErrorMsg('Silakan pilih tipe ruangan!');
+      triggerShake();
+      return;
+    }
+    if (!mejaTerpilih) {
+      setErrorMsg('Silakan pilih nomor meja!');
       triggerShake();
       return;
     }
@@ -168,11 +171,6 @@ export default function ReservationSection({
       triggerShake();
       return;
     }
-    // if (tanggal === now.tanggal && now.jam > (AKHIR_SESI[sesi] ?? '23:59')) {
-    //   setErrorMsg('Jam kedatangan sudah lewat. Pilih jam yang masih ke depan.');
-    //   triggerShake();
-    //   return;
-    // }
 
     setSubmitting(true);
     setErrorMsg('');
@@ -190,7 +188,8 @@ export default function ReservationSection({
           tanggal,
           sesi,
           jumlah: Number(jumlah),
-          ruangan,
+          ruangan: KODE_RUANGAN[tipe],
+          meja_id: mejaTerpilih.id,
           catatan: catatan.trim(),
         }),
       });
@@ -205,7 +204,9 @@ export default function ReservationSection({
       setTanggal('');
       setSesi('');
       setCatatan('');
-      setRuangan('');
+      setTipe('');
+      setMejaId(null);
+      setMejaList([]);
       setJumlah(0);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan saat memproses reservasi.';
@@ -214,8 +215,6 @@ export default function ReservationSection({
       setSubmitting(false);
     }
   };
-
-  const isReady = !!selectedBranch && !!tanggal && !!sesi && jumlah>=1 && jumlah <=20;
 
   return (
     <section id="reservation" className="page-section">
@@ -287,7 +286,10 @@ export default function ReservationSection({
                       className={`${styles.storeCard} ${aktif ? styles.active : ''}`}
                       style={{ '--i': i } as React.CSSProperties}
                       aria-pressed={aktif}
-                      onClick={() => setSelectedBranch(b.nama)}
+                      onClick={() => {
+                        setSelectedBranch(b.nama);
+                        setMejaId(null);
+                      }}
                     >
                       <span className={styles.storePin}>
                         <i className="fa-solid fa-location-dot"></i>
@@ -303,11 +305,11 @@ export default function ReservationSection({
               )}
             </div>
           </div>
-              
+
           <Form noValidate onSubmit={handleSubmit} className={`${styles.resForm} ${isShaking ? styles.shake : ''}`}>
             <Form.Group className="mb-3">
               <Form.Label className="fw-bold d-flex align-items-center gap-2">
-                <button type="button" 
+                <button type="button"
                   className={styles.helpButton}
                   aria-expanded={showRules}
                   onClick={() => setShowRules(true)}
@@ -347,15 +349,10 @@ export default function ReservationSection({
               <Form.Control
                 type="tel"
                 id="res-phone"
-                placeholder="08xxxxxxxxxx"  
-                pattern="^08[0-9]{8,11}$"
-                title="Nomor telepon harus diawali 08 dan memiliki panjang 10-13 digit angka"
+                placeholder="08xxxxxxxxxx"
                 required
                 value={telepon}
-                onChange={(e) => {
-                  setTelepon(e.target.value);
-                  e.target.setCustomValidity('');
-                }}
+                onChange={(e) => setTelepon(e.target.value)}
               />
             </Form.Group>
 
@@ -379,6 +376,7 @@ export default function ReservationSection({
                         return;
                       }
                       setTanggal(value);
+                      setMejaId(null);
                       setErrorMsg('');
                     }}
                   />
@@ -427,59 +425,58 @@ export default function ReservationSection({
 
                   <Form.Select
                     id="res-room"
-                    required
                     disabled={!isReady}
-                    value={ruangan}
-                    onChange={(e) => setRuangan(e.target.value)}
+                    value={tipe}
+                    onChange={(e) => {
+                      setTipe(e.target.value as TipeMeja | '');
+                      setMejaId(null);
+                    }}
                   >
-                    <option value="" disabled>
-                      -- Type of Room --
-                    </option>
-
-                    <optgroup label="Reguler">
-                      {!terisi.includes('reguler-indoor') && (
-                        <option value="reguler-indoor">
-                          Reguler Indoor (No Smoking / AC)
-                        </option>
-                      )}
-
-                      {!terisi.includes('reguler-outdoor') && (
-                        <option value="reguler-outdoor">
-                          Reguler Outdoor (Free Smoking)
-                        </option>
-                      )}
-                    </optgroup>
-
-                    <optgroup label="VIP Room">
-                      {!terisi.includes('vip-10') && (
-                        <option value="vip-10">
-                          VIP Room 1 (1 Table, Recommended for 4 - 10 people)
-                        </option>
-                      )}
-
-                      {!terisi.includes('vip-10-tv') && (
-                        <option value="vip-10-tv">
-                          VIP Room 1 ++ (1 Table + TV, Recommended for 4 - 10 people)
-                        </option>
-                      )}
-
-                      {!terisi.includes('vip-20') && (
-                        <option value="vip-20">
-                          VIP Room 2 (2 Table, Recommended for 8 - 20 people)
-                        </option>
-                      )}
-
-                      {!terisi.includes('vip-20-tv') && (
-                        <option value="vip-20-tv">
-                          VIP Room 2 ++ (2 Table + TV, Recommended for 8 - 20 people)
-                        </option>
-                      )}
-                    </optgroup>
+                    <option value="">-- Type of Room --</option>
+                    <option value="indoor">Reguler Indoor (No Smoking / AC)</option>
+                    <option value="outdoor">Reguler Outdoor (Free Smoking)</option>
+                    <option value="vip">VIP Room</option>
                   </Form.Select>
+
+                  {tipe && (
+                    <div className={styles.mejaScroll} role="listbox" aria-label="Pilih nomor meja">
+                      {daftarMeja.length === 0 ? (
+                        <small className="text-muted">Belum ada meja tersedia.</small>
+                      ) : (
+                        daftarMeja.map((m) => {
+                          const ok = bisaPilih(m);
+                          const alasan = m.dipesan
+                            ? 'Dipesan'
+                            : !m.open
+                            ? 'Closed'
+                            : !ok
+                            ? `${m.kapMin}-${m.kapMaks} orang`
+                            : '';
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              role="option"
+                              aria-selected={mejaTerpilih?.id === m.id}
+                              disabled={!ok}
+                              className={`${styles.mejaTab} ${styles[`tag_${m.tipe}`]} ${
+                                mejaTerpilih?.id === m.id ? styles.mejaAktif : ''
+                              }`}
+                              onClick={() => setMejaId(m.id)}
+                            >
+                              <strong>{String(m.nomor).padStart(2, '0')}</strong>
+                              <span><i className="fa-solid fa-user"></i> {m.kapMin}-{m.kapMaks}</span>
+                              {alasan && <small>{alasan}</small>}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
                 </Form.Group>
               </Col>
             </Row>
-                        
+
             {showGuestPicker && (
               <div
                 className={styles.guestOverlay}
@@ -530,7 +527,6 @@ export default function ReservationSection({
               </div>
             )}
 
-
             {/* Time Picker */}
             {showTimePicker && (
               <div
@@ -562,7 +558,7 @@ export default function ReservationSection({
 
                   {/* Time Options */}
                   <div className={styles.guestList}>
-                    {availableTimes.map((time) => (
+                    {JAM_RESERVASI.map((time) => (
                       <button
                         key={time}
                         type="button"
@@ -571,6 +567,7 @@ export default function ReservationSection({
                         }`}
                         onClick={() => {
                           setSesi(time);
+                          setMejaId(null);
                           setShowTimePicker(false);
                         }}
                       >
@@ -613,7 +610,7 @@ export default function ReservationSection({
         </Container>
       )}
       {showRules && (
-        <div role="presentation" onClick={() => setShowRules(false)} className= {styles.RulesOver}>
+        <div role="presentation" onClick={() => setShowRules(false)} className={styles.RulesOver}>
           <div
             role="dialog"
             aria-modal="true"
@@ -638,15 +635,12 @@ export default function ReservationSection({
             </div>
 
             <div className={styles.rulesContent}>
-              {/* <p className={styles.rulesIntro}>
-                Please read the following rules before submitting your reservation.
-              </p> */}
               <ol className={styles.rulesList}>
                 <span>
-                  Open daily from 8:00 AM to 10:00 PM according to Western Indonesian Time (WIB). 
+                  Open daily from 8:00 AM to 9:00 PM according to Western Indonesian Time (WIB).
                   Once your reservation is confirmed, we’ll start setting up the dining area 15 minutes before your schedule time, and
-                  We will hold your table for a <strong>maximum of 30 minutes</strong> past your reservation time. No outside drinks & foods are allowed. 
-                  All card games, drugs, firearms & sharp objects are strictly prohibited. We reserve the right to refuse service to anyone. 
+                  We will hold your table for a <strong>maximum of 30 minutes</strong> past your reservation time. No outside drinks & foods are allowed.
+                  All card games, drugs, firearms & sharp objects are strictly prohibited. We reserve the right to refuse service to anyone.
                   Proper attire is required.
                 </span>
               </ol>
