@@ -285,6 +285,9 @@ export default function AdminPage() {
     deskripsi: '',
   });
 
+  // id menu yang sedang diedit (null = form dipakai untuk menambah menu baru)
+  const [editMenuId, setEditMenuId] = useState<number | null>(null);
+
   // Form FAQ
   const [newFaq, setNewFaq] = useState<{ pertanyaan: string; jawaban: string }>({
     pertanyaan: '',
@@ -314,7 +317,9 @@ export default function AdminPage() {
 
   // Cek sesi login admin
   useEffect(() => {
-    const adminSession = localStorage.getItem('papeda_admin_logged');
+    // sesi lama yang tersimpan permanen di localStorage dibuang, login admin hanya berlaku selama tab terbuka
+    localStorage.removeItem('papeda_admin_logged');
+    const adminSession = sessionStorage.getItem('papeda_admin_logged');
     if (adminSession === 'true') {
       const timer = setTimeout(() => setIsLoggedIn(true), 0);
       return () => clearTimeout(timer);
@@ -524,7 +529,7 @@ export default function AdminPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === 'admin' && password === 'admin123') {
-      localStorage.setItem('papeda_admin_logged', 'true');
+      sessionStorage.setItem('papeda_admin_logged', 'true');
       setIsLoggedIn(true);
       setErrorMsg('');
     } else {
@@ -533,6 +538,7 @@ export default function AdminPage() {
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem('papeda_admin_logged');
     localStorage.removeItem('papeda_admin_logged');
     setIsLoggedIn(false);
   };
@@ -540,14 +546,16 @@ export default function AdminPage() {
   // Menu Handlers
   const handleAddMenu = async (e: React.FormEvent) => {
     e.preventDefault();
+    const sedangEdit = editMenuId !== null;
     try {
-      const res = await fetch('/api/menu', {
-        method: 'POST',
+      const res = await fetch(sedangEdit ? `/api/menu/${editMenuId}` : '/api/menu', {
+        method: sedangEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newMenu),
       });
       if (res.ok) {
-        alert('Menu berhasil ditambahkan!');
+        alert(sedangEdit ? 'Menu berhasil diperbarui!' : 'Menu berhasil ditambahkan!');
+        setEditMenuId(null);
         setNewMenu({
           nama_kategori: 'MAIN COURSE',
           nama_makanan: '',
@@ -558,16 +566,47 @@ export default function AdminPage() {
           deskripsi: '',
         });
         loadAllData();
+      } else {
+        alert('Gagal menyimpan menu');
       }
     } catch {
-      alert('Gagal menambah menu');
+      alert('Gagal menyimpan menu');
     }
+  };
+
+  const resetFormMenu = () => {
+    setEditMenuId(null);
+    setNewMenu({
+      nama_kategori: 'MAIN COURSE',
+      nama_makanan: '',
+      harga: 0,
+      gambar: '/img/papeda-icon.png',
+      pedas: 0,
+      status: true,
+      deskripsi: '',
+    });
+  };
+
+  // isi form dengan data menu yang dipilih, lalu gulir ke form
+  const handleEditMenu = (m: MenuItem) => {
+    setEditMenuId(m.id);
+    setNewMenu({
+      nama_kategori: m.nama_kategori,
+      nama_makanan: m.nama_makanan,
+      harga: m.harga,
+      gambar: m.gambar,
+      pedas: m.pedas,
+      status: m.status,
+      deskripsi: m.deskripsi ?? '',
+    });
+    document.getElementById('form-menu')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleDeleteMenu = async (id: number) => {
     if (!confirm('Hapus menu ini?')) return;
     try {
       await fetch(`/api/menu/${id}`, { method: 'DELETE' });
+      if (editMenuId === id) resetFormMenu();
       loadAllData();
     } catch {
       alert('Gagal menghapus menu');
@@ -1115,8 +1154,8 @@ export default function AdminPage() {
               <h1 className="fs-3 fw-bold mb-0">Kelola Menu Makanan</h1>
             </div>
 
-            <div className="card shadow-sm border-0 p-4 mb-4">
-              <h5 className="fw-bold mb-3">Tambah Menu Baru</h5>
+            <div id="form-menu" className="card shadow-sm border-0 p-4 mb-4">
+              <h5 className="fw-bold mb-3">{editMenuId !== null ? 'Edit Menu' : 'Tambah Menu Baru'}</h5>
               <form onSubmit={handleAddMenu} className="row g-3">
                 <div className="col-md-4">
                   <label className="form-label small fw-bold">Kategori</label>
@@ -1129,6 +1168,9 @@ export default function AdminPage() {
                     <option value="MAIN COURSE">MAIN COURSE</option>
                     <option value="DESSERT">DESSERT</option>
                     <option value="MINUMAN">MINUMAN</option>
+                    {!['APPETIZER', 'MAIN COURSE', 'DESSERT', 'MINUMAN'].includes(newMenu.nama_kategori) && (
+                      <option value={newMenu.nama_kategori}>{newMenu.nama_kategori}</option>
+                    )}
                   </select>
                 </div>
                 <div className="col-md-4">
@@ -1172,10 +1214,15 @@ export default function AdminPage() {
                     onChange={(e) => setNewMenu({ ...newMenu, pedas: Number(e.target.value) })}
                   />
                 </div>
-                <div className="col-md-3 d-flex align-items-end">
+                <div className="col-md-3 d-flex align-items-end gap-2">
                   <button type="submit" className="btn btn-warning w-100 text-white fw-bold">
-                    + Tambah Menu
+                    {editMenuId !== null ? 'Simpan Perubahan' : '+ Tambah Menu'}
                   </button>
+                  {editMenuId !== null && (
+                    <button type="button" className="btn btn-outline-secondary fw-bold" onClick={resetFormMenu}>
+                      Batal
+                    </button>
+                  )}
                 </div>
               </form>
             </div>
@@ -1211,13 +1258,22 @@ export default function AdminPage() {
                         </button>
                       </td>
                       <td>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDeleteMenu(m.id)}
-                        >
-                          Hapus
-                        </button>
+                        <div className="d-flex gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => handleEditMenu(m)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDeleteMenu(m.id)}
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

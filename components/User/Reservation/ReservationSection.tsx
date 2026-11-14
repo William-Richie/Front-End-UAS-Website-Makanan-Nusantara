@@ -1,8 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Container, Row, Col, Form, Button } from 'react-bootstrap';
 import styles from './ReservationSection.module.css';
+
+// tanggal & jam hari ini menurut jam perangkat pengguna (format YYYY-MM-DD dan HH:MM)
+const sekarangLokal = () => {
+  const d = new Date();
+  const dua = (n: number) => String(n).padStart(2, '0');
+  return {
+    tanggal: `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}`,
+    jam: `${dua(d.getHours())}:${dua(d.getMinutes())}`,
+  };
+};
 
 export interface BranchMap {
   id: number;
@@ -37,6 +47,13 @@ export default function ReservationSection({
   const [catatan, setCatatan] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  // diisi setelah halaman tampil di browser, supaya tidak beda dengan hasil render server
+  const [hariIni, setHariIni] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setHariIni(sekarangLokal().tanggal), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +63,15 @@ export default function ReservationSection({
     }
     if (!selectedBranch) {
       setErrorMsg('Silakan pilih gerai restoran.');
+      return;
+    }
+    const now = sekarangLokal();
+    if (tanggal < now.tanggal) {
+      setErrorMsg('Tanggal reservasi tidak boleh sebelum hari ini.');
+      return;
+    }
+    if (tanggal === now.tanggal && jam && jam < now.jam) {
+      setErrorMsg('Jam kedatangan sudah lewat. Pilih jam yang masih ke depan.');
       return;
     }
 
@@ -224,6 +250,7 @@ export default function ReservationSection({
                     type="date"
                     id="res-date"
                     required
+                    min={hariIni || undefined}
                     value={tanggal}
                     onChange={(e) => setTanggal(e.target.value)}
                   />

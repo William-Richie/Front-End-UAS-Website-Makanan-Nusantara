@@ -46,6 +46,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Semua data reservasi wajib diisi.' }, { status: 400 });
     }
 
+    // tanggal tidak boleh sebelum hari ini (acuan: waktu Jakarta)
+    const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(tanggal)) || String(tanggal) < hariIni) {
+      return NextResponse.json({ error: 'Tanggal reservasi tidak boleh sebelum hari ini.' }, { status: 400 });
+    }
+
     const created = await prisma.reservasi.create({
       data: {
         user_id: user_id || null,

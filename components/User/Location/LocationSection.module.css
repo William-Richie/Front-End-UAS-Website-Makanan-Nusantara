@@ -197,7 +197,7 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-a.locCard:hover {
+.locCard:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 20px rgba(59, 35, 20, 0.12);
 }
@@ -215,7 +215,7 @@ a.locCard:hover {
   transition: transform 0.2s;
 }
 
-a.locCard:hover .locIcon {
+.locCard:hover .locIcon {
   transform: scale(1.08);
 }
 
