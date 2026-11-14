@@ -323,13 +323,16 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    if (!ruanganGerai && branches.length > 0) setRuanganGerai(branches[0].nama);
+    if (ruanganGerai || branches.length === 0) return;
+    const timer = setTimeout(() => setRuanganGerai(branches[0].nama), 0);
+    return () => clearTimeout(timer);
   }, [branches, ruanganGerai]);
 
   useEffect(() => {
     if (!isLoggedIn || activeTab !== 'reservasi' || reservasiMenu !== 'ruangan') return;
-      loadRuangan();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+    const timer = setTimeout(loadRuangan, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, activeTab, reservasiMenu, ruanganGerai, ruanganTanggal, ruanganSesi]);
 
   const kirimRuangan = async (body: object) => {
