@@ -8,6 +8,7 @@ import styles from './ReservationSection.module.css';
 const sekarangLokal = () => {
   const d = new Date();
   const dua = (n: number) => String(n).padStart(2, '0');
+
   return {
     tanggal: `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}`,
     jam: `${dua(d.getHours())}:${dua(d.getMinutes())}`,
@@ -52,53 +53,109 @@ export default function ReservationSection({
   const [catatan, setCatatan] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  // diisi setelah halaman tampil di browser, supaya tidak beda dengan hasil render server
   const [hariIni, setHariIni] = useState('');
+  const [showRules, setShowRules] = useState(false);
+
+  const [isShaking, setIsShaking] = useState(false);
+  
+  const triggerShake = () => {
+    setIsShaking(false);
+
+    requestAnimationFrame(() => {
+      setIsShaking(true);
+    });
+
+    setTimeout(() => {
+      setIsShaking(false);
+    }, 400);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setHariIni(sekarangLokal().tanggal), 0);
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (!selectedBranch || !tanggal || !sesi) {
-      setTerisi([]);
-      setRuangan('');
-      return;
-    }
-    let batal = false;
-    const params = new URLSearchParams({ terisi: '1', gerai: selectedBranch, tanggal, sesi });
-    fetch(`/api/reservasi?${params}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (batal) return;
-        const daftar: string[] = d.terisi ?? [];
-        setTerisi(daftar);
-        setRuangan((cur) => (daftar.includes(cur) ? '' : cur));
-      })
-      .catch(() => {});
-    return () => { batal = true; };
+  
+useEffect(() => {
+  if (!selectedBranch || !tanggal || !sesi) {
+    return;
+  }
+
+  let batal = false;
+
+  const params = new URLSearchParams({
+    terisi: '1',
+    gerai: selectedBranch,
+    tanggal,
+    sesi,
+  });
+
+  fetch(`/api/reservasi?${params}`)
+    .then((r) => r.json())
+    .then((d) => {
+      if (batal) return;
+
+      const daftar: string[] = d.terisi ?? [];
+      setTerisi(daftar);
+      setRuangan((cur) =>
+        daftar.includes(cur) ? '' : cur
+      );
+    })
+    .catch(() => {});
+
+    return () => {
+      batal = true;
+    };
   }, [selectedBranch, tanggal, sesi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
       onOpenAuth('login');
+      triggerShake();
       return;
     }
     if (!selectedBranch) {
-      setErrorMsg('Silakan pilih gerai restoran.');
+      setErrorMsg('Silakan pilih outlet terlebih dahulu!');
+      triggerShake();
+      return;
+    }
+    if (!nama.trim()) {
+      setErrorMsg('Nama lengkap wajib diisi!');
+      triggerShake();
+      return;
+    }
+    if (!email.trim()) {
+      setErrorMsg('Email wajib diisi!');
+      triggerShake();
+      return;
+    }
+    if (!/^08[0-9]{8,11}$/.test(telepon.trim())) {
+      setErrorMsg('Nomor telepon harus diawali 08 dan berisi 10-13 digit angka!');
+      triggerShake();
+      return;
+    }
+    if (!tanggal) {
+      setErrorMsg('Tanggal reservasi wajib diisi!');
+      triggerShake();
+      return;
+    }
+    if (!ruangan) {
+      setErrorMsg('Silakan pilih tipe ruangan!');
+      triggerShake();
       return;
     }
     const now = sekarangLokal();
     if (tanggal < now.tanggal) {
-      setErrorMsg('Tanggal reservasi tidak boleh sebelum hari ini.');
+      setErrorMsg('Tanggal reservasi tidak boleh sebelum hari ini!');
+      triggerShake();
       return;
     }
-    if (tanggal === now.tanggal && now.jam > (AKHIR_SESI[sesi] ?? '23:59')) {
-      setErrorMsg('Jam kedatangan sudah lewat. Pilih jam yang masih ke depan.');
-      return;
-    }
+    // if (tanggal === now.tanggal && now.jam > (AKHIR_SESI[sesi] ?? '23:59')) {
+    //   setErrorMsg('Jam kedatangan sudah lewat. Pilih jam yang masih ke depan.');
+    //   triggerShake();
+    //   return;
+    // }
 
     setSubmitting(true);
     setErrorMsg('');
@@ -197,11 +254,11 @@ export default function ReservationSection({
         <Container className="text-content py-4" style={{ maxWidth: '720px' }}>
           <div className="mb-4">
             <Form.Label className={styles.storeLabel}>
-              <i className="fa-solid fa-store me-2"></i>Pilih Gerai Restoran
+              <i className="fa-solid fa-store me-2"></i>please choose a restaurant outlet!
             </Form.Label>
             <div className={styles.storeCards}>
               {branches.length === 0 ? (
-                <p className="text-muted small mb-0">Memuat gerai...</p>
+                <p className="text-muted small mb-0">Loading Store...</p>
               ) : (
                 branches.map((b, i) => {
                   const aktif = selectedBranch === b.nama;
@@ -228,9 +285,19 @@ export default function ReservationSection({
               )}
             </div>
           </div>
-
-          <Form onSubmit={handleSubmit} className={styles.resForm}>
+              
+          <Form noValidate onSubmit={handleSubmit} className={`${styles.resForm} ${isShaking ? styles.shake : ''}`}>
             <Form.Group className="mb-3">
+              <Form.Label className="fw-bold d-flex align-items-center gap-2">
+                <button type="button" 
+                  className={styles.helpButton}
+                  aria-expanded={showRules}
+                  onClick={() => setShowRules(true)}
+                >
+                  !
+                </button>
+              </Form.Label>
+
               <Form.Label className="fw-bold">Full Name</Form.Label>
               <Form.Control
                 type="text"
@@ -238,7 +305,10 @@ export default function ReservationSection({
                 maxLength={32}
                 required
                 value={nama}
-                onChange={(e) => setNama(e.target.value)}
+                onChange={(e) => {
+                  const filteredValue = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                  setNama(filteredValue);
+                }}
               />
             </Form.Group>
 
@@ -259,12 +329,15 @@ export default function ReservationSection({
               <Form.Control
                 type="tel"
                 id="res-phone"
-                placeholder="08xxxxxxxxxx"
+                placeholder="08xxxxxxxxxx"  
                 pattern="^08[0-9]{8,11}$"
                 title="Nomor telepon harus diawali 08 dan memiliki panjang 10-13 digit angka"
                 required
                 value={telepon}
-                onChange={(e) => setTelepon(e.target.value)}
+                onChange={(e) => {
+                  setTelepon(e.target.value);
+                  e.target.setCustomValidity('');
+                }}
               />
             </Form.Group>
 
@@ -359,6 +432,7 @@ export default function ReservationSection({
               <Form.Control
                 as="textarea"
                 id="res-notes"
+                maxLength={250}
                 rows={4}
                 placeholder=". . ."
                 value={catatan}
@@ -382,6 +456,47 @@ export default function ReservationSection({
             </Button>
           </Form>
         </Container>
+      )}
+      {showRules && (
+        <div role="presentation" onClick={() => setShowRules(false)} className= {styles.RulesOver}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reservation-rules-title"
+            onClick={(e) => e.stopPropagation()}
+            className={styles.rulesModal}
+          >
+            <div className={styles.rulesHeader}>
+              <h2
+                id="reservation-rules-title"
+                className={styles.rulesTitle}
+              > Reservation Rules
+              </h2>
+
+              <button
+                type="button"
+                aria-label="Tutup aturan reservasi"
+                onClick={() => setShowRules(false)}
+                className={styles.rulesClose}
+              > X
+              </button>
+            </div>
+
+            <div className={styles.rulesContent}>
+              {/* <p className={styles.rulesIntro}>
+                Please read the following rules before submitting your reservation.
+              </p> */}
+              <ol className={styles.rulesList}>
+                <span>
+                  Right after you successfully make a reservation, we’ll start setting up the dining area 15 minutes early. 
+                  We will hold your table for a <strong>maximum of 30 minutes</strong> after your reservation time. No outside drinks & foods allowed. 
+                  All card games, drugs, firearms & sharp objects are strictly prohibited. We reserve the right to refuse service to anyone. 
+                  Proper attire is required.
+                </span>
+              </ol>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

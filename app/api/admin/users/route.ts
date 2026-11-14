@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET /api/admin/users -> daftar user + jumlah reservasi
 export async function GET() {
   try {
     const users = await prisma.user.findMany({ orderBy: { created_at: 'asc' } });
