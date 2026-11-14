@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { buatKunciVip, list_ruangan, hitungKetersediaan } from '@/lib/ruangan';
+import { hitungKetersediaan } from '@/lib/ruangan'; // masih dipakai GET ?terisi=1
+import { daftarMeja } from '@/lib/meja';
+import { TIPE_DARI_KODE } from '@/lib/mejaTipe';
 
 // GET /api/reservasi - Mengambil reservasi & cek VIP
 export async function GET(req: NextRequest) {
@@ -60,27 +62,29 @@ export async function POST(req: NextRequest) {
       sesi,
       jumlah,
       ruangan,
+      meja_id,
       catatan,
     } = body;
 
     if (!gerai || !nama || !email || !telepon || !tanggal || !jumlah || !sesi || !ruangan) {
       return NextResponse.json({ error: 'Semua data reservasi wajib diisi.' }, { status: 400 });
     }
-    if (!list_ruangan.some((r) => r.kode === ruangan)) {
+
+    const tipe = TIPE_DARI_KODE[String(ruangan)];
+    if (!tipe) {
       return NextResponse.json({ error: 'Ruangan tidak valid.' }, { status: 400 });
     }
-
-    const info = (await hitungKetersediaan(String(gerai), String(tanggal), String(sesi)))
-      .find((r) => r.ruangan === ruangan);
-
-    if (!info || !info.tersedia) {
+    const mejaId = Number(meja_id);
+    const m = (await daftarMeja(String(gerai), String(tanggal), String(sesi), tipe)).find((x) => x.id === mejaId);
+    if (!m || !m.bisaDipilih) {
       return NextResponse.json(
-        { error: info && !info.status ? 'Ruangan ini sedang tidak tersedia.' : 'Ruangan ini sudah penuh pada sesi tersebut.' },
+        { error: 'Meja ini tidak tersedia pada jam tersebut. Silakan pilih meja lain.' },
         { status: 409 }
       );
     }
-
-    const kunciVip = buatKunciVip(String(gerai), String(tanggal), String(sesi), String(ruangan));
+    if (Number(jumlah) < m.kapMin || Number(jumlah) > m.kapMaks) {
+      return NextResponse.json({ error: `Meja ini untuk ${m.kapMin}-${m.kapMaks} orang.` }, { status: 400 });
+    }
 
     // tanggal tidak boleh sebelum hari ini (acuan: waktu Jakarta)
     const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -102,15 +106,16 @@ export async function POST(req: NextRequest) {
           sesi: String(sesi),
           jumlah: Number(jumlah),
           ruangan: String(ruangan),
+          meja_id: m.id,
+          nomor_meja: m.nomor,
           catatan: catatan ? String(catatan) : null,
           status: 'pending',
-          vip: kunciVip,
         },
       });
     } catch (e: unknown) {
       if ((e as { code?: string }).code === 'P2002') {
         return NextResponse.json(
-          { error: 'Ruangan VIP ini sudah dipesan pada sesi tersebut. Silakan pilih ruangan atau sesi lain.' },
+          { error: 'Meja ini sudah dipesan pada sesi tersebut. Silakan pilih meja atau sesi lain.' },
           { status: 409 }
         );
       }
