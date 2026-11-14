@@ -11,7 +11,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!STATUS_VALID.includes(status)) {
       return NextResponse.json({ message: 'Status tidak valid' }, { status: 400 });
     }
-    const hasil = await prisma.reservasi.updateMany({ where: { id }, data: { status } });
+    const hasil = await prisma.reservasi.updateMany({ 
+      where: { id }, data: { status, ...(status === 'dibatalkan' ? { vip: null } : {}) }
+    });
     if (hasil.count === 0) {
       return NextResponse.json({ message: 'Reservasi tidak ditemukan' }, { status: 404 });
     }
