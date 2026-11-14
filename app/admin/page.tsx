@@ -5,6 +5,10 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminCharts';
 import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePreview';
+import PantauPesanan from '@/components/Admin/Pesanan/PantauPesanan';
+import KelolaAkunKasir from '@/components/Admin/Kasir/KelolaAkunKasir';
+import type { PesananItem } from '@/components/Admin/Pesanan/types';
+import { ambilDaftar } from '@/lib/adminApi';
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
 import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
 import {
@@ -28,15 +32,6 @@ export interface MenuItem {
   pedas: number;
   status: boolean;
   deskripsi: string | null;
-}
-
-export interface PesananItem {
-  id: number;
-  nama: string;
-  item: string;
-  total: number;
-  status: string;
-  created_at: string;
 }
 
 export interface FaqItem {
@@ -133,10 +128,7 @@ const adminFetch = (url: string, opts: RequestInit = {}) => {
   return fetch(url, { ...opts, headers });
 };
 
-const ambilJson = (url: string) => fetch(url).then((r) => r.json()).catch(() => null);
 
-const ambilDaftar = <T,>(url: string): Promise<T[]> =>
-  ambilJson(url).then((d: { data?: unknown } | null) => (Array.isArray(d?.data) ? (d.data as T[]) : []));
 
 // Menu di halaman Kelola: tiap tombol punya bagian di preview yang ikut digulir
 const KELOLA_MENU = [
@@ -225,7 +217,7 @@ export default function AdminPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    'statistik' | 'menu' | 'favorit' | 'konten' | 'pesanan' | 'reservasi' | 'pendapatan'
+    'statistik' | 'menu' | 'favorit' | 'konten' | 'pesanan' | 'reservasi' | 'pendapatan' | 'kasir'
   >('statistik');
 
   // Typed Data States
@@ -331,13 +323,16 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    if (!ruanganGerai && branches.length > 0) setRuanganGerai(branches[0].nama);
+    if (ruanganGerai || branches.length === 0) return;
+    const timer = setTimeout(() => setRuanganGerai(branches[0].nama), 0);
+    return () => clearTimeout(timer);
   }, [branches, ruanganGerai]);
 
   useEffect(() => {
     if (!isLoggedIn || activeTab !== 'reservasi' || reservasiMenu !== 'ruangan') return;
-      loadRuangan();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+    const timer = setTimeout(loadRuangan, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, activeTab, reservasiMenu, ruanganGerai, ruanganTanggal, ruanganSesi]);
 
   const kirimRuangan = async (body: object) => {
@@ -371,27 +366,6 @@ export default function AdminPage() {
     jawaban: '',
   });
 
-  // kolom item di database bisa berupa JSON keranjang atau teks biasa
-  const ringkasItem = (raw: string): string => {
-    try {
-      const p = JSON.parse(raw);
-      if (Array.isArray(p?.daftar_menu)) {
-        return p.daftar_menu
-          .map((m: { nama_makanan: string; quantity?: number }) => `${m.nama_makanan} x${m.quantity || 1}`)
-          .join(', ');
-      }
-    } catch {
-      // bukan JSON, tampilkan apa adanya
-    }
-    return raw;
-  };
-
-  const STATUS_PESANAN: Record<string, string> = {
-    pending: 'bg-warning text-dark',
-    diproses: 'bg-primary',
-    selesai: 'bg-success',
-  };
-
   // Cek sesi login admin
   useEffect(() => {
     // sesi lama yang tersimpan permanen di localStorage dibuang, login admin hanya berlaku selama tab terbuka
@@ -410,6 +384,7 @@ export default function AdminPage() {
   };
   const loadFaq = () => ambilDaftar<FaqItem>('/api/faq').then(setFaqList);
   const loadBranches = () => ambilDaftar<BranchMap>('/api/maps').then(setBranches);
+  const loadPesanan = () => ambilDaftar<PesananItem>('/api/pesanan').then(setPesananList);
 
   const loadAllData = async () => {
     const ambil = (url: string) => fetch(url).then((r) => r.json()).catch(() => null);
@@ -444,6 +419,20 @@ export default function AdminPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, pendapatanRange]);
+
+  // daftar pesanan diperbarui otomatis tiap 5 detik (juga untuk badge di sidebar)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const t = setInterval(() => {
+      fetch('/api/pesanan')
+        .then((r) => r.json())
+        .then((d) => {
+          if (Array.isArray(d?.data)) setPesananList(d.data as PesananItem[]);
+        })
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(t);
+  }, [isLoggedIn]);
 
   // Preview di halaman Kelola menggulir ke bagian yang sedang diedit
   useEffect(() => {
@@ -862,16 +851,6 @@ export default function AdminPage() {
     loadFaq();
   };
 
-  // Pesanan Handlers
-  const handleUpdateStatusPesanan = async (id: number, status: string) => {
-    await fetch(`/api/pesanan/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    loadAllData();
-  };
-
   // Data grafik beranda
   // Data grafik beranda
   const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
@@ -1009,7 +988,12 @@ export default function AdminPage() {
               className={`nav-link text-white text-start w-100 ${activeTab === 'pesanan' ? 'active bg-warning' : ''}`}
               onClick={() => setActiveTab('pesanan')}
             >
-              <i className="fa-solid fa-receipt me-2"></i> Kelola Pesanan
+              <i className="fa-solid fa-receipt me-2"></i> Pantau Pesanan
+              {pesananList.filter((p) => p.status === 'menunggu_bayar' || p.status === 'pending').length > 0 && (
+                <span className="badge bg-danger ms-auto">
+                  {pesananList.filter((p) => p.status === 'menunggu_bayar' || p.status === 'pending').length}
+                </span>
+              )}
             </button>
           </li>
           <li className="nav-item mb-2">
@@ -1019,6 +1003,20 @@ export default function AdminPage() {
             >
               <i className="fa-solid fa-calendar-check me-2"></i> Kelola Reservasi & Ruangan
             </button>
+          </li>
+          <li className="nav-item mb-2">
+            <button
+              className={`nav-link text-white text-start w-100 ${activeTab === 'kasir' ? 'active bg-warning' : ''}`}
+              onClick={() => setActiveTab('kasir')}
+            >
+              <i className="fa-solid fa-user-lock me-2"></i> Kelola Akun Kasir
+            </button>
+          </li>
+          <li className="nav-item mb-2">
+            <Link href="/cashier" target="_blank" className="nav-link text-white text-start w-100">
+              <i className="fa-solid fa-cash-register me-2"></i> Halaman Kasir
+              <i className="fa-solid fa-arrow-up-right-from-square ms-auto small opacity-75"></i>
+            </Link>
           </li>
         </ul>
         <div className="mt-auto pt-3 border-top border-secondary">
@@ -1846,59 +1844,9 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 7: PESANAN */}
+        {/* TAB 7: PANTAU PESANAN */}
         {activeTab === 'pesanan' && (
-          <div>
-            <h1 className="fs-3 fw-bold mb-4">Daftar Pesanan Masuk</h1>
-            <div className="card shadow-sm border-0 p-3">
-              <table className="table table-hover align-middle">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Pelanggan</th>
-                    <th>Item</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Ubah Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pesananList.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="text-center text-muted py-4">Belum ada pesanan masuk.</td>
-                    </tr>
-                  )}
-                  {pesananList.map((p) => (
-                    <tr key={p.id}>
-                      <td>#{p.id}</td>
-                      <td className="fw-bold">{p.nama}</td>
-                      <td className="small" style={{ maxWidth: '300px' }}>{ringkasItem(p.item)}</td>
-                      <td>Rp {Number(p.total || 0).toLocaleString('id-ID')}</td>
-                      <td><span className={`badge ${STATUS_PESANAN[p.status] || 'bg-secondary'}`}>{p.status}</span></td>
-                      <td>
-                        <div className="btn-group btn-group-sm">
-                          <button
-                            type="button"
-                            className="btn btn-outline-primary"
-                            onClick={() => handleUpdateStatusPesanan(p.id, 'diproses')}
-                          >
-                            Proses
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-outline-success"
-                            onClick={() => handleUpdateStatusPesanan(p.id, 'selesai')}
-                          >
-                            Selesai
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <PantauPesanan pesananList={pesananList} branches={branches} onRefresh={loadPesanan} />
         )}
 
         {/* TAB 8: RESERVASI */}
@@ -2358,6 +2306,9 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {/* TAB: AKUN KASIR */}
+        {activeTab === 'kasir' && <KelolaAkunKasir branches={branches} />}
       </main>
     </div>
   );

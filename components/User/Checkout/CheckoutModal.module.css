@@ -458,7 +458,6 @@
   border-color: var(--color-accent-tan);
 }
 
-/* terpilih: tetap putih, hanya diberi border tebal + cincin lembut + tanda centang */
 .providerBtnActive,
 .providerBtnActive:hover {
   background: var(--color-white);
