@@ -46,8 +46,9 @@ model Reservasi {
   telepon    String
   email      String
   tanggal    String
-  jam        String
+  jam        String?
   sesi       String
+  vip        String?  @unique
   jumlah     Int
   ruangan    String
   catatan    String?
@@ -57,6 +58,17 @@ model Reservasi {
   user       User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
   @@map("reservasi")
+}
+
+model PengaturanRuangan {
+  id         String   @id @default(uuid())
+  gerai      String
+  ruangan    String
+  jumlah     Int?                   
+  status     Boolean  @default(true)  
+
+  @@unique([gerai, ruangan])
+  @@map("pengaturan_ruangan")
 }
 
 // 4. Users

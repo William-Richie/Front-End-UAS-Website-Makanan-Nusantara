@@ -162,6 +162,20 @@
   border-color: var(--color-brown-base);
   box-shadow: 0 0 0 0.2rem rgba(107, 66, 38, 0.15);
 }
+
+.roomGroup {
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.roomLocked {
+  opacity: 0.55;
+  filter: grayscale(1);
+}
+
+.roomLocked select {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
  
 .errorBox {
   margin-bottom: 12px;

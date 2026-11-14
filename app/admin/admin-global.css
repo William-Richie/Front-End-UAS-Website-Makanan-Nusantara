@@ -535,50 +535,60 @@
 }
 
 .admin-main .aksi { 
-    width: 150px; 
-    min-width: 150px; 
+    width: 240px;
+    min-width: 240px;
     text-align: center; 
     padding: 8px !important; 
 }
 
 .admin-main .reservation-actions { 
-    display: flex; 
-    flex-direction: column;
-    width: 100%; 
-    height: 76px; 
-    border: 1px solid #5f3a22; 
-    border-radius: 6px;
-    overflow: hidden; 
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: auto;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
 }
 
 .admin-main .reservation-actions button { 
-    flex: 1; 
-    width: 100%; 
-    border: none; 
-    font-size: 14px; 
-    font-weight: 500; 
-    cursor: pointer; 
-    transition: .2s ease; 
+    flex: 1;
+    width: auto;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: .2s ease
 }
 
 .admin-main .btn-action-confirm { 
-    background: #f8f5f0; 
-    color: #3f2b1f; 
+    background: #198754; 
+    border-color: #198754; 
+    color: #fff;
 }
 
 .admin-main .btn-action-confirm:hover { 
-    background: #e8dfd4; 
+    background: #157347; 
+    border-color: #146c43; 
 }
 
 .admin-main .btn-action-cancel { 
-    background: #f8f5f0; 
-    color: #9b2c2c; 
-    border-top: 1px solid #5f3a22 !important; 
+    background: #dc3545; 
+    border-color: #dc3545; 
+    color: #fff; 
+    border-top: 1px solid #dc3545 !important;
 }
 
 .admin-main .btn-action-cancel:hover { 
-    background: #f1dede; 
-    color: #7a2020; 
+    background: #bb2d3b; 
+    border-color: #b02a37; 
+    color: #fff; 
 }
 
 .admin-main .user-action-bar { 
