@@ -1,6 +1,6 @@
 // CSS khusus struk cetak, dipakai di jendela baru (window.open)
 import { CartItem } from '../FloatingButton/FloatingButton';
-import { formatKm } from '@/lib/ongkir';
+import { formatKm } from '@/lib/deliveryFee';
 
 export type OrderType = 'dine-in' | 'online';
 

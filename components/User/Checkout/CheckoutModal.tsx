@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import { Modal, Form, Button, Spinner } from 'react-bootstrap';
 import { CartItem } from '../FloatingButton/FloatingButton';
 import { BranchMap } from '../Reservation/ReservationSection';
-import { hitungJarakKm, hitungOngkir, formatKm, ZONA_MANUAL, ONGKIR_TARIF } from '@/lib/ongkir';
+import { hitungJarakKm, hitungOngkir, formatKm, ONGKIR_TARIF } from '@/lib/deliveryFee';
+import { BATAS_BAYAR_EWALLET_DETIK } from '@/lib/paymentTimeout';
+import DeliveryPicker from './DeliveryPicker';
+import BranchSelect from './BranchSelect';
 import styles from './CheckoutModal.module.css';
 import { buildReceiptHtml, type Receipt, type OrderType } from './receiptPrint';
 
@@ -16,13 +19,20 @@ interface CheckoutModalProps {
   onClose: () => void;
   onOrderCreated?: (orderId: number) => void;
   onSuccess: (orderId: number) => void;
+  resumeOrderId?: number | null;
+  onPendingChange?: (orderId: number | null) => void;
 }
 
-type PayKey = 'cash' | 'qris' | 'ewallet';
-type Step = 'form' | 'cashier' | 'qris' | 'ewallet' | 'verifying' | 'receipt' | 'cancelled';
+type PayKey = 'cash' | 'ewallet';
+type Step = 'form' | 'cashier' | 'ewallet' | 'verifying' | 'receipt' | 'cancelled';
 
-const EWALLETS = ['GoPay', 'OVO', 'DANA', 'ShopeePay'];
-const PAY_TIMEOUT = 10 * 60; // batas waktu bayar
+const EWALLETS = [
+  { nama: 'GoPay', logo: '/img/ewallet/gopay.png' },
+  { nama: 'OVO', logo: '/img/ewallet/ovo.png' },
+  { nama: 'DANA', logo: '/img/ewallet/dana.png' },
+  { nama: 'ShopeePay', logo: '/img/ewallet/shopeepay.png' },
+];
+const PAY_TIMEOUT = BATAS_BAYAR_EWALLET_DETIK; // batas waktu bayar e-wallet
 const POLL_MS = 4000;
 
 const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
@@ -30,45 +40,62 @@ const mmss = (s: number) =>
   `${String(Math.floor(Math.max(s, 0) / 60)).padStart(2, '0')}:${String(Math.max(s, 0) % 60).padStart(2, '0')}`;
 const hasCoord = (b: BranchMap) => Number.isFinite(b.latitude) && Number.isFinite(b.longitude);
 
+export const PENDING_ORDER_KEY = 'papeda_pesanan_aktif';
+
+function clearPending(id: number, notify?: (orderId: number | null) => void) {
+  try {
+    if (localStorage.getItem(PENDING_ORDER_KEY) === String(id)) {
+      localStorage.removeItem(PENDING_ORDER_KEY);
+      notify?.(null);
+    }
+  } catch {
+  }
+}
+
+interface OrderApi {
+  id: number;
+  nama: string;
+  item: string;
+  total: number;
+  status: string;
+  status_bayar: string;
+  created_at: string;
+}
+
+function receiptFromOrder(o: OrderApi): Receipt {
+  let d: Record<string, unknown> = {};
+  try {
+    const p = JSON.parse(o.item);
+    if (p && typeof p === 'object') d = p;
+  } catch {
+  }
+  const orderType: OrderType = d.metode === 'online' ? 'online' : 'dine-in';
+  const ongkir = Number(d.ongkir || 0);
+  const total = Number(o.total || 0);
+  return {
+    id: o.id,
+    tanggal: new Date(o.created_at).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' }),
+    nama: o.nama,
+    orderType,
+    gerai: String(d.gerai || ''),
+    alamat: orderType === 'online' ? String(d.lokasi_atau_alamat || '') : '',
+    jarakKm: orderType === 'online' && typeof d.jarak_km === 'number' ? d.jarak_km : null,
+    items: Array.isArray(d.daftar_menu) ? (d.daftar_menu as CartItem[]) : [],
+    subtotal: total - ongkir,
+    ongkir,
+    total,
+    metodeBayar: String(d.metode_bayar || ''),
+    statusBayar: o.status_bayar || String(d.status_bayar || 'Belum Dibayar'),
+    catatan: '',
+  };
+}
+
 const payOptions = (type: OrderType): { key: PayKey; icon: string; title: string; desc: string }[] => [
   type === 'dine-in'
     ? { key: 'cash', icon: 'fa-cash-register', title: 'Bayar di Kasir', desc: 'Tunai / kartu' }
     : { key: 'cash', icon: 'fa-money-bill-wave', title: 'Bayar di Tempat (COD)', desc: 'Bayar tunai ke kurir saat pesanan tiba' },
-  { key: 'qris', icon: 'fa-qrcode', title: 'QRIS', desc: 'Scan dari aplikasi bank atau e-wallet' },
   { key: 'ewallet', icon: 'fa-wallet', title: 'E-Wallet', desc: 'GoPay, OVO, DANA, ShopeePay' },
 ];
-
-// QR tiruan (bukan QR asli)
-function QrPlaceholder({ seed }: { seed: number }) {
-  const N = 21;
-  let x = (seed * 9301 + 49297) % 233280;
-  const rand = () => {
-    x = (x * 9301 + 49297) % 233280;
-    return x / 233280;
-  };
-  const rects: React.ReactNode[] = [];
-  for (let r = 0; r < N; r++) {
-    for (let c = 0; c < N; c++) {
-      const tl = r < 7 && c < 7;
-      const tr = r < 7 && c >= N - 7;
-      const bl = r >= N - 7 && c < 7;
-      let on: boolean;
-      if (tl || tr || bl) {
-        const lr = r >= N - 7 ? r - (N - 7) : r;
-        const lc = c >= N - 7 ? c - (N - 7) : c;
-        on = lr === 0 || lr === 6 || lc === 0 || lc === 6 || (lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4);
-      } else {
-        on = rand() > 0.5;
-      }
-      if (on) rects.push(<rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} />);
-    }
-  }
-  return (
-    <svg viewBox={`0 0 ${N} ${N}`} className={styles.qrSvg} shapeRendering="crispEdges" aria-label="Kode QRIS">
-      {rects}
-    </svg>
-  );
-}
 
 export default function CheckoutModal({
   show,
@@ -78,6 +105,8 @@ export default function CheckoutModal({
   onClose,
   onOrderCreated,
   onSuccess,
+  resumeOrderId = null,
+  onPendingChange,
 }: CheckoutModalProps) {
   const [step, setStep] = useState<Step>('form');
   const [orderType, setOrderType] = useState<OrderType>('dine-in');
@@ -86,8 +115,6 @@ export default function CheckoutModal({
   const [deliveryBranchId, setDeliveryBranchId] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [userCoord, setUserCoord] = useState<{ lat: number; lng: number } | null>(null);
-  const [useManual, setUseManual] = useState(false);
-  const [manualKm, setManualKm] = useState('');
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState('');
   const [ewallet, setEwallet] = useState('');
@@ -95,13 +122,29 @@ export default function CheckoutModal({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [resumeLoaded, setResumeLoaded] = useState(false);
 
   // timer batas bayar
   useEffect(() => {
-    if (step !== 'qris' && step !== 'ewallet') return;
+    if (step !== 'ewallet') return;
     const t = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearInterval(t);
   }, [step]);
+
+  // waktu bayar e-wallet habis: pesanan dibatalkan otomatis
+  useEffect(() => {
+    if (step !== 'ewallet' || !receipt || secondsLeft > 0) return;
+    const timer = setTimeout(() => {
+      fetch(`/api/pesanan/${receipt.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'dibatalkan' }),
+      }).catch(() => {});
+      clearPending(receipt.id, onPendingChange);
+      setStep('cancelled');
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [step, secondsLeft, receipt, onPendingChange]);
 
   // cek ke server tiap beberapa detik, struk baru muncul setelah kasir menandai lunas
   const waitingId = step === 'cashier' ? receipt?.id : undefined;
@@ -113,8 +156,10 @@ export default function CheckoutModal({
         if (!res.ok) return;
         const { data } = await res.json();
         if (data.status === 'dibatalkan') {
+          clearPending(waitingId, onPendingChange);
           setStep('cancelled');
         } else if (data.status !== 'menunggu_bayar') {
+          clearPending(waitingId, onPendingChange);
           onSuccess(waitingId);
           setReceipt((r) =>
             r ? { ...r, statusBayar: 'Lunas', catatan: 'Terima kasih, pembayaran Anda sudah kami terima.' } : r
@@ -125,16 +170,59 @@ export default function CheckoutModal({
       }
     }, POLL_MS);
     return () => clearInterval(t);
-  }, [waitingId]);
+  }, [waitingId, onPendingChange]);
+
+  useEffect(() => {
+    if (!show || !resumeOrderId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/pesanan/${resumeOrderId}`);
+        const json = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (!res.ok || !json?.data) {
+          clearPending(resumeOrderId, onPendingChange);
+          onClose();
+          return;
+        }
+        const data = json.data as OrderApi;
+        const r = receiptFromOrder(data);
+        if (data.status === 'dibatalkan') {
+          clearPending(resumeOrderId, onPendingChange);
+          setReceipt(r);
+          setStep('cancelled');
+        } else if (data.status === 'menunggu_bayar') {
+          setReceipt(r);
+          if (r.metodeBayar.startsWith('E-Wallet')) {
+            // lanjutkan pembayaran e-wallet dengan sisa waktu yang tersisa
+            const terpakai = Math.floor((Date.now() - new Date(data.created_at).getTime()) / 1000);
+            setSecondsLeft(PAY_TIMEOUT - Math.max(terpakai, 0));
+            setStep('ewallet');
+          } else {
+            setStep('cashier');
+          }
+        } else {
+          clearPending(resumeOrderId, onPendingChange);
+          onSuccess(resumeOrderId);
+          setReceipt({ ...r, statusBayar: 'Lunas', catatan: 'Terima kasih, pembayaran Anda sudah kami terima.' });
+          setStep('receipt');
+        }
+      } catch {
+        if (!cancelled) setErrorMsg('Gagal memuat pesanan. Periksa koneksi Anda.');
+      } finally {
+        if (!cancelled) setResumeLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [show, resumeOrderId]);
 
   if (!show) return null;
 
   const deliveryBranch = branches.find((b) => String(b.id) === deliveryBranchId);
-  const jarakKm: number | null = useManual
-    ? manualKm
-      ? Number(manualKm)
-      : null
-    : userCoord && deliveryBranch && hasCoord(deliveryBranch)
+  const jarakKm: number | null =
+    userCoord && deliveryBranch && hasCoord(deliveryBranch)
       ? hitungJarakKm(userCoord.lat, userCoord.lng, deliveryBranch.latitude, deliveryBranch.longitude)
       : null;
   const ongkirHitung = jarakKm !== null ? hitungOngkir(jarakKm) : null;
@@ -145,10 +233,12 @@ export default function CheckoutModal({
   const totalBayar = subtotal + ongkir;
   const options = payOptions(orderType);
   const expired = secondsLeft <= 0;
+  const resuming = !!resumeOrderId && !resumeLoaded;
 
   const resetAll = () => {
     setStep('form');
     setReceipt(null);
+    setResumeLoaded(false);
     setErrorMsg('');
     setEwallet('');
     setSecondsLeft(PAY_TIMEOUT);
@@ -162,8 +252,18 @@ export default function CheckoutModal({
     });
 
   const handleClose = () => {
-    if ((step === 'qris' || step === 'ewallet') && receipt) {
-      updateOrder(receipt.id, { status: 'dibatalkan' }).catch(() => {});
+    if (step === 'ewallet' && receipt) {
+      if (expired) {
+        updateOrder(receipt.id, { status: 'dibatalkan' }).catch(() => {});
+      } else {
+        // ditutup sementara: pesanan tetap menunggu, bisa dibuka lagi lewat tombol "Pesanan menunggu pembayaran",
+        // dan baru dibatalkan otomatis kalau waktu pembayaran habis
+        try {
+          localStorage.setItem(PENDING_ORDER_KEY, String(receipt.id));
+        } catch {
+        }
+        onPendingChange?.(receipt.id);
+      }
     }
     resetAll();
     onClose();
@@ -171,8 +271,7 @@ export default function CheckoutModal({
 
   const handleUseLocation = () => {
     if (!navigator.geolocation) {
-      setGeoError('Browser tidak mendukung lokasi. Pilih perkiraan jarak secara manual.');
-      setUseManual(true);
+      setGeoError('Browser tidak mendukung lokasi. Tentukan lokasi dengan mengetuk peta.');
       return;
     }
     setGeoLoading(true);
@@ -181,7 +280,6 @@ export default function CheckoutModal({
       (pos) => {
         const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserCoord(coord);
-        setUseManual(false);
         // akan otomatis pilih gerai terdekat kalau tidak pilih gerai
         if (!deliveryBranchId) {
           let best: { id: number; km: number } | null = null;
@@ -194,7 +292,7 @@ export default function CheckoutModal({
         setGeoLoading(false);
       },
       () => {
-        setGeoError('Lokasi tidak bisa diakses. Izinkan akses lokasi atau pilih perkiraan jarak manual.');
+        setGeoError('Lokasi tidak bisa diakses. Izinkan akses lokasi atau ketuk peta untuk menentukan lokasi.');
         setGeoLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -209,7 +307,7 @@ export default function CheckoutModal({
     if (orderType === 'online') {
       if (!deliveryBranch) return setErrorMsg('Pilih gerai yang akan mengantar pesanan Anda.');
       if (!deliveryAddress.trim()) return setErrorMsg('Masukkan alamat pengiriman Anda.');
-      if (jarakKm === null) return setErrorMsg('Tentukan jarak pengantaran dulu (pakai lokasi Anda atau pilih perkiraan jarak).');
+      if (jarakKm === null) return setErrorMsg('Tentukan lokasi pengantaran dulu (ketuk peta atau pakai lokasi Anda).');
       if (diLuarJangkauan) return setErrorMsg(`Alamat di luar jangkauan pengantaran (maksimal ${ONGKIR_TARIF.maksKm} km).`);
     }
 
@@ -270,9 +368,18 @@ export default function CheckoutModal({
       if (isCod) onSuccess(orderId);
 
       setSecondsLeft(PAY_TIMEOUT);
-      if (isCod) setStep('receipt');
-      else if (payment === 'cash') setStep('cashier');
-      else setStep(payment);
+      if (isCod) {
+        setStep('receipt');
+      } else if (payment === 'cash') {
+        try {
+          localStorage.setItem(PENDING_ORDER_KEY, String(orderId));
+        } catch {
+        }
+        onPendingChange?.(orderId);
+        setStep('cashier');
+      } else {
+        setStep(payment);
+      }
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Terjadi kesalahan saat memproses pembayaran.');
     } finally {
@@ -283,7 +390,7 @@ export default function CheckoutModal({
   const handleSimulatePaid = async () => {
     if (!receipt) return;
     const from = step;
-    const metode = payment === 'ewallet' ? `E-Wallet (${ewallet})` : 'QRIS';
+    const metode = `E-Wallet (${ewallet})`;
     setStep('verifying');
     setErrorMsg('');
     try {
@@ -296,6 +403,7 @@ export default function CheckoutModal({
         statusBayar: 'Lunas',
         catatan: 'Terima kasih, pembayaran Anda sudah kami terima.',
       });
+      clearPending(receipt.id, onPendingChange);
       setStep('receipt');
       onSuccess(receipt.id);
     } catch (err: unknown) {
@@ -305,7 +413,10 @@ export default function CheckoutModal({
   };
 
   const handleCancelPayment = () => {
-    if (receipt) updateOrder(receipt.id, { status: 'dibatalkan' }).catch(() => {});
+    if (receipt) {
+      updateOrder(receipt.id, { status: 'dibatalkan' }).catch(() => {});
+      clearPending(receipt.id, onPendingChange);
+    }
     resetAll();
     onClose();
   };
@@ -322,7 +433,6 @@ export default function CheckoutModal({
   const header: Record<Step, { icon: string; title: string }> = {
     form: { icon: 'fa-receipt', title: 'Konfirmasi Pesanan' },
     cashier: { icon: 'fa-cash-register', title: 'Menunggu Pembayaran' },
-    qris: { icon: 'fa-qrcode', title: 'Bayar dengan QRIS' },
     ewallet: { icon: 'fa-wallet', title: 'Bayar dengan E-Wallet' },
     verifying: { icon: 'fa-hourglass-half', title: 'Memverifikasi Pembayaran' },
     receipt: { icon: 'fa-check', title: lunas ? 'Pembayaran Berhasil' : 'Pesanan Diterima' },
@@ -330,7 +440,7 @@ export default function CheckoutModal({
   };
 
   const confirmLabel =
-    payment === 'cash' ? 'Konfirmasi Pesanan' : payment === 'qris' ? 'Lanjut ke QRIS' : 'Lanjut ke E-Wallet';
+    payment === 'cash' ? 'Konfirmasi Pesanan' : 'Lanjut ke E-Wallet';
 
   return (
     <Modal
@@ -371,40 +481,14 @@ export default function CheckoutModal({
                 <Spinner animation="border" size="sm" /> Menunggu konfirmasi kasir...
               </div>
               <p className={styles.hint}>Struk akan muncul otomatis begitu kasir menerima pembayaran Anda.</p>
+              <p className={styles.hint}>
+                Jendela ini boleh ditutup. Pesanan tetap tersimpan dan bisa dibuka lagi lewat tombol &quot;Pesanan menunggu pembayaran&quot;.
+              </p>
             </div>
           </Modal.Body>
           <Modal.Footer className={styles.checkoutFooter}>
             <Button variant="outline-secondary" className={`${styles.receiptBtn} w-100`} onClick={handleClose}>
               Tutup
-            </Button>
-          </Modal.Footer>
-        </>
-      )}
-
-      {/* QRIS */}
-      {step === 'qris' && receipt && (
-        <>
-          <Modal.Body className={styles.checkoutBody}>
-            <div className={styles.stepWrap}>
-              <p className={styles.stepDesc}>Scan kode di bawah dengan aplikasi bank atau e-wallet Anda.</p>
-              <div className={styles.qrBox}><QrPlaceholder seed={receipt.id} /></div>
-              <div className={styles.orderBox}>
-                <span className={styles.orderBoxLabel}>Total yang dibayar</span>
-                <strong>{rupiah(receipt.total)}</strong>
-              </div>
-              <div className={`${styles.timer} ${expired ? styles.timerExpired : ''}`}>
-                {expired ? 'Waktu pembayaran habis' : `Selesaikan dalam ${mmss(secondsLeft)}`}
-              </div>
-              <p className={styles.hint}>QR di atas hanya contoh. Klik &quot;Saya Sudah Bayar&quot; untuk melanjutkan.</p>
-            </div>
-            {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
-          </Modal.Body>
-          <Modal.Footer className={styles.checkoutFooter}>
-            <Button variant="outline-secondary" className={`${styles.receiptBtn} flex-fill`} onClick={handleCancelPayment}>
-              Batalkan
-            </Button>
-            <Button variant="papeda" className="flex-fill text-white fw-bold" disabled={expired} onClick={handleSimulatePaid}>
-              Saya Sudah Bayar
             </Button>
           </Modal.Footer>
         </>
@@ -419,12 +503,14 @@ export default function CheckoutModal({
               <div className={styles.providerGrid}>
                 {EWALLETS.map((w) => (
                   <button
-                    key={w}
+                    key={w.nama}
                     type="button"
-                    className={`${styles.providerBtn} ${ewallet === w ? styles.providerBtnActive : ''}`}
-                    onClick={() => setEwallet(w)}
+                    className={`${styles.providerBtn} ${ewallet === w.nama ? styles.providerBtnActive : ''}`}
+                    aria-label={w.nama}
+                    aria-pressed={ewallet === w.nama}
+                    onClick={() => setEwallet(w.nama)}
                   >
-                    {w}
+                    <img src={w.logo} alt={w.nama} className={styles.providerLogo} />
                   </button>
                 ))}
               </div>
@@ -436,6 +522,7 @@ export default function CheckoutModal({
                 {expired ? 'Waktu pembayaran habis' : `Selesaikan dalam ${mmss(secondsLeft)}`}
               </div>
               <p className={styles.hint}>Catatan: aplikasi e-wallet tidak benar-benar dibuka.</p>
+              <p className={styles.hint}>Jendela ini boleh ditutup, pesanan tetap menunggu sampai waktu habis.</p>
             </div>
             {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
           </Modal.Body>
@@ -471,7 +558,11 @@ export default function CheckoutModal({
             <div className={styles.stepWrap}>
               <div className={styles.stepIcon}><i className="fa-solid fa-xmark"></i></div>
               <h5 className={styles.stepTitle}>Pesanan dibatalkan</h5>
-              <p className={styles.stepDesc}>Pesanan ini dibatalkan oleh kasir. Silakan pesan ulang atau hubungi gerai.</p>
+              <p className={styles.stepDesc}>
+                {receipt?.metodeBayar.startsWith('E-Wallet')
+                  ? 'Pesanan ini dibatalkan karena waktu pembayaran habis atau oleh kasir. Silakan pesan ulang atau hubungi gerai.'
+                  : 'Pesanan ini dibatalkan oleh kasir. Silakan pesan ulang atau hubungi gerai.'}
+              </p>
             </div>
           </Modal.Body>
           <Modal.Footer className={styles.checkoutFooter}>
@@ -564,7 +655,16 @@ export default function CheckoutModal({
         </>
       )}
 
-      {step === 'form' && (
+      {resuming && (
+        <Modal.Body className={styles.checkoutBody}>
+          <div className={styles.stepWrap}>
+            <Spinner animation="border" />
+            <p className={styles.stepDesc}>Memuat pesanan...</p>
+          </div>
+        </Modal.Body>
+      )}
+
+      {step === 'form' && !resuming && (
         <>
           <Modal.Body className={styles.checkoutBody}>
             <p className={styles.sectionTitle}>Metode pesanan</p>
@@ -588,38 +688,27 @@ export default function CheckoutModal({
             {orderType === 'dine-in' ? (
               <Form.Group className="mb-4" controlId="dineInForm">
                 <Form.Label className={styles.sectionTitle}>Pilih gerai restoran</Form.Label>
-                <Form.Select
-                  className={styles.customInput}
+                <BranchSelect
+                  branches={branches}
                   value={selectedBranch}
-                  onChange={(e) => setSelectedBranch(e.target.value)}
-                >
-                  <option value="" disabled>-- Pilih Lokasi --</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.nama}>
-                      {b.nama} - {b.alamat}
-                    </option>
-                  ))}
-                </Form.Select>
+                  onChange={setSelectedBranch}
+                />
               </Form.Group>
             ) : (
               <>
                 <Form.Group className="mb-3" controlId="deliveryBranch">
-                  <Form.Label className={styles.sectionTitle}>Gerai yang mengantar</Form.Label>
-                  <Form.Select
-                    className={styles.customInput}
+                  <Form.Label className={styles.sectionTitle}>Pilih Gerai Restoran</Form.Label>
+                  <BranchSelect
+                    branches={branches}
                     value={deliveryBranchId}
-                    onChange={(e) => setDeliveryBranchId(e.target.value)}
-                  >
-                    <option value="" disabled>-- Pilih Gerai --</option>
-                    {branches.map((b) => {
-                      const km = userCoord && hasCoord(b) ? hitungJarakKm(userCoord.lat, userCoord.lng, b.latitude, b.longitude) : null;
-                      return (
-                        <option key={b.id} value={String(b.id)}>
-                          {b.nama} - {b.alamat}{km !== null ? ` (± ${formatKm(km)})` : ''}
-                        </option>
-                      );
-                    })}
-                  </Form.Select>
+                    onChange={setDeliveryBranchId}
+                    getValue={(b) => String(b.id)}
+                    getNote={(b) =>
+                      userCoord && hasCoord(b)
+                        ? `± ${formatKm(hitungJarakKm(userCoord.lat, userCoord.lng, b.latitude, b.longitude))}`
+                        : null
+                    }
+                  />
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="onlineForm">
@@ -634,53 +723,45 @@ export default function CheckoutModal({
                   />
                 </Form.Group>
 
-                <p className={styles.sectionTitle}>Jarak pengantaran</p>
-                {!useManual ? (
-                  <div className="mb-4">
-                    <Button
-                      variant="outline-secondary"
-                      className={`${styles.receiptBtn} w-100`}
-                      disabled={geoLoading}
-                      onClick={handleUseLocation}
-                    >
-                      {geoLoading ? (
-                        <><Spinner animation="border" size="sm" className="me-2" />Mencari lokasi...</>
-                      ) : (
-                        <><i className="fa-solid fa-location-crosshairs me-2"></i>{userCoord ? 'Perbarui lokasi saya' : 'Gunakan lokasi saya'}</>
-                      )}
-                    </Button>
-                    {geoError && <div className={styles.hint}>{geoError}</div>}
-                    {deliveryBranch && !hasCoord(deliveryBranch) && (
-                      <div className={styles.hint}>Gerai ini belum punya koordinat, pilih perkiraan jarak manual.</div>
+                <p className={styles.sectionTitle}>Lokasi pengantaran</p>
+                <div className="mb-4">
+                  <Button
+                    variant="outline-secondary"
+                    className={`${styles.receiptBtn} w-100`}
+                    disabled={geoLoading}
+                    onClick={handleUseLocation}
+                  >
+                    {geoLoading ? (
+                      <><Spinner animation="border" size="sm" className="me-2" />Mencari lokasi...</>
+                    ) : (
+                      <><i className="fa-solid fa-location-crosshairs me-2"></i>{userCoord ? 'Perbarui lokasi saya' : 'Gunakan lokasi saya'}</>
                     )}
-                    {jarakKm !== null && (
-                      <div className={diLuarJangkauan ? styles.distanceBad : styles.distanceInfo}>
-                        {diLuarJangkauan
-                          ? `Jarak ± ${formatKm(jarakKm)}, di luar jangkauan (maks ${ONGKIR_TARIF.maksKm} km).`
-                          : `Jarak ± ${formatKm(jarakKm)} dari ${deliveryBranch?.nama}`}
-                      </div>
-                    )}
-                    <button type="button" className={styles.linkBtn} onClick={() => setUseManual(true)}>
-                      Pilih perkiraan jarak secara manual
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mb-4">
-                    <Form.Select
-                      className={styles.customInput}
-                      value={manualKm}
-                      onChange={(e) => setManualKm(e.target.value)}
-                    >
-                      <option value="">-- Perkiraan jarak --</option>
-                      {ZONA_MANUAL.map((z) => (
-                        <option key={z.km} value={z.km}>{z.label}</option>
-                      ))}
-                    </Form.Select>
-                    <button type="button" className={styles.linkBtn} onClick={() => setUseManual(false)}>
-                      Hitung otomatis dari lokasi saya
-                    </button>
-                  </div>
-                )}
+                  </Button>
+                  {geoError && <div className={styles.hint}>{geoError}</div>}
+                  {deliveryBranch && !hasCoord(deliveryBranch) && (
+                    <div className={styles.hint}>Gerai ini belum punya koordinat, silakan pilih gerai lain.</div>
+                  )}
+                  {!deliveryBranch && <div className={styles.hint}>Pilih gerai dulu untuk menampilkan peta.</div>}
+                  {deliveryBranch && hasCoord(deliveryBranch) && (
+                    <>
+                      <div className={styles.hint}>Atau ketuk peta / geser pin untuk menentukan lokasi pengantaran.</div>
+                      <DeliveryPicker
+                        branchLat={deliveryBranch.latitude}
+                        branchLng={deliveryBranch.longitude}
+                        branchName={deliveryBranch.nama}
+                        value={userCoord}
+                        onPick={setUserCoord}
+                      />
+                    </>
+                  )}
+                  {jarakKm !== null && (
+                    <div className={diLuarJangkauan ? styles.distanceBad : styles.distanceInfo}>
+                      {diLuarJangkauan
+                        ? `Jarak ± ${formatKm(jarakKm)}, di luar jangkauan (maks ${ONGKIR_TARIF.maksKm} km).`
+                        : `Jarak ± ${formatKm(jarakKm)} dari ${deliveryBranch?.nama}`}
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
