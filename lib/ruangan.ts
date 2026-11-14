@@ -34,7 +34,7 @@ export interface InfoRuangan {
   tersedia: boolean; 
 }
 
-const cancel = ['dibatalkan', 'cancelled'];
+const STATUS_BEBAS = ['dibatalkan', 'cancelled', 'complete', 'selesai'];
 
 export async function hitungKetersediaan(
   gerai: string,
@@ -50,7 +50,7 @@ export async function hitungKetersediaan(
   if (tanggal && sesi) {
     const grup = await prisma.reservasi.groupBy({
       by: ['ruangan'],
-      where: { gerai, tanggal, sesi, status: { notIn: cancel } },
+      where: { gerai, tanggal, sesi, status: { notIn: STATUS_BEBAS } },
       _count: { _all: true },
     });
     for (const g of grup) terpakai.set(g.ruangan, g._count._all);

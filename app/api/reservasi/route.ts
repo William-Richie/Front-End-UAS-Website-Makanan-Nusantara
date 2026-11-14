@@ -38,6 +38,14 @@ export async function GET(req: NextRequest) {
   }
 }
 
+const jamSekarangWib = () =>
+    new Date().toLocaleTimeString('en-GB', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+
 // POST /api/reservasi - membuat reservasi baru
 export async function POST(req: NextRequest) {
   try {
@@ -74,6 +82,12 @@ export async function POST(req: NextRequest) {
 
     const kunciVip = buatKunciVip(String(gerai), String(tanggal), String(sesi), String(ruangan));
 
+    // tanggal tidak boleh sebelum hari ini (acuan: waktu Jakarta)
+    const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(tanggal)) || String(tanggal) < hariIni) {
+      return NextResponse.json({ error: 'Tanggal reservasi tidak boleh sebelum hari ini.' }, { status: 400 });
+    }
+
     let created;
     try {
       created = await prisma.reservasi.create({
@@ -84,6 +98,7 @@ export async function POST(req: NextRequest) {
           email: String(email),
           telepon: String(telepon),
           tanggal: String(tanggal),
+          jam: jamSekarangWib(),
           sesi: String(sesi),
           jumlah: Number(jumlah),
           ruangan: String(ruangan),

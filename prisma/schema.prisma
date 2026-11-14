@@ -46,6 +46,7 @@ model Reservasi {
   telepon    String
   email      String
   tanggal    String
+  jam        String?
   sesi       String
   vip        String?  @unique
   jumlah     Int

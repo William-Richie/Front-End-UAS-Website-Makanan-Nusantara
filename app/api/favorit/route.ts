@@ -1,26 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { hitungTerlaris } from '@/lib/terlaris';
 
-// GET /api/favorit - Mengambil 5 menu favorit
-export async function GET() {
+// Favorit pilihan admin (tabel favorit, slot 1 - 5)
+async function ambilManual() {
+  const list = await prisma.favorit.findMany({
+    include: {
+      menu: true,
+    },
+    orderBy: { slot: 'asc' },
+  });
+  return list.map((item) => ({
+    slot: item.slot,
+    menu_id: item.menu_id,
+    nama_makanan: item.menu?.nama_makanan || null,
+    deskripsi: item.menu?.deskripsi || null,
+    gambar: item.menu?.gambar || null,
+    pedas: item.menu?.pedas || 0,
+    status: item.menu?.status ?? null,
+  }));
+}
+
+// GET /api/favorit - Mengambil menu favorit (maks. 5)
+//   ?sumber=manual   -> pilihan admin
+//   ?sumber=terlaris -> 5 menu terlaris dari pesanan berstatus selesai
+//   tanpa parameter  -> dipakai halaman user: mengikuti mode di pengaturan orbit
+export async function GET(req: NextRequest) {
   try {
-    const list = await prisma.favorit.findMany({
-      include: {
-        menu: true,
-      },
-      orderBy: { slot: 'asc' },
-    });
-    const cleaned = list.map((item) => ({
-      slot: item.slot,
-      menu_id: item.menu_id,
-      nama_makanan: item.menu?.nama_makanan || null,
-      deskripsi: item.menu?.deskripsi || null,
-      gambar: item.menu?.gambar || null,
-      pedas: item.menu?.pedas || 0,
-      status: item.menu?.status ?? null,
-    }));
+    const sumber = new URL(req.url).searchParams.get('sumber');
 
-    return NextResponse.json({ data: cleaned });
+    if (sumber === 'terlaris') {
+      return NextResponse.json({ data: await hitungTerlaris() });
+    }
+    if (sumber === 'manual') {
+      return NextResponse.json({ data: await ambilManual() });
+    }
+
+    const pengaturan = await prisma.pengaturanOrbit.findUnique({ where: { id: 1 } }).catch(() => null);
+    if (pengaturan?.mode === 'terlaris') {
+      const terlaris = await hitungTerlaris();
+      // belum ada pesanan selesai -> tampilkan pilihan admin supaya orbit tidak kosong
+      if (terlaris.length > 0) return NextResponse.json({ data: terlaris });
+    }
+
+    return NextResponse.json({ data: await ambilManual() });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Gagal memuat menu favorit.';
     return NextResponse.json({ error: message }, { status: 500 });

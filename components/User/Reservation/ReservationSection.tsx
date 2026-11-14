@@ -1,9 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Container, Row, Col, Form, Button } from 'react-bootstrap';
 import styles from './ReservationSection.module.css';
 
+// tanggal & jam hari ini menurut jam perangkat pengguna (format YYYY-MM-DD dan HH:MM)
+const sekarangLokal = () => {
+  const d = new Date();
+  const dua = (n: number) => String(n).padStart(2, '0');
+  return {
+    tanggal: `${d.getFullYear()}-${dua(d.getMonth() + 1)}-${dua(d.getDate())}`,
+    jam: `${dua(d.getHours())}:${dua(d.getMinutes())}`,
+  };
+};
+
+const AKHIR_SESI: Record<string, string> = {
+    morning: '11:00',
+    afternoon: '18:00',
+    night: '21:00',
+  };
 export interface BranchMap {
   id: number;
   nama: string;
@@ -30,7 +45,6 @@ export default function ReservationSection({
   const [email, setEmail] = useState(user?.email || '');
   const [telepon, setTelepon] = useState('');
   const [tanggal, setTanggal] = useState('');
-  const [hari, setHari] = useState('');
   const [jumlah, setJumlah] = useState<number>(2);
   const [sesi, setSesi] = useState('');
   const [ruangan, setRuangan] = useState('');
@@ -38,9 +52,12 @@ export default function ReservationSection({
   const [catatan, setCatatan] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  // diisi setelah halaman tampil di browser, supaya tidak beda dengan hasil render server
+  const [hariIni, setHariIni] = useState('');
 
   useEffect(() => {
-    setHari(new Date().toLocaleDateString('en-CA'));
+    const timer = setTimeout(() => setHariIni(sekarangLokal().tanggal), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -71,6 +88,15 @@ export default function ReservationSection({
     }
     if (!selectedBranch) {
       setErrorMsg('Silakan pilih gerai restoran.');
+      return;
+    }
+    const now = sekarangLokal();
+    if (tanggal < now.tanggal) {
+      setErrorMsg('Tanggal reservasi tidak boleh sebelum hari ini.');
+      return;
+    }
+    if (tanggal === now.tanggal && now.jam > (AKHIR_SESI[sesi] ?? '23:59')) {
+      setErrorMsg('Jam kedatangan sudah lewat. Pilih jam yang masih ke depan.');
       return;
     }
 
@@ -250,8 +276,8 @@ export default function ReservationSection({
                     type="date"
                     id="res-date"
                     required
+                    min={hariIni || undefined}
                     value={tanggal}
-                    min={hari}
                     onChange={(e) => setTanggal(e.target.value)}
                   />
                 </Form.Group>
