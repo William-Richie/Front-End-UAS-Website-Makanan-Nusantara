@@ -15,11 +15,6 @@ const sekarangLokal = () => {
   };
 };
 
-const AKHIR_SESI: Record<string, string> = {
-    morning: '11:00',
-    afternoon: '18:00',
-    night: '21:00',
-  };
 export interface BranchMap {
   id: number;
   nama: string;
@@ -46,7 +41,8 @@ export default function ReservationSection({
   const [email, setEmail] = useState(user?.email || '');
   const [telepon, setTelepon] = useState('');
   const [tanggal, setTanggal] = useState('');
-  const [jumlah, setJumlah] = useState<number>(2);
+  const [jumlah, setJumlah] = useState<number>(0);
+  const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [sesi, setSesi] = useState('');
   const [ruangan, setRuangan] = useState('');
   const [terisi, setTerisi] = useState<string[]>([]);
@@ -55,9 +51,9 @@ export default function ReservationSection({
   const [errorMsg, setErrorMsg] = useState('');
   const [hariIni, setHariIni] = useState('');
   const [showRules, setShowRules] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const [isShaking, setIsShaking] = useState(false);
-  
   const triggerShake = () => {
     setIsShaking(false);
 
@@ -70,37 +66,48 @@ export default function ReservationSection({
     }, 400);
   };
 
+  const availableTimes = Array.from(
+    { length: 27 },
+    (_, i) => {
+      const totalMinutes = 8 * 60 + i * 30;
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+  );
+
   useEffect(() => {
     const timer = setTimeout(() => setHariIni(sekarangLokal().tanggal), 0);
     return () => clearTimeout(timer);
   }, []);
 
   
-useEffect(() => {
-  if (!selectedBranch || !tanggal || !sesi) {
-    return;
-  }
+  useEffect(() => {
+    if (!selectedBranch || !tanggal || !sesi) {
+      return;
+    }
 
-  let batal = false;
+    let batal = false;
 
-  const params = new URLSearchParams({
-    terisi: '1',
-    gerai: selectedBranch,
-    tanggal,
-    sesi,
-  });
+    const params = new URLSearchParams({
+      terisi: '1',
+      gerai: selectedBranch,
+      tanggal,
+      sesi,
+    });
 
-  fetch(`/api/reservasi?${params}`)
-    .then((r) => r.json())
-    .then((d) => {
+    fetch(`/api/reservasi?${params}`)
+      .then((r) => r.json())
+      .then((d) => {
       if (batal) return;
 
-      const daftar: string[] = d.terisi ?? [];
-      setTerisi(daftar);
-      setRuangan((cur) =>
-        daftar.includes(cur) ? '' : cur
-      );
-    })
+        const daftar: string[] = d.terisi ?? [];
+        setTerisi(daftar);
+        setRuangan((cur) =>
+          daftar.includes(cur) ? '' : cur
+        );
+      })
     .catch(() => {});
 
     return () => {
@@ -137,6 +144,16 @@ useEffect(() => {
     }
     if (!tanggal) {
       setErrorMsg('Tanggal reservasi wajib diisi!');
+      triggerShake();
+      return;
+    }
+    if (!sesi) {
+      setErrorMsg('Silakan pilih jam reservasi terlebih dahulu!');
+      triggerShake();
+      return;
+    }
+    if (jumlah < 1 || jumlah > 20) {
+      setErrorMsg('Silakan pilih jumlah tamu terlebih dahulu!');
       triggerShake();
       return;
     }
@@ -189,6 +206,7 @@ useEffect(() => {
       setSesi('');
       setCatatan('');
       setRuangan('');
+      setJumlah(0);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan saat memproses reservasi.';
       setErrorMsg(msg);
@@ -197,7 +215,7 @@ useEffect(() => {
     }
   };
 
-  const isReady = !!selectedBranch && !!tanggal && !!sesi;
+  const isReady = !!selectedBranch && !!tanggal && !!sesi && jumlah>=1 && jumlah <=20;
 
   return (
     <section id="reservation" className="page-section">
@@ -341,42 +359,72 @@ useEffect(() => {
               />
             </Form.Group>
 
+            {/* Reservation Date, Time & Guests */}
             <Row className="g-3 mb-3">
-              <Col xs={6}>
+              {/* Reservation Date */}
+              <Col xs={12} md={6}>
                 <Form.Group>
                   <Form.Label className="fw-bold">Reservation Date</Form.Label>
                   <Form.Control
                     type="date"
+                    className={styles.reservationField}
                     id="res-date"
                     required
                     min={hariIni || undefined}
                     value={tanggal}
-                    onChange={(e) => setTanggal(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value && value < hariIni) {
+                        setErrorMsg('Tanggal reservasi tidak boleh sebelum hari ini!');
+                        return;
+                      }
+                      setTanggal(value);
+                      setErrorMsg('');
+                    }}
                   />
                 </Form.Group>
               </Col>
-              
-              <Col xs={6}>
+
+              {/* Time */}
+              <Col xs={6} md={3}>
                 <Form.Group>
-                  <Form.Label className="fw-bold">Session</Form.Label>
-                  <Form.Select
-                    id="res-session"
-                    value={sesi}
-                    onChange={(e) => setSesi(e.target.value)}
+                  <Form.Label className="fw-bold">Time</Form.Label>
+                  <button
+                    type="button"
+                    className={styles.guestButton}
+                    onClick={() => setShowTimePicker(true)}
                   >
-                    <option value="" disabled>-- Pilih Sesi --</option>
-                    <option value="morning">Morning (08.00 - 11.00)</option>
-                    <option value="afternoon">Afternoon (12.00 - 18.00)</option>
-                    <option value="night">Evening (18.00 - 21.00)</option>
-                  </Form.Select>
+                    {sesi || 'Select Time'}
+                  </button>
+                </Form.Group>
+              </Col>
+
+              {/* Guests */}
+              <Col xs={6} md={3}>
+                <Form.Group>
+                  <Form.Label className="fw-bold">Guests</Form.Label>
+                  <button
+                    type="button"
+                    id="res-guest"
+                    className={styles.guestButton}
+                    onClick={() => setShowGuestPicker(true)}
+                  >
+                    {jumlah}
+                  </button>
                 </Form.Group>
               </Col>
             </Row>
 
+            {/* Select The Room */}
             <Row className="g-3 mb-3">
-              <Col xs={8}>
-                <Form.Group className={`mb-3 ${styles.roomGroup} ${!isReady ? styles.roomLocked : ''}`}>
-                  <Form.Label className="fw-bold">Select The Room</Form.Label>
+              <Col xs={12}>
+                <Form.Group
+                  className={`${styles.roomGroup} ${!isReady ? styles.roomLocked : ''}`}
+                >
+                  <Form.Label className="fw-bold">
+                    Select The Room
+                  </Form.Label>
+
                   <Form.Select
                     id="res-room"
                     required
@@ -384,48 +432,155 @@ useEffect(() => {
                     value={ruangan}
                     onChange={(e) => setRuangan(e.target.value)}
                   >
-                    <option value="" disabled>-- Type of Room --</option>
+                    <option value="" disabled>
+                      -- Type of Room --
+                    </option>
+
                     <optgroup label="Reguler">
                       {!terisi.includes('reguler-indoor') && (
-                        <option value="reguler-indoor">Reguler Indoor (No Smoking / AC)</option>
+                        <option value="reguler-indoor">
+                          Reguler Indoor (No Smoking / AC)
+                        </option>
                       )}
+
                       {!terisi.includes('reguler-outdoor') && (
-                        <option value="reguler-outdoor">Reguler Outdoor (Free Smoking)</option>
+                        <option value="reguler-outdoor">
+                          Reguler Outdoor (Free Smoking)
+                        </option>
                       )}
                     </optgroup>
+
                     <optgroup label="VIP Room">
                       {!terisi.includes('vip-10') && (
-                        <option value="vip-10">VIP Room 1 (1 Table, Recommended for 4 - 10 people)</option>
+                        <option value="vip-10">
+                          VIP Room 1 (1 Table, Recommended for 4 - 10 people)
+                        </option>
                       )}
+
                       {!terisi.includes('vip-10-tv') && (
-                        <option value="vip-10-tv">VIP Room 1 ++ (1 Table + TV, Recommended for 4 - 10 people)</option>
+                        <option value="vip-10-tv">
+                          VIP Room 1 ++ (1 Table + TV, Recommended for 4 - 10 people)
+                        </option>
                       )}
+
                       {!terisi.includes('vip-20') && (
-                        <option value="vip-20">VIP Room 2 (2 Table, Recommended for 8 - 20 people)</option>
+                        <option value="vip-20">
+                          VIP Room 2 (2 Table, Recommended for 8 - 20 people)
+                        </option>
                       )}
+
                       {!terisi.includes('vip-20-tv') && (
-                        <option value="vip-20-tv">VIP Room 2 ++ (2 Table + TV, Recommended for 8 - 20 people)</option>
+                        <option value="vip-20-tv">
+                          VIP Room 2 ++ (2 Table + TV, Recommended for 8 - 20 people)
+                        </option>
                       )}
                     </optgroup>
                   </Form.Select>
                 </Form.Group>
               </Col>
-
-              <Col xs={4}>
-                <Form.Group>
-                  <Form.Label className="fw-bold">Guests</Form.Label>
-                  <Form.Control
-                    type="number"
-                    id="res-guest"
-                    min="1"
-                    max="20"
-                    required
-                    value={jumlah}
-                    onChange={(e) => setJumlah(Number(e.target.value))}
-                  />
-                </Form.Group>
-              </Col>
             </Row>
+                        
+            {showGuestPicker && (
+              <div
+                className={styles.guestOverlay}
+                onClick={() => setShowGuestPicker(false)}
+              >
+                <div
+                  className={styles.guestModal}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Select number of guests"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Close Button */}
+                  <button
+                    type="button"
+                    className={styles.guestClose}
+                    onClick={() => setShowGuestPicker(false)}
+                    aria-label="Close guest picker"
+                  >
+                    &times;
+                  </button>
+
+                  {/* Header */}
+                  <div className={styles.guestHeader}>
+                    <span>{jumlah} {jumlah === 1 ? 'Guest' : 'Guests'}</span>
+                    <span>Guests</span>
+                  </div>
+
+                  {/* Number List */}
+                  <div className={styles.guestList}>
+                    {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className={`${styles.guestOption} ${
+                          jumlah === n ? styles.guestActive : ''
+                        }`}
+                        onClick={() => {
+                          setJumlah(n);
+                          setShowGuestPicker(false);
+                        }}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+
+            {/* Time Picker */}
+            {showTimePicker && (
+              <div
+                className={styles.guestOverlay}
+                onClick={() => setShowTimePicker(false)}
+              >
+                <div
+                  className={styles.guestModal}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Select reservation time"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Close Button */}
+                  <button
+                    type="button"
+                    className={styles.guestClose}
+                    onClick={() => setShowTimePicker(false)}
+                    aria-label="Close time picker"
+                  >
+                    &times;
+                  </button>
+
+                  {/* Header */}
+                  <div className={styles.guestHeader}>
+                    <span>Time</span>
+                    <span>All times</span>
+                  </div>
+
+                  {/* Time Options */}
+                  <div className={styles.guestList}>
+                    {availableTimes.map((time) => (
+                      <button
+                        key={time}
+                        type="button"
+                        className={`${styles.guestOption} ${
+                          sesi === time ? styles.guestActive : ''
+                        }`}
+                        onClick={() => {
+                          setSesi(time);
+                          setShowTimePicker(false);
+                        }}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Form.Group className="mb-3">
               <Form.Label className="fw-bold">Extra Note</Form.Label>
@@ -452,7 +607,7 @@ useEffect(() => {
               variant="papeda"
               className={`${styles.submitBtn} w-100 text-white fw-bold`}
             >
-              {submitting ? 'Memproses Reservasi...' : 'Confirm'}
+              {submitting ? 'Memproses Reservasi...' : 'Submit'}
             </Button>
           </Form>
         </Container>
@@ -488,8 +643,9 @@ useEffect(() => {
               </p> */}
               <ol className={styles.rulesList}>
                 <span>
-                  Right after you successfully make a reservation, we’ll start setting up the dining area 15 minutes early. 
-                  We will hold your table for a <strong>maximum of 30 minutes</strong> after your reservation time. No outside drinks & foods allowed. 
+                  Open daily from 8:00 AM to 10:00 PM according to Western Indonesian Time (WIB). 
+                  Once your reservation is confirmed, we’ll start setting up the dining area 15 minutes before your schedule time, and
+                  We will hold your table for a <strong>maximum of 30 minutes</strong> past your reservation time. No outside drinks & foods are allowed. 
                   All card games, drugs, firearms & sharp objects are strictly prohibited. We reserve the right to refuse service to anyone. 
                   Proper attire is required.
                 </span>

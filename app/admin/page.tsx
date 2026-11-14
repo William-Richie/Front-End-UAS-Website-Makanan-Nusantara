@@ -7,6 +7,7 @@ import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminC
 import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePreview';
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
 import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
+import { JAM_RESERVASI } from '@/lib/jam';
 import {
   BENTUK_ORBIT,
   GERAK_ORBIT,
@@ -60,12 +61,12 @@ export interface ReservasiItem {
   gerai: string;
   telepon: string;
   tanggal: string;
-  jam: string;
   jumlah: number;
   ruangan: string;
   status: string;
   catatan?: string | null;
   email?: string | null;
+  jam?: string | null;
   sesi?: string | null;
 }
 
@@ -279,7 +280,7 @@ export default function AdminPage() {
   const [userAksi, setUserAksi] = useState<UserAksi>('');
   const [ruanganGerai, setRuanganGerai] = useState<string>('');
   const [ruanganTanggal, setRuanganTanggal] = useState<string>('');
-  const [ruanganSesi, setRuanganSesi] = useState<string>('morning');
+  const [ruanganSesi, setRuanganSesi] = useState<string>('08:00');
   const [ruanganList, setRuanganList] = useState<InfoRuangan[]>([]);
   const [ruanganPesan, setRuanganPesan] = useState<string>('');
   const [reservasiMenu, setReservasiMenu] = useState<ReservasiMenuKey>('reservasi');
@@ -289,9 +290,14 @@ export default function AdminPage() {
   const [pendapatanData, setPendapatanData] = useState<PendapatanSummary | null>(null);
   const [pendapatanRange, setPendapatanRange] = useState<string>('7');
   const [tanggalSekarang, setTanggalSekarang] = useState<Date | null>(null);
+  const geraiAktif = ruanganGerai || branches[0]?.nama || '';
+  const ruanganTampil = geraiAktif && ruanganTanggal ? ruanganList : [];
 
   useEffect(() => {
-    const t = setTimeout(() => setRuanganTanggal(new Date().toLocaleDateString('en-CA')), 0);
+    const t = setTimeout(() => {
+      setRuanganTanggal(new Date().toLocaleDateString('en-CA'));
+      setTanggalSekarang(new Date());
+    }, 0);
     return () => clearTimeout(t);
   }, []);
 
@@ -316,12 +322,9 @@ export default function AdminPage() {
 
   // Cek Ruangan Reservasi
   const loadRuangan = async () => {
-    if (!ruanganGerai || !ruanganTanggal) {
-      setRuanganList([]);
-      return;
-    }
+    if (!geraiAktif || !ruanganTanggal) return;
     try {
-      const p = new URLSearchParams({ gerai: ruanganGerai, tanggal: ruanganTanggal, sesi: ruanganSesi });
+      const p = new URLSearchParams({ gerai: geraiAktif, tanggal: ruanganTanggal, sesi: ruanganSesi });
       const res = await adminFetch(`/api/admin/ruangan?${p}`);
       const json = await res.json().catch(() => ({}));
       setRuanganList(json.data || []);
@@ -330,30 +333,39 @@ export default function AdminPage() {
     }
   };
 
-  useEffect(() => {
-    if (!ruanganGerai && branches.length > 0) setRuanganGerai(branches[0].nama);
-  }, [branches, ruanganGerai]);
+  const kirimRuangan = async (body: object) => {
+  try {
+    const res = await adminFetch('/api/admin/ruangan', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gerai: geraiAktif, ...body }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setRuanganPesan(res.ok ? 'Tersimpan.' : json.error || 'Gagal menyimpan.');
+  } catch {
+    setRuanganPesan('Gagal menyimpan.');
+  }
+  loadRuangan();
+};
 
   useEffect(() => {
     if (!isLoggedIn || activeTab !== 'reservasi' || reservasiMenu !== 'ruangan') return;
-      loadRuangan();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, activeTab, reservasiMenu, ruanganGerai, ruanganTanggal, ruanganSesi]);
+    if (!geraiAktif || !ruanganTanggal) return;
 
-  const kirimRuangan = async (body: object) => {
-    try {
-      const res = await adminFetch('/api/admin/ruangan', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gerai: ruanganGerai, ...body }),
-      });
-      const json = await res.json().catch(() => ({}));
-      setRuanganPesan(res.ok ? 'Tersimpan.' : json.error || 'Gagal menyimpan.');
-    } catch {
-      setRuanganPesan('Gagal menyimpan.');
-    }
-    loadRuangan();
-  };
+    let batal = false;
+    const p = new URLSearchParams({ gerai: geraiAktif, tanggal: ruanganTanggal, sesi: ruanganSesi });
+
+    adminFetch(`/api/admin/ruangan?${p}`)
+      .then((r) => r.json().catch(() => ({})))
+      .then((json) => {
+        if (!batal) setRuanganList(json.data || []);
+      })
+      .catch((e) => console.error('Gagal mengambil data ruangan:', e));
+
+    return () => {
+      batal = true;
+    };
+  }, [isLoggedIn, activeTab, reservasiMenu, geraiAktif, ruanganTanggal, ruanganSesi]);
 
   const ubahJumlahRuangan = (r: InfoRuangan, n: number) => {
     if (!Number.isInteger(n) || n < 0 || n > 50) return;
@@ -707,7 +719,7 @@ export default function AdminPage() {
   const handleSaveFavorit = async (slot: number, menuId: number) => {
     try {
       const selectedItem = menus.find((m) => m.id === menuId);
-      const updatedData = [...favoritList];
+      const updatedData = favoritList.map((f) => ({ ...f }));
       const idx = updatedData.findIndex((f) => f.slot === slot);
       if (idx !== -1) {
         updatedData[idx].menu_id = menuId;
@@ -2120,20 +2132,10 @@ export default function AdminPage() {
                                   <br />
                                   <small className="text-muted">{r.email || '-'}</small>
                                 </td>
-                                  <td>
-                                    {r.tanggal || '-'}
-                                    <br />
-                                    <td>
-                                    {r.tanggal || '-'}
-                                    <br />
-                                    <small>{r.sesi ? `(${r.sesi})` : ''}</small>
-                                    {r.jam && (
-                                      <>
-                                        <br />
-                                        <small className="text-muted">Dipesan pukul {r.jam}</small>
-                                      </>
-                                    )}
-                                  </td>
+                                <td className="text-center">
+                                  {r.tanggal || '-'}
+                                  <br />
+                                  <small className="text-muted">{r.sesi || r.jam || '-'}</small>
                                 </td>
                                 <td>{r.jumlah || 0} Orang</td>
                                 <td>{r.ruangan || '-'}</td>
@@ -2180,7 +2182,7 @@ export default function AdminPage() {
                   <div className="col-md-5">
                     <select
                       className="form-select"
-                      value={ruanganGerai}
+                      value={geraiAktif}
                       onChange={(e) => setRuanganGerai(e.target.value)}
                     >
                       {branches.map((b) => (
@@ -2202,9 +2204,9 @@ export default function AdminPage() {
                       value={ruanganSesi}
                       onChange={(e) => setRuanganSesi(e.target.value)}
                     >
-                      <option value="morning">Morning</option>
-                      <option value="afternoon">Afternoon</option>
-                      <option value="night">Evening</option>
+                      {JAM_RESERVASI.map((j) => (
+                        <option key={j} value={j}>{j}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -2227,7 +2229,7 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ruanganList.filter((r) => r.grup === 'Reguler').map((r) => (
+                      {ruanganTampil.filter((r) => r.grup === 'Reguler').map((r) => (
                         <tr key={r.ruangan} className="text-center">
                           <td className="text-start">{r.label}</td>
                           <td>
@@ -2300,7 +2302,7 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ruanganList.filter((r) => r.grup === 'VIP Room').map((r) => (
+                      {ruanganTampil.filter((r) => r.grup === 'VIP Room').map((r) => (
                         <tr key={r.ruangan} className="text-center">
                           <td className="text-start">{r.label}</td>
                           <td>
