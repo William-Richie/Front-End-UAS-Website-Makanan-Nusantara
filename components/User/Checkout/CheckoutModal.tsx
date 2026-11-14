@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, Form, Button, Spinner } from 'react-bootstrap';
 import { CartItem } from '../FloatingButton/FloatingButton';
 import { BranchMap } from '../Reservation/ReservationSection';
@@ -123,6 +123,14 @@ export default function CheckoutModal({
   const [errorMsg, setErrorMsg] = useState('');
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [resumeLoaded, setResumeLoaded] = useState(false);
+  const onCloseRef = useRef(onClose);
+  const onSuccessRef = useRef(onSuccess);
+  const onPendingChangeRef = useRef(onPendingChange);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    onSuccessRef.current = onSuccess;
+    onPendingChangeRef.current = onPendingChange;
+  });
 
   // timer batas bayar
   useEffect(() => {
@@ -131,7 +139,6 @@ export default function CheckoutModal({
     return () => clearInterval(t);
   }, [step]);
 
-  // waktu bayar e-wallet habis: pesanan dibatalkan otomatis
   useEffect(() => {
     if (step !== 'ewallet' || !receipt || secondsLeft > 0) return;
     const timer = setTimeout(() => {
@@ -156,11 +163,11 @@ export default function CheckoutModal({
         if (!res.ok) return;
         const { data } = await res.json();
         if (data.status === 'dibatalkan') {
-          clearPending(waitingId, onPendingChange);
+          clearPending(waitingId, onPendingChangeRef.current);
           setStep('cancelled');
         } else if (data.status !== 'menunggu_bayar') {
-          clearPending(waitingId, onPendingChange);
-          onSuccess(waitingId);
+          clearPending(waitingId, onPendingChangeRef.current);
+          onSuccessRef.current(waitingId);
           setReceipt((r) =>
             r ? { ...r, statusBayar: 'Lunas', catatan: 'Terima kasih, pembayaran Anda sudah kami terima.' } : r
           );
@@ -170,7 +177,7 @@ export default function CheckoutModal({
       }
     }, POLL_MS);
     return () => clearInterval(t);
-  }, [waitingId, onPendingChange]);
+  }, [waitingId]);
 
   useEffect(() => {
     if (!show || !resumeOrderId) return;
@@ -181,14 +188,14 @@ export default function CheckoutModal({
         const json = await res.json().catch(() => null);
         if (cancelled) return;
         if (!res.ok || !json?.data) {
-          clearPending(resumeOrderId, onPendingChange);
-          onClose();
+          clearPending(resumeOrderId, onPendingChangeRef.current);
+          onCloseRef.current();
           return;
         }
         const data = json.data as OrderApi;
         const r = receiptFromOrder(data);
         if (data.status === 'dibatalkan') {
-          clearPending(resumeOrderId, onPendingChange);
+          clearPending(resumeOrderId, onPendingChangeRef.current);
           setReceipt(r);
           setStep('cancelled');
         } else if (data.status === 'menunggu_bayar') {
@@ -202,8 +209,8 @@ export default function CheckoutModal({
             setStep('cashier');
           }
         } else {
-          clearPending(resumeOrderId, onPendingChange);
-          onSuccess(resumeOrderId);
+          clearPending(resumeOrderId, onPendingChangeRef.current);
+          onSuccessRef.current(resumeOrderId);
           setReceipt({ ...r, statusBayar: 'Lunas', catatan: 'Terima kasih, pembayaran Anda sudah kami terima.' });
           setStep('receipt');
         }
@@ -256,8 +263,6 @@ export default function CheckoutModal({
       if (expired) {
         updateOrder(receipt.id, { status: 'dibatalkan' }).catch(() => {});
       } else {
-        // ditutup sementara: pesanan tetap menunggu, bisa dibuka lagi lewat tombol "Pesanan menunggu pembayaran",
-        // dan baru dibatalkan otomatis kalau waktu pembayaran habis
         try {
           localStorage.setItem(PENDING_ORDER_KEY, String(receipt.id));
         } catch {
@@ -480,12 +485,8 @@ export default function CheckoutModal({
               <div className={styles.waitRow}>
                 <Spinner animation="border" size="sm" /> Menunggu konfirmasi kasir...
               </div>
-              <p className={styles.hint}>Struk akan muncul otomatis begitu kasir menerima pembayaran Anda.</p>
               <p className={styles.hint}>
                 Pesanan dibatalkan otomatis jika belum dibayar dalam {Math.round(BATAS_BAYAR_KASIR_DETIK / 60)} menit.
-              </p>
-              <p className={styles.hint}>
-                Jendela ini boleh ditutup. Pesanan tetap tersimpan dan bisa dibuka lagi lewat tombol &quot;Pesanan menunggu pembayaran&quot;.
               </p>
             </div>
           </Modal.Body>
@@ -513,6 +514,7 @@ export default function CheckoutModal({
                     aria-pressed={ewallet === w.nama}
                     onClick={() => setEwallet(w.nama)}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={w.logo} alt={w.nama} className={styles.providerLogo} />
                   </button>
                 ))}
@@ -525,7 +527,6 @@ export default function CheckoutModal({
                 {expired ? 'Waktu pembayaran habis' : `Selesaikan dalam ${mmss(secondsLeft)}`}
               </div>
               <p className={styles.hint}>Catatan: aplikasi e-wallet tidak benar-benar dibuka.</p>
-              <p className={styles.hint}>Jendela ini boleh ditutup, pesanan tetap menunggu sampai waktu habis.</p>
             </div>
             {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
           </Modal.Body>

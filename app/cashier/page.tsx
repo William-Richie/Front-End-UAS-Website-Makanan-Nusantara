@@ -5,11 +5,8 @@ import styles from './cashier.module.css';
 import { buildReceiptHtml, type OrderType, type Receipt } from '@/lib/receiptPrint';
 import type { CartItem } from '@/components/User/FloatingButton/FloatingButton';
 import { BATAS_BAYAR_KASIR_DETIK } from '@/lib/paymentTimeout';
+import { namaSingkatGerai } from '@/lib/gerai';
 
-const SESSION_KEY = 'papeda_kasir_logged';
-const GERAI_KEY = 'papeda_kasir_gerai';
-const KASIR_USER = 'kasir';
-const KASIR_PASS = 'kasir123';
 const REFRESH_MS = 4000;
 const BATAS_BAYAR_MENIT = Math.round(BATAS_BAYAR_KASIR_DETIK / 60);
 const BATAS_LAMA_MENIT = 15;
@@ -59,7 +56,6 @@ interface Pesanan {
 }
 
 const rupiah = (n: number) => `Rp ${Number(n || 0).toLocaleString('id-ID')}`;
-const namaSingkatGerai = (nama: string) => nama.split(' - ')[0].trim() || nama;
 const tglLokal = (d: Date) => d.toLocaleDateString('en-CA');
 const jam = (iso: string) =>
   new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -221,7 +217,7 @@ function bunyi() {
 }
 
 async function ubahPesanan(id: number, body: Record<string, string>) {
-  const res = await fetch(`/api/pesanan/${id}`, {
+  const res = await fetch(`/api/cashier/pesanan/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -240,7 +236,28 @@ export default function KasirPage() {
   const [loginError, setLoginError] = useState('');
 
   const [daftarGerai, setDaftarGerai] = useState<string[]>([]);
-  const [gerai, setGerai] = useState('semua');
+  const [gerai, setGerai] = useState('');
+  const [geraiBuka, setGeraiBuka] = useState(false);
+  const geraiRef = useRef<HTMLDivElement>(null);
+
+  // Tutup dropdown gerai kalau klik di luar atau tekan Escape
+  useEffect(() => {
+    if (!geraiBuka) return;
+    const klikLuar = (e: MouseEvent | TouchEvent) => {
+      if (geraiRef.current && !geraiRef.current.contains(e.target as Node)) setGeraiBuka(false);
+    };
+    const tekanKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setGeraiBuka(false);
+    };
+    document.addEventListener('mousedown', klikLuar);
+    document.addEventListener('touchstart', klikLuar);
+    document.addEventListener('keydown', tekanKey);
+    return () => {
+      document.removeEventListener('mousedown', klikLuar);
+      document.removeEventListener('touchstart', klikLuar);
+      document.removeEventListener('keydown', tekanKey);
+    };
+  }, [geraiBuka]);
 
   const [daftar, setDaftar] = useState<Pesanan[]>([]);
   const [memuat, setMemuat] = useState(true);
@@ -266,15 +283,27 @@ export default function KasirPage() {
   const [tglRiwayatPilih, setTglRiwayatPilih] = useState('');
   const [filterRiwayat, setFilterRiwayat] = useState<'semua' | 'selesai' | 'dibatalkan'>('semua');
 
+  // Cek sesi kasir ke server (cookie httpOnly), gerai kasir ikut dari server
   useEffect(() => {
-    const t = setTimeout(() => {
-      setLoggedIn(sessionStorage.getItem(SESSION_KEY) === 'true');
-      const g = sessionStorage.getItem(GERAI_KEY);
-      if (g) setGerai(g);
-      setNow(Date.now());
-      setReady(true);
-    }, 0);
-    return () => clearTimeout(t);
+    let batal = false;
+    fetch('/api/cashier/login', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { data?: { gerai?: string } } | null) => {
+        if (batal) return;
+        if (d?.data?.gerai) {
+          setGerai(d.data.gerai);
+          setLoggedIn(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (batal) return;
+        setNow(Date.now());
+        setReady(true);
+      });
+    return () => {
+      batal = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -288,8 +317,17 @@ export default function KasirPage() {
 
   const muat = useCallback(async () => {
     try {
-      const res = await fetch('/api/pesanan', { cache: 'no-store' });
+      const res = await fetch('/api/cashier/pesanan', { cache: 'no-store' });
       const data = await res.json();
+      if (res.status === 401) {
+        setLoggedIn(false);
+        setDaftar([]);
+        setMemuat(true);
+        prevAktif.current = null;
+        setGerai('');
+        setLoginError(data?.error || 'Sesi kasir berakhir, silakan login lagi.');
+        return;
+      }
       if (!res.ok) throw new Error(data?.error || 'Gagal memuat pesanan.');
       const list: PesananApi[] = Array.isArray(data?.data) ? data.data : [];
       setDaftar(list.map(bacaPesanan));
@@ -356,28 +394,35 @@ export default function KasirPage() {
     };
   }, [butuhTindakan.length, loggedIn]);
 
-  const pilihGerai = (g: string) => {
-    setGerai(g);
-    sessionStorage.setItem(GERAI_KEY, g);
-  };
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === KASIR_USER && password === KASIR_PASS) {
-      sessionStorage.setItem(SESSION_KEY, 'true');
+    try {
+      const res = await fetch('/api/cashier/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const d = await res.json().catch(() => null);
+      if (!res.ok || !d?.data?.gerai) {
+        setLoginError(d?.error || 'Username atau password kasir salah.');
+        return;
+      }
+      setGerai(d.data.gerai);
       setLoggedIn(true);
       setLoginError('');
       setPassword('');
-    } else {
-      setLoginError('Username atau password kasir salah.');
+    } catch {
+      setLoginError('Tidak bisa terhubung ke server.');
     }
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem(SESSION_KEY);
+  const handleLogout = async () => {
+    await fetch('/api/cashier/login', { method: 'DELETE' }).catch(() => {});
     setLoggedIn(false);
     setDaftar([]);
     setMemuat(true);
+    setGerai('');
+    setUsername('');
     prevAktif.current = null;
   };
 
@@ -399,7 +444,7 @@ export default function KasirPage() {
     setSibukId(p.id);
     setErrorMsg('');
     try {
-      const cek = await fetch(`/api/pesanan/${p.id}`, { cache: 'no-store' }).then((r) => r.json());
+      const cek = await fetch(`/api/cashier/pesanan/${p.id}`, { cache: 'no-store' }).then((r) => r.json());
       const statusSekarang: string | undefined = cek?.data?.status;
       if (statusSekarang !== STATUS_AWAL[aksi]) {
         throw new Error(
@@ -688,17 +733,50 @@ export default function KasirPage() {
           </div>
         </div>
 
-        <label className={styles.geraiBox}>
-          <i className="fa-solid fa-store"></i>
-          <select value={gerai} onChange={(e) => pilihGerai(e.target.value)} aria-label="Pilih gerai">
-            <option value="semua">Semua Gerai</option>
-            {daftarGerai.map((g) => (
-              <option key={g} value={g}>
-                {namaSingkatGerai(g)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className={styles.geraiBox} ref={geraiRef}>
+          <button
+            type="button"
+            className={`${styles.geraiTrigger} ${geraiBuka ? styles.geraiTriggerBuka : ''}`}
+            onClick={() => setGeraiBuka((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={geraiBuka}
+            aria-label="Gerai kasir"
+          >
+            <i className="fa-solid fa-store"></i>
+            <span className={styles.geraiNama}>{gerai ? namaSingkatGerai(gerai) : 'Pilih gerai'}</span>
+            <i className={`fa-solid fa-chevron-down ${styles.geraiChevron}`}></i>
+          </button>
+
+          {geraiBuka && (
+            <ul className={styles.geraiMenu} role="listbox" aria-label="Daftar gerai">
+              {(daftarGerai.includes(gerai) ? daftarGerai : [gerai, ...daftarGerai])
+                .filter(Boolean)
+                .map((g) => {
+                  const aktif = g === gerai;
+                  return (
+                    <li key={g} role="presentation">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={aktif}
+                        aria-disabled={!aktif}
+                        className={`${styles.geraiOpsi} ${aktif ? styles.geraiOpsiAktif : styles.geraiOpsiKunci}`}
+                        onClick={() => {
+                          if (!aktif) return;
+                          setGerai(g);
+                          setGeraiBuka(false);
+                        }}
+                      >
+                        <i className={`fa-solid ${aktif ? 'fa-store' : 'fa-lock'}`}></i>
+                        <span>{namaSingkatGerai(g)}</span>
+                        {aktif && <i className={`fa-solid fa-check ${styles.geraiCek}`}></i>}
+                      </button>
+                    </li>
+                  );
+                })}
+            </ul>
+          )}
+        </div>
 
         <div className={styles.stats}>
           <div className={styles.stat}>

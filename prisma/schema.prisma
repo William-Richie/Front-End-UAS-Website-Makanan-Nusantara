@@ -177,3 +177,17 @@ model PengaturanOrbit {
 
   @@map("pengaturan_orbit")
 }
+
+
+// 13. Kasir (Akun Kasir: satu akun hanya memiliki akses ke satu gerai)
+model Kasir {
+  id         String   @id @default(uuid())
+  nama       String
+  username   String   @unique
+  password   String
+  gerai      String
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  @@map("kasir")
+}
