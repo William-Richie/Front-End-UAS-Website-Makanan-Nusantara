@@ -314,7 +314,9 @@ export default function AdminPage() {
 
   // Cek sesi login admin
   useEffect(() => {
-    const adminSession = localStorage.getItem('papeda_admin_logged');
+    // sesi lama yang tersimpan permanen di localStorage dibuang, login admin hanya berlaku selama tab terbuka
+    localStorage.removeItem('papeda_admin_logged');
+    const adminSession = sessionStorage.getItem('papeda_admin_logged');
     if (adminSession === 'true') {
       const timer = setTimeout(() => setIsLoggedIn(true), 0);
       return () => clearTimeout(timer);
@@ -524,7 +526,7 @@ export default function AdminPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === 'admin' && password === 'admin123') {
-      localStorage.setItem('papeda_admin_logged', 'true');
+      sessionStorage.setItem('papeda_admin_logged', 'true');
       setIsLoggedIn(true);
       setErrorMsg('');
     } else {
@@ -533,6 +535,7 @@ export default function AdminPage() {
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem('papeda_admin_logged');
     localStorage.removeItem('papeda_admin_logged');
     setIsLoggedIn(false);
   };
