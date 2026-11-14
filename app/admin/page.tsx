@@ -78,6 +78,16 @@ export interface UserItem {
   Is_Active?: boolean | string | number | null;
   is_active?: boolean | string | number | null;
 }
+interface InfoRuangan {
+  ruangan: string;
+  label: string;
+  grup: 'Reguler' | 'VIP Room';
+  jumlah: number | null;
+  terpakai: number;
+  sisa: number | null;
+  status: boolean;
+  tersedia: boolean;
+}
 
 type ReservasiTabKey = 'user' | 'pending' | 'approved' | 'complete' | 'dibatalkan';
 type UserFilter = '' | 'active' | 'blocked';
@@ -102,6 +112,12 @@ const statusMatch = (status: string, tab: ReservasiTabKey): boolean => {
   if (tab === 'complete') return status === 'complete' || status === 'selesai';
   if (tab === 'dibatalkan') return status === 'dibatalkan' || status === 'cancelled';
   return status === tab;
+};
+
+const statusRoomInfo = (r: InfoRuangan): string => {
+  if (!r.status) return 'Dalam Perbaikan';
+  if (r.grup === 'VIP Room') return r.terpakai > 0 ? 'Dipesan' : '';
+  return r.sisa === 0 ? 'Penuh' : '';
 };
 
 const cocokSearch = (data: object, keyword: string): boolean => {
@@ -131,6 +147,13 @@ const KELOLA_MENU = [
 ] as const;
 
 type KelolaKey = (typeof KELOLA_MENU)[number]['key'];
+
+const RESERVASI_MENU = [
+  { key: 'reservasi', label: 'Reservasi', icon: 'fa-calendar-check' },
+  { key: 'ruangan', label: 'Ruangan', icon: 'fa-door-open' },
+] as const;
+
+type ReservasiMenuKey = (typeof RESERVASI_MENU)[number]['key'];
 
 // Tab di halaman Kelola Menu Favorit
 const ORBIT_TAB = [
@@ -254,6 +277,12 @@ export default function AdminPage() {
   const [userFilter, setUserFilter] = useState<UserFilter>('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [userAksi, setUserAksi] = useState<UserAksi>('');
+  const [ruanganGerai, setRuanganGerai] = useState<string>('');
+  const [ruanganTanggal, setRuanganTanggal] = useState<string>('');
+  const [ruanganSesi, setRuanganSesi] = useState<string>('morning');
+  const [ruanganList, setRuanganList] = useState<InfoRuangan[]>([]);
+  const [ruanganPesan, setRuanganPesan] = useState<string>('');
+  const [reservasiMenu, setReservasiMenu] = useState<ReservasiMenuKey>('reservasi');
   const [aksiOpen, setAksiOpen] = useState<boolean>(false);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
 
@@ -262,7 +291,7 @@ export default function AdminPage() {
   const [tanggalSekarang, setTanggalSekarang] = useState<Date | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setTanggalSekarang(new Date()), 0);
+    const t = setTimeout(() => setRuanganTanggal(new Date().toLocaleDateString('en-CA')), 0);
     return () => clearTimeout(t);
   }, []);
 
@@ -284,6 +313,54 @@ export default function AdminPage() {
     status: true,
     deskripsi: '',
   });
+
+  // Cek Ruangan Reservasi
+  const loadRuangan = async () => {
+    if (!ruanganGerai || !ruanganTanggal) {
+      setRuanganList([]);
+      return;
+    }
+    try {
+      const p = new URLSearchParams({ gerai: ruanganGerai, tanggal: ruanganTanggal, sesi: ruanganSesi });
+      const res = await adminFetch(`/api/admin/ruangan?${p}`);
+      const json = await res.json().catch(() => ({}));
+      setRuanganList(json.data || []);
+    } catch (e) {
+      console.error('Gagal mengambil data ruangan:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (!ruanganGerai && branches.length > 0) setRuanganGerai(branches[0].nama);
+  }, [branches, ruanganGerai]);
+
+  useEffect(() => {
+    if (!isLoggedIn || activeTab !== 'reservasi' || reservasiMenu !== 'ruangan') return;
+      loadRuangan();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, activeTab, reservasiMenu, ruanganGerai, ruanganTanggal, ruanganSesi]);
+
+  const kirimRuangan = async (body: object) => {
+    try {
+      const res = await adminFetch('/api/admin/ruangan', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gerai: ruanganGerai, ...body }),
+      });
+      const json = await res.json().catch(() => ({}));
+      setRuanganPesan(res.ok ? 'Tersimpan.' : json.error || 'Gagal menyimpan.');
+    } catch {
+      setRuanganPesan('Gagal menyimpan.');
+    }
+    loadRuangan();
+  };
+
+  const ubahJumlahRuangan = (r: InfoRuangan, n: number) => {
+    if (!Number.isInteger(n) || n < 0 || n > 50) return;
+    kirimRuangan({ ruangan: r.ruangan, jumlah: n });
+  };
+
+  const toggleStatusRuangan = (r: InfoRuangan) => kirimRuangan({ ruangan: r.ruangan, status: !r.status });
 
   // id menu yang sedang diedit (null = form dipakai untuk menambah menu baru)
   const [editMenuId, setEditMenuId] = useState<number | null>(null);
@@ -940,7 +1017,7 @@ export default function AdminPage() {
               className={`nav-link text-white text-start w-100 ${activeTab === 'reservasi' ? 'active bg-warning' : ''}`}
               onClick={() => setActiveTab('reservasi')}
             >
-              <i className="fa-solid fa-calendar-check me-2"></i> Kelola Reservasi
+              <i className="fa-solid fa-calendar-check me-2"></i> Kelola Reservasi & Ruangan
             </button>
           </li>
         </ul>
@@ -1827,157 +1904,263 @@ export default function AdminPage() {
         {/* TAB 8: RESERVASI */}
         {activeTab === 'reservasi' && (
           <div>
-            <div className="card shadow-sm border-0 p-4 mb-4">
-              <h1 className="fs-4 fw-bold mb-4">Kelola User &amp; Reservasi</h1>
+            <h1 className="fs-3 fw-bold mb-3">Kelola Reservasi &amp; Ruangan</h1>
 
-              <div className="reservation-toolbar">
-                <div className="reservation-tabs">
-                  {([
-                    ['user', 'Users', usersList.length],
-                    ['pending', 'Pending', countReservasi('pending')],
-                    ['approved', 'Approved', countReservasi('approved')],
-                    ['complete', 'Complete', countReservasi('complete')],
-                    ['dibatalkan', 'Dibatalkan', countReservasi('dibatalkan')],
-                  ] as [ReservasiTabKey, string, number][]).map(([key, label, count]) => (
+            {/* LEVEL 1: gaya sama dengan Kelola Halaman */}
+            <div className="d-flex flex-wrap gap-2 mb-3">
+              {RESERVASI_MENU.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  className={`btn btn-sm fw-bold ${reservasiMenu === m.key ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
+                  onClick={() => setReservasiMenu(m.key)}
+                >
+                  <i className={`fa-solid ${m.icon} me-2`}></i>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ===================== MENU: RESERVASI ===================== */}
+            {reservasiMenu === 'reservasi' && (
+              <div className="card shadow-sm border-0 p-4 mb-4">
+                <div className="reservation-toolbar">
+                  <div className="reservation-tabs">
+                    {([
+                      ['user', 'Users', usersList.length],
+                      ['pending', 'Pending', countReservasi('pending')],
+                      ['approved', 'Approved', countReservasi('approved')],
+                      ['complete', 'Complete', countReservasi('complete')],
+                      ['dibatalkan', 'Dibatalkan', countReservasi('dibatalkan')],
+                    ] as [ReservasiTabKey, string, number][]).map(([key, label, count]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`tab-btn ${reservasiTab === key ? 'active' : ''}`}
+                        onClick={() => {
+                          setReservasiTab(key);
+                          if (key === 'user') loadUsers();
+                          else loadReservasiAdmin();
+                        }}
+                      >
+                        {label} <span className="badge">{count}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="reservation-tools">
                     <button
-                      key={key}
                       type="button"
-                      className={`tab-btn ${reservasiTab === key ? 'active' : ''}`}
-                      onClick={() => {
-                        setReservasiTab(key);
-                        if (key === 'user') loadUsers();
-                        else loadReservasiAdmin();
-                      }}
+                      className={`filter-button ${userFilter ? 'on' : ''}`}
+                      title={
+                        reservasiTab === 'user'
+                          ? `Filter user: ${userFilter === '' ? 'semua' : userFilter === 'active' ? 'aktif' : 'diblokir'}`
+                          : 'Filter'
+                      }
+                      onClick={() => reservasiTab === 'user' && toggleFilterUser()}
                     >
-                      {label} <span className="badge">{count}</span>
+                      <i className="fa-solid fa-filter"></i>
                     </button>
-                  ))}
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Cari data..."
+                      value={globalSearch}
+                      onChange={(e) => setGlobalSearch(e.target.value.trim() === '' ? '' : e.target.value)}
+                    />
+                  </div>
                 </div>
 
-                <div className="reservation-tools">
-                  <button
-                    type="button"
-                    className={`filter-button ${userFilter ? 'on' : ''}`}
-                    title={
-                      reservasiTab === 'user'
-                        ? `Filter user: ${userFilter === '' ? 'semua' : userFilter === 'active' ? 'aktif' : 'diblokir'}`
-                        : 'Filter'
-                    }
-                    onClick={() => reservasiTab === 'user' && toggleFilterUser()}
-                  >
-                    <i className="fa-solid fa-filter"></i>
-                  </button>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Cari data..."
-                    value={globalSearch}
-                    onChange={(e) => setGlobalSearch(e.target.value.trim() === '' ? '' : e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* TAB USERS */}
-              {reservasiTab === 'user' && (
-                <div>
-                  {selectedUsers.length > 0 && (
-                    <div className="user-action-bar d-flex justify-content-between align-items-center p-3 mb-3 rounded border">
-                      <span className="fw-semibold text-secondary">{selectedUsers.length} akun dipilih</span>
-                      <div className="d-flex align-items-center gap-2">
-                        <div className="custom-action-dropdown position-relative">
-                          <button
-                            type="button"
-                            className="btn form-select form-select-sm text-start shadow-none"
-                            onClick={() => setAksiOpen((o) => !o)}
-                          >
-                            {AKSI_LABEL[userAksi]}
+                {/* TAB USERS */}
+                {reservasiTab === 'user' && (
+                  <div>
+                    {selectedUsers.length > 0 && (
+                      <div className="user-action-bar d-flex justify-content-between align-items-center p-3 mb-3 rounded border">
+                        <span className="fw-semibold text-secondary">{selectedUsers.length} akun dipilih</span>
+                        <div className="d-flex align-items-center gap-2">
+                          <div className="custom-action-dropdown position-relative">
+                            <button
+                              type="button"
+                              className="btn form-select form-select-sm text-start shadow-none"
+                              onClick={() => setAksiOpen((o) => !o)}
+                            >
+                              {AKSI_LABEL[userAksi]}
+                            </button>
+                            {aksiOpen && (
+                              <ul className="aksi-menu shadow-sm">
+                                {(['', 'modifikasi', 'blokir', 'hapus'] as UserAksi[]).map((a) => (
+                                  <li key={a || 'none'}>
+                                    <button
+                                      type="button"
+                                      className={`aksi-item ${a === 'blokir' ? 'text-danger' : a === 'hapus' ? 'text-secondary' : ''}`}
+                                      onClick={() => {
+                                        setUserAksi(a);
+                                        setAksiOpen(false);
+                                      }}
+                                    >
+                                      {a === '' ? 'Pilih Aksi...' : AKSI_LABEL[a]}
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                          <button type="button" className="btn btn-sm btn-dark fw-bold" onClick={handleEksekusiAksiUser}>
+                            Terapkan
                           </button>
-                          {aksiOpen && (
-                            <ul className="aksi-menu shadow-sm">
-                              {(['', 'modifikasi', 'blokir', 'hapus'] as UserAksi[]).map((a) => (
-                                <li key={a || 'none'}>
-                                  <button
-                                    type="button"
-                                    className={`aksi-item ${a === 'blokir' ? 'text-danger' : a === 'hapus' ? 'text-secondary' : ''}`}
-                                    onClick={() => {
-                                      setUserAksi(a);
-                                      setAksiOpen(false);
-                                    }}
-                                  >
-                                    {a === '' ? 'Pilih Aksi...' : AKSI_LABEL[a]}
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
                         </div>
-                        <button type="button" className="btn btn-sm btn-dark fw-bold" onClick={handleEksekusiAksiUser}>
-                          Terapkan
-                        </button>
                       </div>
-                    </div>
-                  )}
+                    )}
 
+                    <div className="table-responsive">
+                      <table className="table table-striped align-middle">
+                        <thead className="table-dark">
+                          <tr className="text-center">
+                            <th className="th-checkbox">
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                checked={allUsersChecked}
+                                onChange={toggleCheckAll}
+                              />
+                            </th>
+                            <th>User ID</th>
+                            <th>Nama</th>
+                            <th>Email</th>
+                            <th>Tanggal Pembuatan</th>
+                            <th>Jumlah Reserve</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody id="user-table-body">
+                          {usersList.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="text-center text-muted py-4">Belum ada user terdaftar.</td>
+                            </tr>
+                          ) : filteredUsers.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="text-center text-muted py-4">Tidak ada user yang cocok.</td>
+                            </tr>
+                          ) : (
+                            filteredUsers.map((u) => {
+                              const aktif = isUserActive(u);
+                              const idx = usersList.indexOf(u);
+                              return (
+                                <tr key={String(u.id)}>
+                                  <td className="text-center">
+                                    <input
+                                      type="checkbox"
+                                      className="form-check-input user-row-check"
+                                      checked={selectedUsers.includes(String(u.id))}
+                                      onChange={() => toggleUserCheck(String(u.id))}
+                                    />
+                                  </td>
+                                  <td>
+                                    <span className="badge bg-light text-dark border font-monospace">
+                                      {String(idx + 1).padStart(5, '0')}
+                                    </span>
+                                  </td>
+                                  <td><strong>{u.nama || '-'}</strong></td>
+                                  <td>{u.email || '-'}</td>
+                                  <td className="text-center">
+                                    {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-'}
+                                  </td>
+                                  <td className="text-center">
+                                    <span className="badge bg-light text-dark border">{u.total_reserve || '0'}</span>
+                                  </td>
+                                  <td className="text-center">
+                                    <span className={`badge ${aktif ? 'bg-success' : 'bg-danger'}`}>
+                                      {aktif ? 'Active' : 'Blocked'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB RESERVASI PENDING DLL */}
+                {reservasiTab !== 'user' && (
                   <div className="table-responsive">
-                    <table className="table table-striped align-middle">
+                    <table className="admin-table table table-striped align-middle">
                       <thead className="table-dark">
-                        <tr className="text-center">
-                          <th className="th-checkbox">
-                            <input
-                              type="checkbox"
-                              className="form-check-input"
-                              checked={allUsersChecked}
-                              onChange={toggleCheckAll}
-                            />
-                          </th>
-                          <th>User ID</th>
-                          <th>Nama</th>
-                          <th>Email</th>
-                          <th>Tanggal Pembuatan</th>
-                          <th>Jumlah Reserve</th>
-                          <th>Status</th>
+                        <tr>
+                          <th className="text-center">Gerai</th>
+                          <th className="text-center">Nama Tamu</th>
+                          <th className="text-center">Kontak</th>
+                          <th className="text-center">Tanggal &amp; Waktu</th>
+                          <th className="text-center">Jumlah Tamu</th>
+                          <th className="text-center">Ruangan</th>
+                          <th className="text-center">Catatan</th>
+                          <th className="text-center">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody id="user-table-body">
-                        {usersList.length === 0 ? (
+                      <tbody id="reservation-table-body">
+                        {filteredReservasi.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="text-center text-muted py-4">Belum ada user terdaftar.</td>
-                          </tr>
-                        ) : filteredUsers.length === 0 ? (
-                          <tr>
-                            <td colSpan={7} className="text-center text-muted py-4">Tidak ada user yang cocok.</td>
+                            <td colSpan={8} className="text-center text-muted py-4">
+                              Tidak ada reservasi pada status ini.
+                            </td>
                           </tr>
                         ) : (
-                          filteredUsers.map((u) => {
-                            const aktif = isUserActive(u);
-                            const idx = usersList.indexOf(u);
+                          filteredReservasi.map((r) => {
+                            const selesai = r.status === 'complete' || r.status === 'selesai';
+                            const batal = r.status === 'dibatalkan' || r.status === 'cancelled';
+                            const approved = r.status === 'approved' || r.status === 'dikonfirmasi';
                             return (
-                              <tr key={String(u.id)}>
-                                <td className="text-center">
-                                  <input
-                                    type="checkbox"
-                                    className="form-check-input user-row-check"
-                                    checked={selectedUsers.includes(String(u.id))}
-                                    onChange={() => toggleUserCheck(String(u.id))}
-                                  />
-                                </td>
+                              <tr key={r.id}>
+                                <td><strong>{r.gerai || '-'}</strong></td>
+                                <td>{r.nama || '-'}</td>
                                 <td>
-                                  <span className="badge bg-light text-dark border font-monospace">
-                                    {String(idx + 1).padStart(5, '0')}
-                                  </span>
+                                  {r.telepon || '-'}
+                                  <br />
+                                  <small className="text-muted">{r.email || '-'}</small>
                                 </td>
-                                <td><strong>{u.nama || '-'}</strong></td>
-                                <td>{u.email || '-'}</td>
-                                <td className="text-center">
-                                  {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-'}
+                                  <td>
+                                    {r.tanggal || '-'}
+                                    <br />
+                                    <td>
+                                    {r.tanggal || '-'}
+                                    <br />
+                                    <small>{r.sesi ? `(${r.sesi})` : ''}</small>
+                                    {r.jam && (
+                                      <>
+                                        <br />
+                                        <small className="text-muted">Dipesan pukul {r.jam}</small>
+                                      </>
+                                    )}
+                                  </td>
                                 </td>
-                                <td className="text-center">
-                                  <span className="badge bg-light text-dark border">{u.total_reserve || '0'}</span>
-                                </td>
-                                <td className="text-center">
-                                  <span className={`badge ${aktif ? 'bg-success' : 'bg-danger'}`}>
-                                    {aktif ? 'Active' : 'Blocked'}
-                                  </span>
+                                <td>{r.jumlah || 0} Orang</td>
+                                <td>{r.ruangan || '-'}</td>
+                                <td>{r.catatan || '-'}</td>
+                                <td className="aksi">
+                                  {selesai ? (
+                                    <span className="badge bg-success">Selesai</span>
+                                  ) : batal ? (
+                                    <span className="badge bg-danger">Dibatalkan</span>
+                                  ) : (
+                                    <div className="reservation-actions">
+                                      <button
+                                        type="button"
+                                        className="btn-action-confirm"
+                                        onClick={() => handleUbahStatusReservasi(r.id, approved ? 'complete' : 'approved')}
+                                      >
+                                        {approved ? '✓ Selesaikan' : '✓ Konfirmasi'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="btn-action-cancel"
+                                        onClick={() => handleUbahStatusReservasi(r.id, 'dibatalkan')}
+                                      >
+                                        ✕ Batalkan
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
                               </tr>
                             );
@@ -1986,89 +2169,166 @@ export default function AdminPage() {
                       </tbody>
                     </table>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
-              {/* TAB RESERVASI PENDING DLL */}
-              {reservasiTab !== 'user' && (
-                <div className="table-responsive">
-                  <table className="admin-table table table-striped align-middle">
+            {/* ===================== MENU: RUANGAN ===================== */}
+            {reservasiMenu === 'ruangan' && (
+              <div className="card shadow-sm border-0 p-4 mb-4">
+                <div className="row g-2 mb-3">
+                  <div className="col-md-5">
+                    <select
+                      className="form-select"
+                      value={ruanganGerai}
+                      onChange={(e) => setRuanganGerai(e.target.value)}
+                    >
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.nama}>{b.nama}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-4">
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={ruanganTanggal}
+                      onChange={(e) => setRuanganTanggal(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <select
+                      className="form-select"
+                      value={ruanganSesi}
+                      onChange={(e) => setRuanganSesi(e.target.value)}
+                    >
+                      <option value="morning">Morning</option>
+                      <option value="afternoon">Afternoon</option>
+                      <option value="night">Evening</option>
+                    </select>
+                  </div>
+                </div>
+
+                <h2 className="fs-5 fw-bold mt-2">Ruangan Reguler</h2>
+                <p className="text-muted small">
+                  Jumlah berlaku untuk semua tanggal dan sesi di gerai ini. Terpakai, Sisa, dan Ketersediaan mengikuti
+                  tanggal dan sesi di atas. Tutup Paksa menutup ruangan untuk semua tanggal sampai dibuka kembali.
+                </p>
+                <div className="table-responsive mb-4">
+                  <table className="table table-striped align-middle">
                     <thead className="table-dark">
-                      <tr>
-                        <th className="text-center">Gerai</th>
-                        <th className="text-center">Nama Tamu</th>
-                        <th className="text-center">Kontak</th>
-                        <th className="text-center">Tanggal &amp; Waktu</th>
-                        <th className="text-center">Jumlah Tamu</th>
-                        <th className="text-center">Ruangan</th>
-                        <th className="text-center">Catatan</th>
-                        <th className="text-center">Aksi</th>
+                      <tr className="text-center">
+                        <th>Ruangan</th>
+                        <th>Jumlah</th>
+                        <th>Terpakai</th>
+                        <th>Sisa</th>
+                        <th>Ketersediaan</th>
+                        <th>Pengaturan</th>
                       </tr>
                     </thead>
-                    <tbody id="reservation-table-body">
-                      {filteredReservasi.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} className="text-center text-muted py-4">
-                            Tidak ada reservasi pada status ini.
+                    <tbody>
+                      {ruanganList.filter((r) => r.grup === 'Reguler').map((r) => (
+                        <tr key={r.ruangan} className="text-center">
+                          <td className="text-start">{r.label}</td>
+                          <td>
+                            <div className="d-inline-flex align-items-center gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary"
+                                disabled={(r.jumlah ?? 0) <= 0}
+                                onClick={() => ubahJumlahRuangan(r, (r.jumlah ?? 0) - 1)}
+                              >
+                                −
+                              </button>
+                              <input
+                                key={`${r.ruangan}-${r.jumlah}`}
+                                type="number"
+                                min={0}
+                                max={50}
+                                className="form-control form-control-sm text-center"
+                                style={{ width: 70 }}
+                                defaultValue={r.jumlah ?? 0}
+                                onBlur={(e) => {
+                                  const n = Number(e.target.value);
+                                  if (n !== r.jumlah) ubahJumlahRuangan(r, n);
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary"
+                                disabled={(r.jumlah ?? 0) >= 50}
+                                onClick={() => ubahJumlahRuangan(r, (r.jumlah ?? 0) + 1)}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+                          <td>{r.terpakai}</td>
+                          <td><strong>{r.sisa}</strong></td>
+                          <td>
+                            <span className={`badge ${r.tersedia ? 'bg-success' : 'bg-danger'}`}>
+                              {r.tersedia ? 'Tersedia' : 'Tidak Tersedia'}
+                            </span>
+                            {statusRoomInfo(r) && <div className="small text-muted">{statusRoomInfo(r)}</div>}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className={`btn btn-sm ${r.status ? 'btn-outline-danger' : 'btn-success'}`}
+                              onClick={() => toggleStatusRuangan(r)}
+                            >
+                              {r.status ? 'Maintenance' : 'Buka Kembali'}
+                            </button>
                           </td>
                         </tr>
-                      ) : (
-                        filteredReservasi.map((r) => {
-                          const selesai = r.status === 'complete' || r.status === 'selesai';
-                          const batal = r.status === 'dibatalkan' || r.status === 'cancelled';
-                          const approved = r.status === 'approved' || r.status === 'dikonfirmasi';
-                          return (
-                            <tr key={r.id}>
-                              <td><strong>{r.gerai || '-'}</strong></td>
-                              <td>{r.nama || '-'}</td>
-                              <td>
-                                {r.telepon || '-'}
-                                <br />
-                                <small className="text-muted">{r.email || '-'}</small>
-                              </td>
-                              <td>
-                                {r.tanggal || '-'}
-                                <br />
-                                <small>{r.jam || ''}{r.sesi ? ` (${r.sesi})` : ''}</small>
-                              </td>
-                              <td>{r.jumlah || 0} Orang</td>
-                              <td>{r.ruangan || '-'}</td>
-                              <td>{r.catatan || '-'}</td>
-                              <td className="aksi">
-                                {selesai ? (
-                                  <span className="badge bg-success">Selesai</span>
-                                ) : batal ? (
-                                  <span className="badge bg-danger">Dibatalkan</span>
-                                ) : (
-                                  <div className="reservation-actions">
-                                    <button
-                                      type="button"
-                                      className="btn-action-confirm"
-                                      onClick={() => handleUbahStatusReservasi(r.id, approved ? 'complete' : 'approved')}
-                                    >
-                                      {approved ? '✓ Selesaikan' : '✓ Konfirmasi'}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn-action-cancel"
-                                      onClick={() => handleUbahStatusReservasi(r.id, 'dibatalkan')}
-                                    >
-                                      ✕ Batalkan
-                                    </button>
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              )}
-            </div>
 
-            {/* RESERVASI KONFIRMASI */}
+                <h2 className="fs-5 fw-bold">Ruangan VIP</h2>
+                <p className="text-muted small">
+                  Ruangan otomatis Tidak Tersedia pada tanggal dan sesi yang sudah dipesan.
+                </p>
+                <div className="table-responsive">
+                  <table className="table table-striped align-middle">
+                    <thead className="table-dark">
+                      <tr className="text-center">
+                        <th>Ruangan</th>
+                        <th>Ketersediaan</th>
+                        <th>Pengaturan</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ruanganList.filter((r) => r.grup === 'VIP Room').map((r) => (
+                        <tr key={r.ruangan} className="text-center">
+                          <td className="text-start">{r.label}</td>
+                          <td>
+                            <span className={`badge ${r.tersedia ? 'bg-success' : 'bg-danger'}`}>
+                              {r.tersedia ? 'Tersedia' : 'Tidak Tersedia'}
+                            </span>
+                            {statusRoomInfo(r) && <div className="small text-muted">{statusRoomInfo(r)}</div>}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className={`btn btn-sm ${r.status ? 'btn-outline-danger' : 'btn-success'}`}
+                              onClick={() => toggleStatusRuangan(r)}
+                            >
+                              {r.status ? 'Maintenance' : 'Buka Kembali'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {ruanganPesan && <small className="text-muted">{ruanganPesan}</small>}
+              </div>
+            )}
+
+            {/* RESERVASI KONFIRMASI (di luar kedua menu supaya selalu bisa muncul) */}
             {confirmState && (
               <div className="confirm-backdrop" onClick={() => setConfirmState(null)}>
                 <div className="custom-confirm-modal" onClick={(e) => e.stopPropagation()}>

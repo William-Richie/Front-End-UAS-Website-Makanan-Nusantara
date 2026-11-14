@@ -15,6 +15,11 @@ const sekarangLokal = () => {
   };
 };
 
+const AKHIR_SESI: Record<string, string> = {
+    morning: '11:00',
+    afternoon: '18:00',
+    night: '21:00',
+  };
 export interface BranchMap {
   id: number;
   nama: string;
@@ -42,9 +47,9 @@ export default function ReservationSection({
   const [telepon, setTelepon] = useState('');
   const [tanggal, setTanggal] = useState('');
   const [jumlah, setJumlah] = useState<number>(2);
-  const [sesi, setSesi] = useState('morning');
-  const [jam, setJam] = useState('');
+  const [sesi, setSesi] = useState('');
   const [ruangan, setRuangan] = useState('');
+  const [terisi, setTerisi] = useState<string[]>([]);
   const [catatan, setCatatan] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -70,7 +75,40 @@ export default function ReservationSection({
     return () => clearTimeout(timer);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  
+useEffect(() => {
+  if (!selectedBranch || !tanggal || !sesi) {
+    return;
+  }
+
+  let batal = false;
+
+  const params = new URLSearchParams({
+    terisi: '1',
+    gerai: selectedBranch,
+    tanggal,
+    sesi,
+  });
+
+  fetch(`/api/reservasi?${params}`)
+    .then((r) => r.json())
+    .then((d) => {
+      if (batal) return;
+
+      const daftar: string[] = d.terisi ?? [];
+      setTerisi(daftar);
+      setRuangan((cur) =>
+        daftar.includes(cur) ? '' : cur
+      );
+    })
+    .catch(() => {});
+
+    return () => {
+      batal = true;
+    };
+  }, [selectedBranch, tanggal, sesi]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
       onOpenAuth('login');
@@ -102,11 +140,6 @@ export default function ReservationSection({
       triggerShake();
       return;
     }
-    if (!jam) {
-      setErrorMsg('Jam kedatangan wajib diisi!');
-      triggerShake();
-      return;
-    }
     if (!ruangan) {
       setErrorMsg('Silakan pilih tipe ruangan!');
       triggerShake();
@@ -118,11 +151,11 @@ export default function ReservationSection({
       triggerShake();
       return;
     }
-    if (tanggal === now.tanggal && jam && jam < now.jam) {
-      setErrorMsg('Jam kedatangan sudah lewat. Pilih jam yang masih ke depan!');
-      triggerShake();
-      return;
-    }
+    // if (tanggal === now.tanggal && now.jam > (AKHIR_SESI[sesi] ?? '23:59')) {
+    //   setErrorMsg('Jam kedatangan sudah lewat. Pilih jam yang masih ke depan.');
+    //   triggerShake();
+    //   return;
+    // }
 
     setSubmitting(true);
     setErrorMsg('');
@@ -138,7 +171,6 @@ export default function ReservationSection({
           email: email.trim(),
           telepon: telepon.trim(),
           tanggal,
-          jam,
           sesi,
           jumlah: Number(jumlah),
           ruangan,
@@ -154,7 +186,7 @@ export default function ReservationSection({
       onSuccess('Reservasi berhasil dikonfirmasi! Silakan cek menu My Reservation.');
       setTelepon('');
       setTanggal('');
-      setJam('');
+      setSesi('');
       setCatatan('');
       setRuangan('');
     } catch (err: unknown) {
@@ -164,6 +196,8 @@ export default function ReservationSection({
       setSubmitting(false);
     }
   };
+
+  const isReady = !!selectedBranch && !!tanggal && !!sesi;
 
   return (
     <section id="reservation" className="page-section">
@@ -307,8 +341,8 @@ export default function ReservationSection({
               />
             </Form.Group>
 
-            <Row className="gx-3 mb-3">
-              <Col xs={7}>
+            <Row className="g-3 mb-3">
+              <Col xs={6}>
                 <Form.Group>
                   <Form.Label className="fw-bold">Reservation Date</Form.Label>
                   <Form.Control
@@ -321,7 +355,63 @@ export default function ReservationSection({
                   />
                 </Form.Group>
               </Col>
-              <Col xs={5}>
+              
+              <Col xs={6}>
+                <Form.Group>
+                  <Form.Label className="fw-bold">Session</Form.Label>
+                  <Form.Select
+                    id="res-session"
+                    value={sesi}
+                    onChange={(e) => setSesi(e.target.value)}
+                  >
+                    <option value="" disabled>-- Pilih Sesi --</option>
+                    <option value="morning">Morning (08.00 - 11.00)</option>
+                    <option value="afternoon">Afternoon (12.00 - 18.00)</option>
+                    <option value="night">Evening (18.00 - 21.00)</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3 mb-3">
+              <Col xs={8}>
+                <Form.Group className={`mb-3 ${styles.roomGroup} ${!isReady ? styles.roomLocked : ''}`}>
+                  <Form.Label className="fw-bold">Select The Room</Form.Label>
+                  <Form.Select
+                    id="res-room"
+                    required
+                    disabled={!isReady}
+                    value={ruangan}
+                    onChange={(e) => setRuangan(e.target.value)}
+                  >
+                    <option value="" disabled>-- Type of Room --</option>
+                    <optgroup label="Reguler">
+                      {!terisi.includes('reguler-indoor') && (
+                        <option value="reguler-indoor">Reguler Indoor (No Smoking / AC)</option>
+                      )}
+                      {!terisi.includes('reguler-outdoor') && (
+                        <option value="reguler-outdoor">Reguler Outdoor (Free Smoking)</option>
+                      )}
+                    </optgroup>
+                    <optgroup label="VIP Room">
+                      {!terisi.includes('vip-10') && (
+                        <option value="vip-10">VIP Room 1 (1 Table, Recommended for 4 - 10 people)</option>
+                      )}
+                      {!terisi.includes('vip-10-tv') && (
+                        <option value="vip-10-tv">VIP Room 1 ++ (1 Table + TV, Recommended for 4 - 10 people)</option>
+                      )}
+                      {!terisi.includes('vip-20') && (
+                        <option value="vip-20">VIP Room 2 (2 Table, Recommended for 8 - 20 people)</option>
+                      )}
+                      {!terisi.includes('vip-20-tv') && (
+                        <option value="vip-20-tv">VIP Room 2 ++ (2 Table + TV, Recommended for 8 - 20 people)</option>
+                      )}
+                    </optgroup>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+
+              <Col xs={4}>
                 <Form.Group>
                   <Form.Label className="fw-bold">Guests</Form.Label>
                   <Form.Control
@@ -336,57 +426,6 @@ export default function ReservationSection({
                 </Form.Group>
               </Col>
             </Row>
-
-            <Row className="g-3 mb-3">
-              <Col xs={7}>
-                <Form.Group>
-                  <Form.Label className="fw-bold">Session</Form.Label>
-                  <Form.Select
-                    id="res-session"
-                    value={sesi}
-                    onChange={(e) => setSesi(e.target.value)}
-                  >
-                    <option value="morning">Morning (08.00 - 11.00)</option>
-                    <option value="afternoon">Afternoon (12.00 - 18.00)</option>
-                    <option value="night">Evening (18.00 - 21.00)</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col xs={5}>
-                <Form.Group>
-                  <Form.Label className="fw-bold">Arrival Time</Form.Label>
-                  <Form.Control
-                    type="time"
-                    id="res-time"
-                    required
-                    value={jam}
-                    onChange={(e) => setJam(e.target.value)}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Select The Room</Form.Label>
-              <Form.Select
-                id="res-room"
-                required
-                value={ruangan}
-                onChange={(e) => setRuangan(e.target.value)}
-              >
-                <option value="" disabled>-- Type of Room --</option>
-                <optgroup label="Reguler">
-                  <option value="reguler-indoor">Reguler Indoor (No Smoking / AC)</option>
-                  <option value="reguler-outdoor">Reguler Outdoor (Free Smoking)</option>
-                </optgroup>
-                <optgroup label="VIP Room">
-                  <option value="vip-10">VIP Room 1 (1 Table, Recommended for 4 - 10 people)</option>
-                  <option value="vip-10-tv">VIP Room 1 ++ (1 Table + TV, Recommended for 4 - 10 people)</option>
-                  <option value="vip-20">VIP Room 2 (2 Table, Recommended for 8 - 20 people)</option>
-                  <option value="vip-20-tv">VIP Room 2 ++ (2 Table + TV, Recommended for 8 - 20 people)</option>
-                </optgroup>
-              </Form.Select>
-            </Form.Group>
 
             <Form.Group className="mb-3">
               <Form.Label className="fw-bold">Extra Note</Form.Label>
