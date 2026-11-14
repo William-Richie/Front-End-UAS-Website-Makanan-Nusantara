@@ -278,7 +278,7 @@ export default function AdminPage() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [userAksi, setUserAksi] = useState<UserAksi>('');
   const [ruanganGerai, setRuanganGerai] = useState<string>('');
-  const [ruanganTanggal, setRuanganTanggal] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
+  const [ruanganTanggal, setRuanganTanggal] = useState<string>('');
   const [ruanganSesi, setRuanganSesi] = useState<string>('morning');
   const [ruanganList, setRuanganList] = useState<InfoRuangan[]>([]);
   const [ruanganPesan, setRuanganPesan] = useState<string>('');
@@ -291,7 +291,7 @@ export default function AdminPage() {
   const [tanggalSekarang, setTanggalSekarang] = useState<Date | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setTanggalSekarang(new Date()), 0);
+    const t = setTimeout(() => setRuanganTanggal(new Date().toLocaleDateString('en-CA')), 0);
     return () => clearTimeout(t);
   }, []);
 
@@ -316,7 +316,7 @@ export default function AdminPage() {
 
   // Cek Ruangan Reservasi
   const loadRuangan = async () => {
-    if (!ruanganGerai) {
+    if (!ruanganGerai || !ruanganTanggal) {
       setRuanganList([]);
       return;
     }
