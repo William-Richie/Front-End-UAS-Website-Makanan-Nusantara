@@ -159,7 +159,9 @@ export default function FaqSection({
                         <span className={styles.faqNum}>
                           {String(i + 1).padStart(2, '0')}
                         </span>
-                        <span className={styles.faqQText}>{item.pertanyaan}</span>
+                        <span className={styles.faqText}>
+                          <RichText teks={item.pertanyaan} />
+                        </span>
                       </Accordion.Header>
                       <Accordion.Body className={styles.faqAnswerWrap}>
                         <div className={styles.faqAnswer}><RichText teks={item.jawaban} /></div>

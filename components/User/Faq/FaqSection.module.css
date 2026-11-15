@@ -202,10 +202,11 @@
   color: var(--color-primary-dark);
 }
 
-.faqQText {
+.faqText {
   flex: 1;
   line-height: 1.4;
   word-break: break-word;
+  font-weight: 500;
 }
 
 .faqItem .faqAnswerWrap {

@@ -58,7 +58,7 @@ export default function EditorTeks({ id, value, onChange, rows, placeholder, gar
     if (!(e.ctrlKey || e.metaKey)) return;
     const k = e.key.toLowerCase();
     if (k === 'b') { e.preventDefault(); bungkus('**'); }
-    if (k === 'i') { e.preventDefault(); bungkus('*'); }
+    if (k === 'i') { e.preventDefault(); bungkus('/'); }
     if (k === 'u' && garisBawah) { e.preventDefault(); bungkus('__'); }
   };
 

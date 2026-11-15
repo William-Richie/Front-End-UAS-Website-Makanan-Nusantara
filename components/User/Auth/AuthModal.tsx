@@ -191,6 +191,16 @@ export default function AuthModal({
   const isLogin = tab === 'login';
   const showChecklist = pwFocus || reg.password.length > 0;
 
+  const [prevShow, setPrevShow] = useState(show);
+  if (show !== prevShow) {
+    setPrevShow(show);
+    if (show) {
+      setTab(initialTab);
+      setServerError('');
+      setPwFocus(false);
+    }
+  }
+
   if (!show) return null;
 
   return (
