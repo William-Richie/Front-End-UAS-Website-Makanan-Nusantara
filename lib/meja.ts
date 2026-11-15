@@ -29,7 +29,6 @@ export async function daftarMeja(gerai: string, tanggal: string, jam: string, ti
   const terkunci = new Set(aktif.filter((r) => r.sesi && bentrok(r.sesi, jam)).map((r) => r.meja_id));
 
   return meja.map((m) => {
-    // aturan spesifik (tanggal+jam) menang atas aturan default ('*')
     const s = m.slots.find((x) => x.tanggal === tanggal && x.jam === jam) ?? m.slots.find((x) => x.tanggal === '*');
     const published = s?.published ?? false;
     const open = s?.open ?? true;

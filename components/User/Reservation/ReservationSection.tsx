@@ -66,6 +66,7 @@ export default function ReservationSection({
   const [hariIni, setHariIni] = useState('');
   const [showRules, setShowRules] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [hasViewedRules, setHasViewedRules] = useState(false);
 
   const [isShaking, setIsShaking] = useState(false);
   const triggerShake = () => {
@@ -254,7 +255,7 @@ export default function ReservationSection({
               variant="papeda"
               onClick={() => onOpenAuth('login')}
             >
-              Login
+            Login
             </Button>
             <button
               type="button"
@@ -270,7 +271,7 @@ export default function ReservationSection({
         <Container className="text-content py-4" style={{ maxWidth: '720px' }}>
           <div className="mb-4">
             <Form.Label className={styles.storeLabel}>
-              <i className="fa-solid fa-store me-2"></i>please choose a restaurant outlet!
+              <i className="fa-solid fa-store me-2"></i>please choose a restaurant outlet&nbsp;<strong>!</strong>
             </Form.Label>
             <div className={styles.storeCards}>
               {branches.length === 0 ? (
@@ -307,14 +308,18 @@ export default function ReservationSection({
 
           <Form noValidate onSubmit={handleSubmit} className={`${styles.resForm} ${isShaking ? styles.shake : ''}`}>
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold d-flex align-items-center gap-2">
+              <Form.Label className="fs-bold d-flex align-items-center gap-2 mb-2">
                 <button type="button"
-                  className={styles.helpButton}
+                  className={styles.RuleButton}
                   aria-expanded={showRules}
-                  onClick={() => setShowRules(true)}
-                >
-                  !
-                </button>
+                  onClick={() => {
+                    setHasViewedRules(true);
+                    setShowRules(true);
+                  }}
+                > ! </button> 
+                <span className={`${styles.resFormRules} ${!hasViewedRules? styles.warningText : ''}`}> 
+                  please read this before making a reservation.
+                </span>
               </Form.Label>
 
               <Form.Label className="fw-bold">Full Name</Form.Label>
@@ -357,7 +362,6 @@ export default function ReservationSection({
 
             {/* Reservation Date, Time & Guests */}
             <Row className="g-3 mb-3">
-
               {/* date */}
               <Col xs={12} md={6}>
                 <Form.Group>
@@ -413,7 +417,7 @@ export default function ReservationSection({
               </Col>
             </Row>
 
-            {/* Room */}
+            {/* ROOM */}
             <Row className="g-3 mb-3">
               <Col xs={12}>
                 <Form.Group
@@ -476,7 +480,8 @@ export default function ReservationSection({
                 </Form.Group>
               </Col>
             </Row>
-
+            
+            {/* Tab pilih jumlah Guests */}
             {showGuestPicker && (
               <div
                 className={styles.guestOverlay}
@@ -527,7 +532,7 @@ export default function ReservationSection({
               </div>
             )}
 
-            {/* Time Picker */}
+            {/* Tab pilih waktu */}
             {showTimePicker && (
               <div
                 className={styles.guestOverlay}
@@ -578,7 +583,7 @@ export default function ReservationSection({
                 </div>
               </div>
             )}
-
+    
             <Form.Group className="mb-3">
               <Form.Label className="fw-bold">Extra Note</Form.Label>
               <Form.Control
@@ -609,6 +614,8 @@ export default function ReservationSection({
           </Form>
         </Container>
       )}
+
+      {/* Memperlihatkan isi aturan*/}
       {showRules && (
         <div role="presentation" onClick={() => setShowRules(false)} className={styles.RulesOver}>
           <div
@@ -630,7 +637,7 @@ export default function ReservationSection({
                 aria-label="Tutup aturan reservasi"
                 onClick={() => setShowRules(false)}
                 className={styles.rulesClose}
-              > X
+              > <i className="fa-solid fa-xmark"></i>
               </button>
             </div>
 

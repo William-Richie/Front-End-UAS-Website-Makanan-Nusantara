@@ -2106,7 +2106,6 @@ export default function AdminPage() {
           <PantauPesanan pesananList={pesananList} branches={branches} onRefresh={loadPesanan} />
         )}
 
-        {/* TAB 8: RESERVASI */}
         {/* TAB: PERTANYAAN MASUK */}
         {activeTab === 'pertanyaan' && (
           <div>
@@ -2118,11 +2117,10 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* TAB 8: RESERVASI */}
         {activeTab === 'reservasi' && (
           <div>
             <h1 className="fs-3 fw-bold mb-3">Kelola Reservasi &amp; Ruangan</h1>
-
-            {/* LEVEL 1: gaya sama dengan Kelola Halaman */}
             <div className="d-flex flex-wrap gap-2 mb-3">
               {RESERVASI_MENU.map((m) => (
                 <button
@@ -2137,7 +2135,7 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* ===================== MENU: RESERVASI ===================== */}
+            {/* Tab Reservasi */}
             {reservasiMenu === 'reservasi' && (
               <div className="card shadow-sm border-0 p-4 mb-4">
                 <div className="reservation-toolbar">
@@ -2187,7 +2185,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* TAB USERS */}
+                {/* Users reservasi*/}
                 {reservasiTab === 'user' && (
                   <div>
                     {selectedUsers.length > 0 && (
@@ -2382,7 +2380,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* ===================== MENU: RUANGAN ===================== */}
+            {/*  Tab Ruangan Reservasi */}
             {reservasiMenu === 'ruangan' && (
               <div className="card shadow-sm border-0 p-4 mb-4">
                 <div className="row g-2 mb-3">
@@ -2453,7 +2451,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* RESERVASI KONFIRMASI (di luar kedua menu supaya selalu bisa muncul) */}
+            {/* RESERVASI KONFIRMASI */}
             {confirmState && (
               <div className="confirm-backdrop" onClick={() => setConfirmState(null)}>
                 <div className="custom-confirm-modal" onClick={(e) => e.stopPropagation()}>
@@ -2484,7 +2482,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB: AKUN KASIR */}
+        {/* AKUN KASIR */}
         {activeTab === 'kasir' && <KelolaAkunKasir branches={branches} />}
       </main>
     </div>
