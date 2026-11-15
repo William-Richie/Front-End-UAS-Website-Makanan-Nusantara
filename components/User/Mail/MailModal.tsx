@@ -2,6 +2,7 @@
 
 import { Modal } from 'react-bootstrap';
 import styles from './MailModal.module.css';
+import { useFocusReturn } from '@/hooks/useFocusReturn';
 
 export interface MailItem {
   id: number;
@@ -23,12 +24,16 @@ const formatTanggal = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' }) : '';
 
 export default function MailModal({ show, items, baruIds, onClose }: MailModalProps) {
+  const handleExited = useFocusReturn(show);
+
   return (
     <Modal
       show={show}
       onHide={onClose}
       centered
       scrollable
+      restoreFocus={false}
+      onExited={handleExited}
       contentClassName={`${styles.mailModal} border-0`}
     >
       <Modal.Header closeButton className={styles.mailHead}>

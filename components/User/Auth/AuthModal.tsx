@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Modal, Form, InputGroup, Button, Row, Col } from 'react-bootstrap';
 import styles from './AuthModal.module.css';
+import { useFocusReturn } from '@/hooks/useFocusReturn';
 import Image from 'next/image';
 import {
   PASSWORD_RULES,
@@ -45,6 +46,7 @@ export default function AuthModal({
   onClose,
   onSuccess,
 }: AuthModalProps) {
+  const handleExited = useFocusReturn(show);
   const [tab, setTab] = useState<Tab>(initialTab);
 
   const [login, setLogin] = useState({ email: '', password: '' });
@@ -197,6 +199,8 @@ export default function AuthModal({
       onHide={onClose}
       centered
       size="lg"
+      restoreFocus={false}
+      onExited={handleExited}
       backdrop="static"
       dialogClassName={styles.authDialog}
       contentClassName={`${styles.authCard} border-0 overflow-hidden`}
