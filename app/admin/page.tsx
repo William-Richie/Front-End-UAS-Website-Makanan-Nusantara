@@ -29,6 +29,7 @@ import {
   rapikanOrbit,
   type OrbitSetting,
 } from '@/lib/orbit';
+import { useNotify } from '@/components/Common/Notify/NotifyProvider';
 
 // Definisikan Interface TypeScript lengkap untuk membasmi 'any'
 export interface MenuItem {
@@ -157,6 +158,14 @@ export interface FavoritSlot {
   pedas?: number;
 }
 
+const LABEL_SLOT_FAVORIT = [
+  'Slot 1 (Tengah Bawah)',
+  'Slot 2 (Kiri Bawah)',
+  'Slot 3 (Kiri Atas)',
+  'Slot 4 (Kanan Atas)',
+  'Slot 5 (Kanan Bawah)',
+];
+
 export interface FooterData {
   id?: number;
   judul: string;
@@ -217,6 +226,8 @@ export default function AdminPage() {
   const [favoritList, setFavoritList] = useState<FavoritSlot[]>([]);
   const [favoritTerlaris, setFavoritTerlaris] = useState<FavoritSlot[]>([]);
   const [orbitSetting, setOrbitSetting] = useState<OrbitSetting>(ORBIT_DEFAULT);
+  const [orbitTersimpan, setOrbitTersimpan] = useState<OrbitSetting>(ORBIT_DEFAULT);
+  const orbitBerubah = JSON.stringify(orbitSetting) !== JSON.stringify(orbitTersimpan);
   const [branches, setBranches] = useState<BranchMap[]>([]);
   const [newBranch, setNewBranch] = useState({ nama: '', alamat: '', latitude: '', longitude: '' });
   const [kelolaTab, setKelolaTab] = useState<KelolaKey>('home');
@@ -262,6 +273,7 @@ export default function AdminPage() {
   const [ruanganPesan, setRuanganPesan] = useState<string>('');
   const [reservasiMenu, setReservasiMenu] = useState<ReservasiMenuKey>('reservasi');
   const [aksiOpen, setAksiOpen] = useState<boolean>(false);
+  const notify = useNotify();
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
 
   const [pendapatanData, setPendapatanData] = useState<PendapatanSummary | null>(null);
@@ -416,7 +428,11 @@ export default function AdminPage() {
     ambil('/api/reservasi').then((d) => setReservasiList(daftar<ReservasiItem>(d)));
     loadFavorit();
     loadBranches();
-    ambil('/api/orbit').then((d) => setOrbitSetting(rapikanOrbit(objek<OrbitSetting>(d))));
+    ambil('/api/orbit').then((d) => {
+      const o = rapikanOrbit(objek<OrbitSetting>(d));
+      setOrbitSetting(o);
+      setOrbitTersimpan(o);
+    });
     ambil('/api/pengunjung').then((d) => {
       const s = objek<StatistikData>(d);
       setStatistik(typeof s.jumlah_pengunjung === 'number' ? (s as StatistikData) : null);
@@ -521,7 +537,7 @@ export default function AdminPage() {
           if (!res.ok) throw new Error(json.message || 'Gagal memperbarui status reservasi');
           await loadReservasiAdmin();
         } catch (err) {
-          alert(err instanceof Error ? err.message : 'Gagal memperbarui status reservasi');
+          notify.error(err instanceof Error ? err.message : 'Gagal memperbarui status reservasi');
         }
       },
     });
@@ -529,7 +545,7 @@ export default function AdminPage() {
 
   const handleEksekusiAksiUser = () => {
     if (!userAksi || selectedUsers.length === 0) {
-      alert('Pilih aksi dan minimal 1 akun!');
+      notify.warning('Pilih aksi dan minimal 1 akun!');
       return;
     }
     const ids = [...selectedUsers];
@@ -572,7 +588,7 @@ export default function AdminPage() {
           setSelectedUsers([]);
         } catch (err) {
           console.error(err);
-          alert('Gagal menyimpan perubahan ke database.');
+          notify.error('Gagal menyimpan perubahan ke database.');
         }
       },
     });
@@ -614,6 +630,7 @@ export default function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!notify.validateForm(e.currentTarget)) return;
     if (username === 'admin' && password === 'admin123') {
       sessionStorage.setItem('papeda_admin_logged', 'true');
       setIsLoggedIn(true);
@@ -632,7 +649,17 @@ export default function AdminPage() {
   // Menu Handlers
   const handleAddMenu = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!notify.validateForm(e.currentTarget)) return;
     const sedangEdit = editMenuId !== null;
+    if (sedangEdit) {
+      const yakin = await notify.confirm({
+        title: 'Simpan Perubahan Menu?',
+        message: `Perubahan pada menu "${newMenu.nama_makanan}" akan disimpan.`,
+        confirmText: 'Ya, Simpan',
+        cancelText: 'Periksa Lagi',
+      });
+      if (!yakin) return;
+    }
     try {
       const res = await fetch(sedangEdit ? `/api/menu/${editMenuId}` : '/api/menu', {
         method: sedangEdit ? 'PUT' : 'POST',
@@ -640,7 +667,7 @@ export default function AdminPage() {
         body: JSON.stringify({ ...newMenu, nama_kategori: newMenu.nama_kategori.trim() }),
       });
       if (res.ok) {
-        alert(sedangEdit ? 'Menu berhasil diperbarui!' : 'Menu berhasil ditambahkan!');
+        notify.success(sedangEdit ? 'Menu berhasil diperbarui!' : 'Menu berhasil ditambahkan!');
         setEditMenuId(null);
         setKategoriBaru(false);
         setNewMenu({
@@ -654,10 +681,10 @@ export default function AdminPage() {
         });
         loadAllData();
       } else {
-        alert('Gagal menyimpan menu');
+        notify.error('Gagal menyimpan menu');
       }
     } catch {
-      alert('Gagal menyimpan menu');
+      notify.error('Gagal menyimpan menu');
     }
   };
 
@@ -692,13 +719,19 @@ export default function AdminPage() {
   };
 
   const handleDeleteMenu = async (id: number) => {
-    if (!confirm('Hapus menu ini?')) return;
+    const yakin = await notify.confirm({
+      title: 'Hapus Menu?',
+      message: 'Menu ini akan dihapus permanen dan tidak bisa dikembalikan.',
+      confirmText: 'Ya, Hapus',
+      danger: true,
+    });
+    if (!yakin) return;
     try {
       await fetch(`/api/menu/${id}`, { method: 'DELETE' });
       if (editMenuId === id) resetFormMenu();
       loadAllData();
     } catch {
-      alert('Gagal menghapus menu');
+      notify.error('Gagal menghapus menu');
     }
   };
 
@@ -711,12 +744,18 @@ export default function AdminPage() {
       });
       loadAllData();
     } catch {
-      alert('Gagal update status menu');
+      notify.error('Gagal update status menu');
     }
   };
 
   // Kelola Favorit Slot (1 - 5)
   const handleSaveFavorit = async (slot: number, menuId: number) => {
+    if (!menuId) return;
+    // Satu menu hanya boleh dipakai di satu slot
+    if (menuId && favoritList.some((f) => f.slot !== slot && f.menu_id === menuId)) {
+      notify.warning('Menu ini sudah dipakai di slot lain. Pilih menu yang berbeda.');
+      return;
+    }
     try {
       const selectedItem = menus.find((m) => m.id === menuId);
       const updatedData = favoritList.map((f) => ({ ...f }));
@@ -743,10 +782,18 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        loadFavorit();
+        notify.success(
+          `${LABEL_SLOT_FAVORIT[slot - 1]} sekarang menampilkan ${selectedItem?.nama_makanan || 'menu pilihan'}.`,
+          'Menu Favorit Diperbarui'
+        );
+      } else {
+        const json = await res.json().catch(() => null);
+        notify.error(json?.error || 'Server tidak merespons.', 'Gagal memperbarui menu favorit');
       }
+      loadFavorit();
     } catch {
-      alert('Gagal memperbarui menu favorit');
+      notify.error('Cek koneksi lalu coba lagi.', 'Gagal memperbarui menu favorit');
+      loadFavorit();
     }
   };
 
@@ -760,10 +807,10 @@ export default function AdminPage() {
         body: JSON.stringify(kontenWeb),
       });
       if (res.ok) {
-        alert('Konten website berhasil diperbarui!');
+        notify.success('Konten website berhasil diperbarui!');
       }
     } catch {
-      alert('Gagal menyimpan konten website');
+      notify.error('Gagal menyimpan konten website');
     }
   };
 
@@ -777,10 +824,10 @@ export default function AdminPage() {
         body: JSON.stringify(footerData),
       });
       if (res.ok) {
-        alert('Konten footer berhasil diperbarui!');
+        notify.success('Konten footer berhasil diperbarui!');
       }
     } catch {
-      alert('Gagal menyimpan konten footer');
+      notify.error('Gagal menyimpan konten footer');
     }
   };
 
@@ -796,13 +843,14 @@ export default function AdminPage() {
         body: JSON.stringify(orbitSetting),
       });
       if (res.ok) {
-        alert('Tampilan orbit berhasil disimpan!');
+        setOrbitTersimpan(orbitSetting);
+        notify.success('Mode, gerakan, bentuk, dan warna orbit sudah tersimpan.', 'Tampilan Orbit Disimpan');
       } else {
         const json = await res.json().catch(() => null);
-        alert(`Gagal menyimpan tampilan orbit.\n\n${json?.error || 'Server tidak merespons.'}`);
+        notify.error(json?.error || 'Server tidak merespons.', 'Gagal menyimpan tampilan orbit');
       }
     } catch {
-      alert('Gagal menyimpan tampilan orbit. Cek koneksi atau terminal npm run dev.');
+      notify.error('Gagal menyimpan tampilan orbit. Cek koneksi atau terminal npm run dev.');
     }
   };
 
@@ -826,6 +874,7 @@ export default function AdminPage() {
   // Cabang (Lokasi)
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!notify.validateForm(e.currentTarget)) return;
     try {
       const res = await fetch('/api/maps', {
         method: 'POST',
@@ -833,25 +882,32 @@ export default function AdminPage() {
         body: JSON.stringify(newBranch),
       });
       if (res.ok) {
-        alert('Cabang berhasil ditambahkan!');
+        notify.success('Cabang berhasil ditambahkan!');
         setNewBranch({ nama: '', alamat: '', latitude: '', longitude: '' });
         loadBranches();
       }
     } catch {
-      alert('Gagal menambah cabang');
+      notify.error('Gagal menambah cabang');
     }
   };
 
   const handleDeleteBranch = async (id: number) => {
-    if (!confirm('Hapus cabang ini?')) return;
+    const yakin = await notify.confirm({
+      title: 'Hapus Cabang?',
+      message: 'Cabang ini akan dihapus permanen.',
+      confirmText: 'Ya, Hapus',
+      danger: true,
+    });
+    if (!yakin) return;
     const res = await fetch(`/api/maps/${id}`, { method: 'DELETE' });
-    if (!res.ok) alert('Gagal menghapus cabang. Mungkin masih dipakai data lain.');
+    if (!res.ok) notify.error('Gagal menghapus cabang. Mungkin masih dipakai data lain.');
     loadBranches();
   };
 
   // FAQ Handlers
   const handleAddFaq = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!notify.validateForm(e.currentTarget)) return;
     try {
       const res = await fetch('/api/faq', {
         method: 'POST',
@@ -859,17 +915,23 @@ export default function AdminPage() {
         body: JSON.stringify(newFaq),
       });
       if (res.ok) {
-        alert('FAQ berhasil ditambahkan!');
+        notify.success('FAQ berhasil ditambahkan!');
         setNewFaq({ pertanyaan: '', jawaban: '' });
         loadFaq();
       }
     } catch {
-      alert('Gagal menambah FAQ');
+      notify.error('Gagal menambah FAQ');
     }
   };
 
   const handleDeleteFaq = async (id: number) => {
-    if (!confirm('Hapus FAQ ini?')) return;
+    const yakin = await notify.confirm({
+      title: 'Hapus FAQ?',
+      message: 'FAQ ini akan dihapus permanen.',
+      confirmText: 'Ya, Hapus',
+      danger: true,
+    });
+    if (!yakin) return;
     await fetch(`/api/faq/${id}`, { method: 'DELETE' });
     loadFaq();
   };
@@ -889,14 +951,14 @@ export default function AdminPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(json.error || pesanGagal);
+        notify.error(json.error || pesanGagal);
         return false;
       }
-      if (pesanSukses) alert(pesanSukses);
+      if (pesanSukses) notify.success(pesanSukses);
       loadPertanyaan();
       return true;
     } catch {
-      alert(pesanGagal);
+      notify.error(pesanGagal);
       return false;
     }
   };
@@ -954,7 +1016,7 @@ export default function AdminPage() {
             <h3 className="fw-bold text-dark">Admin Papeda</h3>
             <p className="text-muted small">Masuk untuk mengelola restoran</p>
           </div>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} noValidate>
             <div className="mb-3">
               <label className="form-label small fw-bold">Username</label>
               <input
@@ -1295,7 +1357,7 @@ export default function AdminPage() {
 
             <div id="form-menu" className="card shadow-sm border-0 p-4 mb-4">
               <h5 className="fw-bold mb-3">{editMenuId !== null ? 'Edit Menu' : 'Tambah Menu Baru'}</h5>
-              <form onSubmit={handleAddMenu} className="row g-3">
+              <form onSubmit={handleAddMenu} className="row g-3" noValidate>
                 <div className="col-md-4">
                   <label className="form-label small fw-bold">Kategori</label>
                   <select
@@ -1558,13 +1620,7 @@ export default function AdminPage() {
                           </small>
                           {[1, 2, 3, 4, 5].map((slotNum) => {
                             const currentSlot = favoritList.find((f) => f.slot === slotNum);
-                            const slotLabels = [
-                              'Slot 1 (Tengah Bawah)',
-                              'Slot 2 (Kiri Bawah)',
-                              'Slot 3 (Kiri Atas)',
-                              'Slot 4 (Kanan Atas)',
-                              'Slot 5 (Kanan Bawah)',
-                            ];
+                            const slotLabels = LABEL_SLOT_FAVORIT;
 
                             return (
                               <div key={slotNum} className="mb-2">
@@ -1577,11 +1633,18 @@ export default function AdminPage() {
                                   onChange={(e) => handleSaveFavorit(slotNum, Number(e.target.value))}
                                 >
                                   <option value="">-- Pilih Menu --</option>
-                                  {menus.map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                      {m.nama_makanan} - ({m.nama_kategori})
-                                    </option>
-                                  ))}
+                                  {menus.map((m) => {
+                                    // menu yang sudah dipilih di slot lain tidak bisa dipilih lagi
+                                    const dipakaiSlotLain = favoritList.some(
+                                      (f) => f.slot !== slotNum && f.menu_id === m.id
+                                    );
+                                    return (
+                                      <option key={m.id} value={m.id} disabled={dipakaiSlotLain}>
+                                        {m.nama_makanan} - ({m.nama_kategori})
+                                        {dipakaiSlotLain ? ' (sudah dipilih)' : ''}
+                                      </option>
+                                    );
+                                  })}
                                 </select>
                               </div>
                             );
@@ -1686,6 +1749,12 @@ export default function AdminPage() {
                 </div>
 
                 {/* Tombol simpan selalu terlihat, apa pun tab-nya */}
+                {orbitBerubah && (
+                  <div className="small mb-2" style={{ color: '#c9622a' }}>
+                    <i className="fa-solid fa-circle-exclamation me-1"></i>
+                    Ada perubahan tampilan yang belum disimpan.
+                  </div>
+                )}
                 <div className="d-flex gap-2">
                   <button
                     type="button"
@@ -1697,7 +1766,10 @@ export default function AdminPage() {
                   <button
                     type="button"
                     className="btn btn-outline-secondary"
-                    onClick={() => setOrbitSetting({ ...ORBIT_DEFAULT, mode: orbitSetting.mode })}
+                    onClick={() => {
+                      setOrbitSetting({ ...ORBIT_DEFAULT, mode: orbitSetting.mode });
+                      notify.info('Klik "Simpan Tampilan Orbit" untuk menyimpan.', 'Tampilan dikembalikan ke bawaan');
+                    }}
                   >
                     Reset Tampilan
                   </button>
@@ -1785,7 +1857,7 @@ export default function AdminPage() {
                   <>
                     <div className="card shadow-sm border-0 p-4 mb-4">
                       <h5 className="fw-bold mb-3">Tambah FAQ</h5>
-                      <form onSubmit={handleAddFaq}>
+                      <form onSubmit={handleAddFaq} noValidate>
                         <div className="mb-3">
                           <label className="form-label small fw-bold">Pertanyaan</label>
                           <input
@@ -1839,7 +1911,7 @@ export default function AdminPage() {
                   <>
                     <div className="card shadow-sm border-0 p-4 mb-4">
                       <h5 className="fw-bold mb-3">Tambah Cabang</h5>
-                      <form onSubmit={handleAddBranch}>
+                      <form onSubmit={handleAddBranch} noValidate>
                         <div className="mb-3">
                           <label className="form-label small fw-bold">Nama Cabang</label>
                           <input

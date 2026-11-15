@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './MyReservationSection.module.css';
+import { useNotify } from '@/components/Common/Notify/NotifyProvider';
 
 export interface ReservationData {
   id: string;
@@ -25,6 +26,7 @@ export default function MyReservationSection({
   user,
   onNotification,
 }: MyReservationSectionProps) {
+  const notify = useNotify();
   const [list, setList] = useState<ReservationData[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -82,7 +84,14 @@ export default function MyReservationSection({
   }, [user]);
 
   const handleCancel = async (id: string) => {
-    if (!confirm('Batalkan reservasi ini?')) return;
+    const yakin = await notify.confirm({
+      title: 'Batalkan Reservasi?',
+      message: 'Reservasi ini akan dibatalkan.',
+      confirmText: 'Ya, Batalkan',
+      cancelText: 'Kembali',
+      danger: true,
+    });
+    if (!yakin) return;
     try {
       const res = await fetch(`/api/reservasi/${id}/batal`, {
         method: 'PUT',

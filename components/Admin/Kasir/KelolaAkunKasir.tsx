@@ -5,6 +5,7 @@ import type { BranchMap } from '@/components/User/Reservation/ReservationSection
 import { ambilDaftar } from '@/lib/adminApi';
 import type { KasirFilter, KasirItem } from './types';
 import './KelolaAkunKasir.css';
+import { useNotify } from '@/components/Common/Notify/NotifyProvider';
 
 const WARNA = [
   ['#8b5e34', '#d9ae78'],
@@ -27,6 +28,7 @@ interface KelolaAkunKasirProps {
 }
 
 export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
+  const notify = useNotify();
   const [kasirList, setKasirList] = useState<KasirItem[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [kasirForm, setKasirForm] = useState(FORM_KOSONG);
@@ -51,6 +53,7 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
   // Akun Kasir (satu akun kasir hanya terhubung ke satu gerai)
   const handleAddKasir = async (e: FormEvent) => {
     e.preventDefault();
+    if (!notify.validateForm(e.currentTarget)) return;
     try {
       const res = await fetch('/api/admin/cashier', {
         method: 'POST',
@@ -59,18 +62,19 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
       });
       const d = await res.json().catch(() => null);
       if (!res.ok) {
-        alert(d?.error || 'Gagal membuat akun kasir.');
+        notify.error(d?.error || 'Gagal membuat akun kasir.');
         return;
       }
       setKasirForm(FORM_KOSONG);
       setShowKasirForm(false);
       loadKasir();
     } catch {
-      alert('Gagal membuat akun kasir.');
+      notify.error('Gagal membuat akun kasir.');
     }
   };
 
-  const ubahKasir = async (body: Record<string, unknown>) => {
+  const ubahKasir = async (body: Record<string, unknown>): Promise<boolean> => {
+    let berhasil = false;
     try {
       const res = await fetch('/api/admin/cashier', {
         method: 'PUT',
@@ -78,33 +82,75 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
         body: JSON.stringify(body),
       });
       const d = await res.json().catch(() => null);
-      if (!res.ok) alert(d?.error || 'Gagal memperbarui akun kasir.');
+      if (res.ok) berhasil = true;
+      else notify.error(d?.error || 'Gagal memperbarui akun kasir.');
     } catch {
-      alert('Gagal memperbarui akun kasir.');
+      notify.error('Gagal memperbarui akun kasir.');
     }
     loadKasir();
+    return berhasil;
   };
 
-  const handleGantiGeraiKasir = (k: KasirItem, geraiBaru: string) => {
+  const handleGantiGeraiKasir = async (k: KasirItem, geraiBaru: string) => {
     if (geraiBaru === k.gerai) return;
-    if (!confirm(`Pindahkan kasir ${k.nama} ke gerai ${geraiBaru}?`)) return;
-    ubahKasir({ id: k.id, gerai: geraiBaru });
+    const yakin = await notify.confirm({
+      title: 'Pindahkan Kasir?',
+      message: `Kasir ${k.nama} akan dipindahkan ke gerai ${geraiBaru}.`,
+      confirmText: 'Ya, Pindahkan',
+    });
+    if (!yakin) return;
+    const berhasil = await ubahKasir({ id: k.id, gerai: geraiBaru });
+    if (berhasil) notify.success(`Kasir ${k.nama} sekarang bertugas di gerai ${geraiBaru}.`, 'Gerai Diperbarui');
   };
 
-  const handleResetPasswordKasir = (k: KasirItem) => {
-    const baru = prompt(`Password baru untuk ${k.username} (minimal 6 karakter):`);
-    if (baru === null || baru === '') return;
-    ubahKasir({ id: k.id, password: baru });
+  const handleToggleAktifKasir = async (k: KasirItem) => {
+    const nonaktifkan = k.is_active;
+    const yakin = await notify.confirm({
+      title: nonaktifkan ? 'Nonaktifkan Akun?' : 'Aktifkan Akun?',
+      message: nonaktifkan
+        ? `Kasir ${k.nama} tidak akan bisa login sampai akunnya diaktifkan kembali.`
+        : `Kasir ${k.nama} akan bisa login kembali.`,
+      confirmText: nonaktifkan ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan',
+      danger: nonaktifkan,
+    });
+    if (!yakin) return;
+    const berhasil = await ubahKasir({ id: k.id, is_active: !k.is_active });
+    if (berhasil) {
+      notify.success(
+        `Akun ${k.nama} ${nonaktifkan ? 'dinonaktifkan' : 'diaktifkan'}.`,
+        nonaktifkan ? 'Akun Dinonaktifkan' : 'Akun Diaktifkan'
+      );
+    }
+  };
+
+  const handleResetPasswordKasir = async (k: KasirItem) => {
+    const baru = await notify.prompt({
+      title: 'Reset Password',
+      message: `Masukkan password baru untuk ${k.username}.`,
+      placeholder: 'Minimal 6 karakter',
+      inputType: 'password',
+      minLength: 6,
+      confirmText: 'Simpan Password',
+    });
+    if (baru === null) return;
+    const berhasil = await ubahKasir({ id: k.id, password: baru });
+    if (berhasil) notify.success(`Password ${k.username} berhasil diubah.`);
   };
 
   const handleDeleteKasir = async (k: KasirItem) => {
-    if (!confirm(`Hapus akun kasir ${k.nama}?`)) return;
+    const yakin = await notify.confirm({
+      title: 'Hapus Akun Kasir?',
+      message: `Akun kasir ${k.nama} akan dihapus permanen.`,
+      confirmText: 'Ya, Hapus',
+      danger: true,
+    });
+    if (!yakin) return;
     const res = await fetch('/api/admin/cashier', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: k.id }),
     });
-    if (!res.ok) alert('Gagal menghapus akun kasir.');
+    if (!res.ok) notify.error('Gagal menghapus akun kasir.');
     loadKasir();
   };
 
@@ -259,7 +305,7 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
                   <button
                     type="button"
                     className="kx-act"
-                    onClick={() => ubahKasir({ id: k.id, is_active: !k.is_active })}
+                    onClick={() => handleToggleAktifKasir(k)}
                   >
                     <i className={`fa-solid ${k.is_active ? 'fa-ban' : 'fa-circle-check'}`}></i>
                     <span>{k.is_active ? 'Nonaktifkan' : 'Aktifkan'}</span>
@@ -306,7 +352,7 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
                 </button>
               </div>
 
-              <form className="kx-form" onSubmit={handleAddKasir}>
+              <form className="kx-form" onSubmit={handleAddKasir} noValidate>
                 <div className="kx-modal-body">
                   <div className="kx-field">
                     <label htmlFor="kasir-nama">Nama kasir</label>

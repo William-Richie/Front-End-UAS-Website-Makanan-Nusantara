@@ -472,7 +472,7 @@ export default function CheckoutModal({
           <Modal.Body className={styles.checkoutBody}>
             <div className={styles.stepWrap}>
               <div className={styles.stepIcon}><i className="fa-solid fa-cash-register"></i></div>
-              <h5 className={styles.stepTitle}>Silakan datang ke kasir</h5>
+              <h5 className={styles.stepTitle}>Silahkan datang ke kasir</h5>
               <p className={styles.stepDesc}>
                 Sebutkan nomor pesanan ini ke kasir di <strong>{receipt.gerai}</strong> dan lakukan pembayaran.
               </p>
@@ -564,8 +564,8 @@ export default function CheckoutModal({
               <h5 className={styles.stepTitle}>Pesanan dibatalkan</h5>
               <p className={styles.stepDesc}>
                 {receipt?.metodeBayar.startsWith('E-Wallet')
-                  ? 'Pesanan ini dibatalkan karena waktu pembayaran habis atau oleh kasir. Silakan pesan ulang atau hubungi gerai.'
-                  : 'Pesanan ini dibatalkan karena belum dibayar dalam batas waktu atau dibatalkan oleh kasir. Silakan pesan ulang atau hubungi gerai.'}
+                  ? 'Pesanan ini dibatalkan karena waktu pembayaran habis atau oleh kasir. Silahkan pesan ulang atau hubungi gerai.'
+                  : 'Pesanan ini dibatalkan karena belum dibayar dalam batas waktu atau dibatalkan oleh kasir. Silahkan pesan ulang atau hubungi gerai.'}
               </p>
             </div>
           </Modal.Body>
@@ -743,7 +743,7 @@ export default function CheckoutModal({
                   </Button>
                   {geoError && <div className={styles.hint}>{geoError}</div>}
                   {deliveryBranch && !hasCoord(deliveryBranch) && (
-                    <div className={styles.hint}>Gerai ini belum punya koordinat, silakan pilih gerai lain.</div>
+                    <div className={styles.hint}>Gerai ini belum punya koordinat, silahkan pilih gerai lain.</div>
                   )}
                   {!deliveryBranch && <div className={styles.hint}>Pilih gerai dulu untuk menampilkan peta.</div>}
                   {deliveryBranch && hasCoord(deliveryBranch) && (

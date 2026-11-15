@@ -1,0 +1,237 @@
+/* Toast */
+.toastWrap {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(360px, calc(100vw - 36px));
+  pointer-events: none;
+}
+
+.toast {
+  --warna: #4a2c17;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 14px 15px;
+  background: #fffaf3;
+  border: 1px solid #d8c3ab;
+  border-left: 5px solid var(--warna);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(59, 35, 20, 0.22);
+  color: #3b2314;
+  font-family: var(--font-lato), sans-serif;
+  overflow: hidden;
+  pointer-events: auto;
+  animation: masuk 0.28s ease-out;
+}
+
+.success { --warna: #3f8a52; }
+.error { --warna: #c0392b; }
+.warning { --warna: #c9622a; }
+.info { --warna: #4a2c17; }
+
+.toastIkon {
+  color: var(--warna);
+  font-size: 1.25rem;
+  margin-top: 2px;
+}
+
+.toastIsi {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-line;
+}
+
+.toastIsi strong {
+  font-size: 0.92rem;
+}
+
+.toastTutup {
+  border: 0;
+  background: transparent;
+  color: #8a6d55;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.toastTutup:hover { color: #3b2314; }
+
+.toastBar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--warna);
+  opacity: 0.55;
+  transform-origin: left;
+  animation: habis linear forwards;
+}
+
+@keyframes masuk {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes habis {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* Dialog (confirm / prompt) */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(59, 35, 20, 0.55);
+  backdrop-filter: blur(2px);
+  animation: fade 0.18s ease-out;
+}
+
+.dialog {
+  width: min(400px, 100%);
+  padding: 26px 24px 22px;
+  background: #fffaf3;
+  border: 1px solid #d8c3ab;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(59, 35, 20, 0.35);
+  text-align: center;
+  font-family: var(--font-lato), sans-serif;
+  color: #3b2314;
+  animation: pop 0.22s ease-out;
+}
+
+.dialogIkon {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f0e1cf;
+  color: #4a2c17;
+  font-size: 1.4rem;
+}
+.dialogIkonDanger {
+  background: #fbe3e0;
+  color: #c0392b;
+}
+
+.dialogJudul {
+  margin: 0 0 6px;
+  font-family: var(--font-playfair), serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.dialogPesan {
+  margin: 0 0 16px;
+  font-size: 0.93rem;
+  line-height: 1.5;
+  color: #5c4433;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.inputWrap {
+  position: relative;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  border: 1.5px solid #d8c3ab;
+  border-radius: 10px;
+  background: #fff;
+  color: #3b2314;
+  font-size: 0.95rem;
+  outline: none;
+}
+.input:focus {
+  border-color: #c9622a;
+  box-shadow: 0 0 0 3px rgba(201, 98, 42, 0.18);
+}
+.inputGalat { border-color: #c0392b; }
+
+.mata {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  border: 0;
+  background: transparent;
+  color: #8a6d55;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+.mata:hover { color: #3b2314; }
+
+.galat {
+  display: block;
+  margin-top: 5px;
+  color: #c0392b;
+  font-size: 0.8rem;
+}
+
+.dialogAksi {
+  display: flex;
+  gap: 10px;
+}
+.dialogAksi button {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: filter 0.15s, background 0.15s;
+}
+
+.btnBatal {
+  border: 1.5px solid #d8c3ab;
+  background: #fff;
+  color: #5c4433;
+}
+.btnBatal:hover { background: #f0e1cf; }
+
+.btnOk {
+  border: 1.5px solid #4a2c17;
+  background: #4a2c17;
+  color: #fff;
+}
+.btnOk:hover { filter: brightness(1.15); }
+
+.btnDanger {
+  border-color: #c0392b;
+  background: #c0392b;
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 480px) {
+  .toastWrap { top: 10px; right: 10px; width: calc(100vw - 20px); }
+}
