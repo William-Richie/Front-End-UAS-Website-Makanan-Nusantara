@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// PUT /api/faq/pertanyaan/[id] - Admin menjawab pertanyaan pengunjung
-// body: { jawaban: string, kirim_mail: boolean, tampil_web: boolean }
-//   kirim_mail -> jawaban masuk ke Mail pengguna (hanya untuk pertanyaan yang dikirim saat login)
-//   tampil_web -> pertanyaan + jawaban ditambahkan ke daftar FAQ di web
+// PUT /api/faq/pertanyaan/[id] - Admin mengelola pertanyaan masuk
+//   { dibaca: true }    -> tandai pertanyaan sudah dibaca
+//   { jawaban: "..." }  -> kirim jawaban ke Mail pengguna (pertanyaan otomatis berstatus dibaca)
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,34 +11,40 @@ export async function PUT(
   try {
     const { id } = await params;
     const pertanyaanId = parseInt(id, 10);
-    const { jawaban, kirim_mail, tampil_web } = await req.json();
-
-    const teks = String(jawaban || '').trim();
-    if (teks.length < 2 || teks.length > 1000) {
-      return NextResponse.json({ error: 'Jawaban harus 2 - 1000 karakter.' }, { status: 400 });
+    if (!Number.isInteger(pertanyaanId)) {
+      return NextResponse.json({ error: 'ID pertanyaan tidak valid.' }, { status: 400 });
     }
 
-    const mail = kirim_mail === true;
-    const web = tampil_web === true;
-    if (!mail && !web) {
-      return NextResponse.json(
-        { error: 'Pilih tujuan jawaban: kirim ke Mail pengguna dan/atau tampilkan di web.' },
-        { status: 400 }
-      );
-    }
+    const body = await req.json();
 
     const row = await prisma.faqPertanyaan.findUnique({ where: { id: pertanyaanId } });
     if (!row) {
       return NextResponse.json({ error: 'Pertanyaan tidak ditemukan.' }, { status: 404 });
     }
-    if (mail && !row.user_id) {
+
+    // hanya menandai dibaca
+    if (body.jawaban === undefined) {
+      if (body.dibaca !== true) {
+        return NextResponse.json({ error: 'Tidak ada perubahan yang diminta.' }, { status: 400 });
+      }
+      const updated = await prisma.faqPertanyaan.update({
+        where: { id: pertanyaanId },
+        data: { dibaca: true },
+      });
+      return NextResponse.json({ pesan: 'Pertanyaan ditandai sudah dibaca.', data: updated });
+    }
+
+    // menjawab: jawaban selalu dikirim ke Mail pengguna
+    const teks = String(body.jawaban || '').trim();
+    if (teks.length < 2 || teks.length > 1000) {
+      return NextResponse.json({ error: 'Jawaban harus 2 - 1000 karakter.' }, { status: 400 });
+    }
+    if (!row.user_id) {
       return NextResponse.json(
-        { error: 'Pertanyaan ini dikirim tanpa login, jadi tidak bisa dikirim ke Mail. Pilih tampilkan di web.' },
+        { error: 'Pertanyaan ini dikirim sebelum login diwajibkan, jadi tidak bisa dijawab lewat Mail.' },
         { status: 400 }
       );
     }
-
-    const sudahTampil = row.tampil_web;
 
     const updated = await prisma.faqPertanyaan.update({
       where: { id: pertanyaanId },
@@ -47,19 +52,14 @@ export async function PUT(
         jawaban: teks,
         dijawab_at: new Date(),
         dibaca: true,
-        kirim_mail: mail,
-        tampil_web: web || sudahTampil,
+        kirim_mail: true,
         dibaca_user: false,
       },
     });
 
-    if (web && !sudahTampil) {
-      await prisma.faq.create({ data: { pertanyaan: row.pertanyaan, jawaban: teks } });
-    }
-
-    return NextResponse.json({ pesan: 'Jawaban berhasil disimpan!', data: updated });
+    return NextResponse.json({ pesan: 'Jawaban berhasil dikirim ke Mail pengguna!', data: updated });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Gagal menyimpan jawaban.';
+    const message = error instanceof Error ? error.message : 'Gagal memperbarui pertanyaan.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

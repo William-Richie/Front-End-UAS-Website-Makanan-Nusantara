@@ -1,24 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// POST /api/faq/pertanyaan - Form modal FAQ di mana user bisa memberikan pertanyaan
+// POST /api/faq/pertanyaan - Pengguna yang sudah login mengirim pertanyaan; jawabannya masuk ke Mail akun tersebut
 export async function POST(req: NextRequest) {
   try {
-    const { nama, email, pertanyaan, user_id } = await req.json();
+    const { pertanyaan, user_id } = await req.json();
+
+    // hanya pengguna yang sudah login yang boleh bertanya
+    const user = user_id ? await prisma.user.findUnique({ where: { id: String(user_id) } }) : null;
+    if (!user) {
+      return NextResponse.json({ error: 'Silakan login terlebih dahulu untuk mengirim pertanyaan.' }, { status: 401 });
+    }
+    if (!user.is_active) {
+      return NextResponse.json({ error: 'Akun Anda sedang dinonaktifkan.' }, { status: 403 });
+    }
 
     const text = String(pertanyaan || '').trim();
     if (text.length < 10 || text.length > 300) {
       return NextResponse.json({ error: 'Pertanyaan harus 10 - 300 karakter.' }, { status: 400 });
     }
 
-    const user = user_id ? await prisma.user.findUnique({ where: { id: String(user_id) } }) : null;
-
     const created = await prisma.faqPertanyaan.create({
       data: {
-        nama: nama ? String(nama).trim() : user?.nama || 'Anonim',
-        email: email ? String(email).trim().toLowerCase() : user?.email || '',
+        nama: user.nama,
+        email: user.email,
         pertanyaan: text,
-        user_id: user ? user.id : null,
+        user_id: user.id,
       },
     });
 

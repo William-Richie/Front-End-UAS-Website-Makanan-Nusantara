@@ -11,6 +11,8 @@ import TextEditor from '@/components/Admin/TextEditor/TextEditor';
 import RichText from '@/components/Common/RichText/RichText';
 import { JAM_RESERVASI } from '@/lib/jam';
 import KotakMeja, { type MejaItem } from '@/components/Admin/Meja/KotakMeja';
+import PertanyaanMasuk from '@/components/Admin/Pertanyaan/PertanyaanMasuk';
+import type { PertanyaanItem } from '@/components/Admin/Pertanyaan/types';
 import { TIPE_MEJA, INFO_TIPE, type TipeMeja } from '@/lib/mejaTipe';
 import PantauPesanan from '@/components/Admin/Pesanan/PantauPesanan';
 import KelolaAkunKasir from '@/components/Admin/Kasir/KelolaAkunKasir';
@@ -45,19 +47,7 @@ export interface FaqItem {
   jawaban: string;
 }
 
-export interface FaqPertanyaanItem {
-  id: number;
-  nama: string;
-  email: string;
-  pertanyaan: string;
-  dibaca: boolean;
-  created_at: string;
-  user_id?: string | null;
-  jawaban?: string | null;
-  dijawab_at?: string | null;
-  kirim_mail?: boolean;
-  tampil_web?: boolean;
-}
+export type FaqPertanyaanItem = PertanyaanItem;
 
 export interface ReservasiItem {
   id: string;
@@ -127,7 +117,6 @@ const adminFetch = (url: string, opts: RequestInit = {}) => {
 const KELOLA_MENU = [
   { key: 'home', label: 'Home & About', icon: 'fa-house', target: '#home' },
   { key: 'faq', label: 'FAQ', icon: 'fa-circle-question', target: '#faq' },
-  { key: 'pertanyaan', label: 'Pertanyaan Masuk', icon: 'fa-envelope', target: '#faq' },
   { key: 'lokasi', label: 'Lokasi', icon: 'fa-location-dot', target: '#location' },
   { key: 'footer', label: 'Footer', icon: 'fa-shoe-prints', target: 'footer' },
 ] as const;
@@ -203,87 +192,6 @@ export interface PendapatanSummary {
   laporan: { tanggal: string; pesanan: number; item: number; pendapatan: number }[];
 }
 
-function KartuPertanyaan({
-  q,
-  onKirim,
-}: {
-  q: FaqPertanyaanItem;
-  onKirim: (id: number, data: { jawaban: string; kirim_mail: boolean; tampil_web: boolean }) => Promise<boolean>;
-}) {
-  const bisaMail = Boolean(q.user_id);
-  const sudahDijawab = Boolean(q.dijawab_at);
-  const [jawaban, setJawaban] = useState<string>(q.jawaban ?? '');
-  const [kirimMail, setKirimMail] = useState<boolean>(bisaMail ? (sudahDijawab ? Boolean(q.kirim_mail) : true) : false);
-  const [tampilWeb, setTampilWeb] = useState<boolean>(Boolean(q.tampil_web));
-  const [menyimpan, setMenyimpan] = useState<boolean>(false);
-
-  const kirim = async () => {
-    setMenyimpan(true);
-    await onKirim(q.id, { jawaban, kirim_mail: kirimMail, tampil_web: tampilWeb });
-    setMenyimpan(false);
-  };
-
-  return (
-    <li className="list-group-item">
-      <div className="d-flex justify-content-between align-items-start gap-2 mb-1">
-        <div className="fw-bold">{q.pertanyaan}</div>
-        <span className={`badge ${sudahDijawab ? 'bg-success' : 'bg-secondary'}`}>
-          {sudahDijawab ? 'Dijawab' : 'Belum dijawab'}
-        </span>
-      </div>
-      <small className="text-muted d-block mb-2">
-        Dari: {q.nama} ({q.email || 'tanpa email'}) · {bisaMail ? 'akun terdaftar' : 'tanpa login'}
-      </small>
-      <TextEditor
-        rows={4}
-        placeholder="Tulis jawaban..."
-        value={jawaban}
-        onChange={setJawaban}
-      />
-      <div className="d-flex flex-wrap align-items-center gap-3">
-        <div className="form-check mb-0">
-          <input
-            className="form-check-input"
-            type="checkbox"
-            id={`pq-mail-${q.id}`}
-            checked={kirimMail}
-            disabled={!bisaMail}
-            onChange={(e) => setKirimMail(e.target.checked)}
-          />
-          <label className="form-check-label small" htmlFor={`pq-mail-${q.id}`}>
-            <i className="fa-solid fa-envelope me-1"></i>Kirim ke Mail pengguna
-          </label>
-        </div>
-        <div className="form-check mb-0">
-          <input
-            className="form-check-input"
-            type="checkbox"
-            id={`pq-web-${q.id}`}
-            checked={tampilWeb}
-            disabled={Boolean(q.tampil_web)}
-            onChange={(e) => setTampilWeb(e.target.checked)}
-          />
-          <label className="form-check-label small" htmlFor={`pq-web-${q.id}`}>
-            <i className="fa-solid fa-globe me-1"></i>
-            {q.tampil_web ? 'Sudah tampil di web' : 'Tampilkan di web (jadi FAQ)'}
-          </label>
-        </div>
-        <button
-          type="button"
-          className="btn btn-sm btn-warning text-white fw-bold ms-auto"
-          disabled={menyimpan || jawaban.trim().length < 2 || (!kirimMail && !tampilWeb)}
-          onClick={kirim}
-        >
-          {menyimpan ? 'Menyimpan...' : sudahDijawab ? 'Perbarui Jawaban' : 'Kirim Jawaban'}
-        </button>
-      </div>
-      {!bisaMail && (
-        <div className="small text-muted mt-1">Pengirim tidak login, jadi jawaban hanya bisa ditampilkan di web.</div>
-      )}
-    </li>
-  );
-}
-
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [username, setUsername] = useState<string>('');
@@ -292,7 +200,7 @@ export default function AdminPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    'statistik' | 'menu' | 'favorit' | 'konten' | 'pesanan' | 'reservasi' | 'pendapatan' | 'kasir'
+    'statistik' | 'menu' | 'favorit' | 'konten' | 'pesanan' | 'reservasi' | 'pertanyaan' | 'pendapatan' | 'kasir'
   >('statistik');
 
   // Typed Data States
@@ -555,6 +463,12 @@ export default function AdminPage() {
       .catch((e) => console.error('Gagal mengambil data reservasi:', e));
   }, [isLoggedIn, activeTab]);
 
+  useEffect(() => {
+    if (!isLoggedIn || activeTab !== 'pertanyaan') return;
+    loadPertanyaan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, activeTab]);
+
   const bukaConfirm = (c: Omit<ConfirmState, 'danger' | 'icon'> & { danger?: boolean; icon?: string }) =>
     setConfirmState({ danger: false, icon: '?', ...c });
 
@@ -651,6 +565,7 @@ export default function AdminPage() {
       : reservasiAdmin.filter((r) => statusMatch(r.status, reservasiTab) && cocokSearch(r, globalSearch));
 
   const countReservasi = (tab: ReservasiTabKey) => reservasiAdmin.filter((r) => statusMatch(r.status, tab)).length;
+  const pertanyaanBaru = pertanyaanList.filter((q) => !q.dibaca && !q.dijawab_at).length;
 
   const allUsersChecked =
     filteredUsers.length > 0 && filteredUsers.every((u) => selectedUsers.includes(String(u.id)));
@@ -925,33 +840,40 @@ export default function AdminPage() {
     if (!confirm('Hapus FAQ ini?')) return;
     await fetch(`/api/faq/${id}`, { method: 'DELETE' });
     loadFaq();
-    loadPertanyaan();
   };
 
-  const handleJawabPertanyaan = async (
+  // Pertanyaan Masuk: jawaban dikirim ke Mail pengguna, atau pertanyaan ditandai sudah dibaca
+  const kirimPembaruanPertanyaan = async (
     id: number,
-    data: { jawaban: string; kirim_mail: boolean; tampil_web: boolean }
+    body: { jawaban: string } | { dibaca: true },
+    pesanSukses: string | null,
+    pesanGagal: string
   ): Promise<boolean> => {
     try {
       const res = await fetch(`/api/faq/pertanyaan/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(json.error || 'Gagal menyimpan jawaban.');
+        alert(json.error || pesanGagal);
         return false;
       }
-      alert('Jawaban berhasil disimpan!');
+      if (pesanSukses) alert(pesanSukses);
       loadPertanyaan();
-      loadFaq();
       return true;
     } catch {
-      alert('Gagal menyimpan jawaban.');
+      alert(pesanGagal);
       return false;
     }
   };
+
+  const handleJawabPertanyaan = (id: number, jawaban: string) =>
+    kirimPembaruanPertanyaan(id, { jawaban }, 'Jawaban berhasil dikirim ke Mail pengguna!', 'Gagal mengirim jawaban.');
+
+  const handleTandaiDibaca = (id: number) =>
+    kirimPembaruanPertanyaan(id, { dibaca: true }, null, 'Gagal menandai pertanyaan.');
 
   // Data grafik beranda
   const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
@@ -1103,6 +1025,15 @@ export default function AdminPage() {
               onClick={() => setActiveTab('reservasi')}
             >
               <i className="fa-solid fa-calendar-check me-2"></i> Kelola Reservasi & Ruangan
+            </button>
+          </li>
+          <li className="nav-item mb-2">
+            <button
+              className={`nav-link text-white text-start w-100 ${activeTab === 'pertanyaan' ? 'active bg-warning' : ''}`}
+              onClick={() => setActiveTab('pertanyaan')}
+            >
+              <i className="fa-solid fa-envelope me-2"></i> Pertanyaan Masuk
+              {pertanyaanBaru > 0 && <span className="badge bg-danger ms-2">{pertanyaanBaru}</span>}
             </button>
           </li>
           <li className="nav-item mb-2">
@@ -1693,9 +1624,6 @@ export default function AdminPage() {
                     >
                       <i className={`fa-solid ${m.icon} me-2`}></i>
                       {m.label}
-                      {m.key === 'pertanyaan' && pertanyaanList.some((q) => !q.dijawab_at) && (
-                        <span className="badge bg-danger ms-2">{pertanyaanList.filter((q) => !q.dijawab_at).length}</span>
-                      )}
                     </button>
                   ))}
                 </div>
@@ -1786,25 +1714,6 @@ export default function AdminPage() {
                     </div>
 
                   </>
-                )}
-
-                {/* Pertanyaan Masuk (halaman ke-2 kelola FAQ) */}
-                {kelolaTab === 'pertanyaan' && (
-                  <div className="card shadow-sm border-0 p-3">
-                    <h5 className="fw-bold mb-1">Pertanyaan Masuk dari Pengunjung</h5>
-                    <p className="small text-muted mb-3">
-                      Tulis jawaban lalu pilih tujuannya: Mail pengguna (notifikasi di website), tampil di web sebagai FAQ, atau keduanya.
-                    </p>
-                    <ul className="list-group list-group-flush">
-                      {pertanyaanList.length === 0 ? (
-                        <li className="list-group-item text-muted">Belum ada pertanyaan masuk.</li>
-                      ) : (
-                        pertanyaanList.map((q) => (
-                          <KartuPertanyaan key={q.id} q={q} onKirim={handleJawabPertanyaan} />
-                        ))
-                      )}
-                    </ul>
-                  </div>
                 )}
 
                 {/* Lokasi */}
@@ -1963,6 +1872,17 @@ export default function AdminPage() {
         )}
 
         {/* TAB 8: RESERVASI */}
+        {/* TAB: PERTANYAAN MASUK */}
+        {activeTab === 'pertanyaan' && (
+          <div>
+            <h1 className="fs-3 fw-bold mb-1">Pertanyaan Masuk</h1>
+            <p className="text-muted mb-3">
+              Pertanyaan dari pengguna yang login. Jawaban dikirim ke Mail pengguna; pertanyaan yang bagus bisa Anda tambahkan manual di Kelola Halaman &gt; FAQ.
+            </p>
+            <PertanyaanMasuk items={pertanyaanList} onTandaiDibaca={handleTandaiDibaca} onJawab={handleJawabPertanyaan} />
+          </div>
+        )}
+
         {activeTab === 'reservasi' && (
           <div>
             <h1 className="fs-3 fw-bold mb-3">Kelola Reservasi &amp; Ruangan</h1>
