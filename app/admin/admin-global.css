@@ -984,3 +984,25 @@ padding: 8px 0;
     font-size: .72rem;
     text-decoration: underline;
 }
+
+.editor-rich .toolbar {
+  display: flex;
+  gap: 4px;
+  max-height: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: max-height 0.15s, margin-bottom 0.15s, opacity 0.15s;
+}
+
+.editor-rich:focus-within .toolbar {
+  max-height: 44px;
+  margin-bottom: 6px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.editor-rich .toolbar button {
+  min-width: 32px;
+}

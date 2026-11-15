@@ -2,6 +2,7 @@
 
 import { Container } from 'react-bootstrap';
 import styles from './Footer.module.css';
+import RichText from '@/components/Common/RichText/RichText';
 
 interface FooterProps {
   data?: {
@@ -28,7 +29,7 @@ export default function Footer({ data }: FooterProps) {
     <footer className={`mt-auto ${styles.footer}`}>
       <Container className={styles.footerInner}>
         <div className="text-center mb-4">
-          <h6 className={`${styles.footerTitle} fw-bold mb-4 mt-4 text-warning`}>{judul}</h6>
+          <h6 className={`${styles.footerTitle} mb-4 mt-4 text-warning`}><RichText teks={judul} /></h6>
 
           <div className="d-flex justify-content-center gap-3">
             <a
@@ -80,7 +81,7 @@ export default function Footer({ data }: FooterProps) {
         <hr className="border-light opacity-25 my-4" />
 
         <div className="text-center small text-light text-opacity-75">
-          {copyright}
+          <RichText teks={copyright} />
         </div>
       </Container>
     </footer>

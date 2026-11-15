@@ -1161,3 +1161,15 @@ html {
     }
 }
 
+.editor-rich .toolbar { 
+    display: flex; 
+    gap: 4px; 
+    margin-bottom: 6px; }
+.editor-rich .toolbar button { min-width: 32px; }
+
+.rt-b { font-weight: 800; }
+.rt-i { font-style: italic; }
+.rt-u {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

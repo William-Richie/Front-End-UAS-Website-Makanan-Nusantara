@@ -2,6 +2,7 @@
 
 import { Container, Row, Col } from 'react-bootstrap';
 import styles from './About.module.css';
+import RichText from '@/components/Common/RichText/RichText';
 
 interface AboutProps {
   teksAbout?: string | null;
@@ -19,8 +20,12 @@ export default function About({ teksAbout }: AboutProps) {
             Warisan Rasa dari Timur
           </h2>
           <p id="about-desc" className={`mx-auto ${styles.aboutDesc}`}>
-            {teksAbout ||
-              'Selamat datang di Papeda Restaurant, tempat terbaik untuk menikmati hidangan khas Nusantara Timur. Kami menyajikan berbagai menu tradisional dengan cita rasa otentik yang akan memanjakan lidah Anda.'}
+            <RichText
+              teks={
+                teksAbout ||
+                'Selamat datang di Papeda Restaurant, tempat terbaik untuk menikmati hidangan khas Nusantara Timur. Kami menyajikan berbagai menu tradisional dengan cita rasa otentik yang akan memanjakan lidah Anda.'
+              }
+            />
           </p>
         </div>
 
