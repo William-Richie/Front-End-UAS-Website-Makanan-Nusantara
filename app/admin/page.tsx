@@ -55,6 +55,11 @@ export interface FaqPertanyaanItem {
   pertanyaan: string;
   dibaca: boolean;
   created_at: string;
+  user_id?: string | null;
+  jawaban?: string | null;
+  dijawab_at?: string | null;
+  kirim_mail?: boolean;
+  tampil_web?: boolean;
 }
 
 export interface ReservasiItem {
@@ -130,6 +135,7 @@ const ambilDaftar = <T,>(url: string): Promise<T[]> =>
 const KELOLA_MENU = [
   { key: 'home', label: 'Home & About', icon: 'fa-house', target: '#home' },
   { key: 'faq', label: 'FAQ', icon: 'fa-circle-question', target: '#faq' },
+  { key: 'pertanyaan', label: 'Pertanyaan Masuk', icon: 'fa-envelope', target: '#faq' },
   { key: 'lokasi', label: 'Lokasi', icon: 'fa-location-dot', target: '#location' },
   { key: 'footer', label: 'Footer', icon: 'fa-shoe-prints', target: 'footer' },
 ] as const;
@@ -203,6 +209,89 @@ export interface PendapatanSummary {
   grafik: { label: string; total: number }[];
   terlaris: { nama: string; qty: number; pendapatan: number }[];
   laporan: { tanggal: string; pesanan: number; item: number; pendapatan: number }[];
+}
+
+function KartuPertanyaan({
+  q,
+  onKirim,
+}: {
+  q: FaqPertanyaanItem;
+  onKirim: (id: number, data: { jawaban: string; kirim_mail: boolean; tampil_web: boolean }) => Promise<boolean>;
+}) {
+  const bisaMail = Boolean(q.user_id);
+  const sudahDijawab = Boolean(q.dijawab_at);
+  const [jawaban, setJawaban] = useState<string>(q.jawaban ?? '');
+  const [kirimMail, setKirimMail] = useState<boolean>(bisaMail ? (sudahDijawab ? Boolean(q.kirim_mail) : true) : false);
+  const [tampilWeb, setTampilWeb] = useState<boolean>(Boolean(q.tampil_web));
+  const [menyimpan, setMenyimpan] = useState<boolean>(false);
+
+  const kirim = async () => {
+    setMenyimpan(true);
+    await onKirim(q.id, { jawaban, kirim_mail: kirimMail, tampil_web: tampilWeb });
+    setMenyimpan(false);
+  };
+
+  return (
+    <li className="list-group-item">
+      <div className="d-flex justify-content-between align-items-start gap-2 mb-1">
+        <div className="fw-bold">{q.pertanyaan}</div>
+        <span className={`badge ${sudahDijawab ? 'bg-success' : 'bg-secondary'}`}>
+          {sudahDijawab ? 'Dijawab' : 'Belum dijawab'}
+        </span>
+      </div>
+      <small className="text-muted d-block mb-2">
+        Dari: {q.nama} ({q.email || 'tanpa email'}) · {bisaMail ? 'akun terdaftar' : 'tanpa login'}
+      </small>
+      <textarea
+        className="form-control mb-2"
+        rows={3}
+        maxLength={1000}
+        placeholder="Tulis jawaban..."
+        value={jawaban}
+        onChange={(e) => setJawaban(e.target.value)}
+      />
+      <div className="d-flex flex-wrap align-items-center gap-3">
+        <div className="form-check mb-0">
+          <input
+            className="form-check-input"
+            type="checkbox"
+            id={`pq-mail-${q.id}`}
+            checked={kirimMail}
+            disabled={!bisaMail}
+            onChange={(e) => setKirimMail(e.target.checked)}
+          />
+          <label className="form-check-label small" htmlFor={`pq-mail-${q.id}`}>
+            <i className="fa-solid fa-envelope me-1"></i>Kirim ke Mail pengguna
+          </label>
+        </div>
+        <div className="form-check mb-0">
+          <input
+            className="form-check-input"
+            type="checkbox"
+            id={`pq-web-${q.id}`}
+            checked={tampilWeb}
+            disabled={Boolean(q.tampil_web)}
+            onChange={(e) => setTampilWeb(e.target.checked)}
+          />
+          <label className="form-check-label small" htmlFor={`pq-web-${q.id}`}>
+            <i className="fa-solid fa-globe me-1"></i>
+            {q.tampil_web ? 'Sudah tampil di web' : 'Tampilkan di web (jadi FAQ)'}
+          </label>
+        </div>
+        <button
+          type="button"
+          className="btn btn-sm btn-warning text-white fw-bold ms-auto"
+          disabled={menyimpan || jawaban.trim().length < 2 || (!kirimMail && !tampilWeb)}
+          onClick={kirim}
+        >
+          {menyimpan ? 'Menyimpan...' : sudahDijawab ? 'Perbarui Jawaban' : 'Kirim Jawaban'}
+        </button>
+      </div>
+      {!bisaMail && (
+        <div className="small text-muted mt-1">Pengirim tidak login, jadi jawaban hanya bisa ditampilkan di web.</div>
+      )}
+    </li>
+  );
 }
 
 export default function AdminPage() {
@@ -400,6 +489,7 @@ export default function AdminPage() {
     ambilDaftar<FavoritSlot>('/api/favorit?sumber=terlaris').then(setFavoritTerlaris);
   };
   const loadFaq = () => ambilDaftar<FaqItem>('/api/faq').then(setFaqList);
+  const loadPertanyaan = () => ambilDaftar<FaqPertanyaanItem>('/api/faq/pertanyaan').then(setPertanyaanList);
   const loadBranches = () => ambilDaftar<BranchMap>('/api/maps').then(setBranches);
 
   const loadAllData = async () => {
@@ -851,6 +941,32 @@ export default function AdminPage() {
     if (!confirm('Hapus FAQ ini?')) return;
     await fetch(`/api/faq/${id}`, { method: 'DELETE' });
     loadFaq();
+    loadPertanyaan();
+  };
+
+  const handleJawabPertanyaan = async (
+    id: number,
+    data: { jawaban: string; kirim_mail: boolean; tampil_web: boolean }
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/faq/pertanyaan/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(json.error || 'Gagal menyimpan jawaban.');
+        return false;
+      }
+      alert('Jawaban berhasil disimpan!');
+      loadPertanyaan();
+      loadFaq();
+      return true;
+    } catch {
+      alert('Gagal menyimpan jawaban.');
+      return false;
+    }
   };
 
   // Pesanan Handlers
@@ -1584,6 +1700,9 @@ export default function AdminPage() {
                     >
                       <i className={`fa-solid ${m.icon} me-2`}></i>
                       {m.label}
+                      {m.key === 'pertanyaan' && pertanyaanList.some((q) => !q.dijawab_at) && (
+                        <span className="badge bg-danger ms-2">{pertanyaanList.filter((q) => !q.dijawab_at).length}</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -1677,22 +1796,26 @@ export default function AdminPage() {
                       </ul>
                     </div>
 
-                    <div className="card shadow-sm border-0 p-3">
-                      <h5 className="fw-bold mb-3">Pertanyaan Masuk dari Pengunjung (Modal)</h5>
-                      <ul className="list-group list-group-flush">
-                        {pertanyaanList.length === 0 ? (
-                          <li className="list-group-item text-muted">Belum ada pertanyaan masuk.</li>
-                        ) : (
-                          pertanyaanList.map((q) => (
-                            <li key={q.id} className="list-group-item">
-                              <div className="fw-bold">{q.pertanyaan}</div>
-                              <small className="text-muted">Dari: {q.nama} ({q.email || 'tanpa email'})</small>
-                            </li>
-                          ))
-                        )}
-                      </ul>
-                    </div>
                   </>
+                )}
+
+                {/* Pertanyaan Masuk (halaman ke-2 kelola FAQ) */}
+                {kelolaTab === 'pertanyaan' && (
+                  <div className="card shadow-sm border-0 p-3">
+                    <h5 className="fw-bold mb-1">Pertanyaan Masuk dari Pengunjung</h5>
+                    <p className="small text-muted mb-3">
+                      Tulis jawaban lalu pilih tujuannya: Mail pengguna (notifikasi di website), tampil di web sebagai FAQ, atau keduanya.
+                    </p>
+                    <ul className="list-group list-group-flush">
+                      {pertanyaanList.length === 0 ? (
+                        <li className="list-group-item text-muted">Belum ada pertanyaan masuk.</li>
+                      ) : (
+                        pertanyaanList.map((q) => (
+                          <KartuPertanyaan key={q.id} q={q} onKirim={handleJawabPertanyaan} />
+                        ))
+                      )}
+                    </ul>
+                  </div>
                 )}
 
                 {/* Lokasi */}
