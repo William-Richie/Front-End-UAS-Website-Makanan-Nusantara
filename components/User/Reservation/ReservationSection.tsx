@@ -85,7 +85,6 @@ export default function ReservationSection({
     return () => clearTimeout(timer);
   }, []);
 
-  // ambil daftar meja setiap gerai / tanggal / jam / tipe berubah
   useEffect(() => {
     if (!selectedBranch || !tanggal || !sesi || !tipe) return;
     let batal = false;
@@ -358,7 +357,8 @@ export default function ReservationSection({
 
             {/* Reservation Date, Time & Guests */}
             <Row className="g-3 mb-3">
-              {/* Reservation Date */}
+
+              {/* date */}
               <Col xs={12} md={6}>
                 <Form.Group>
                   <Form.Label className="fw-bold">Reservation Date</Form.Label>
@@ -413,7 +413,7 @@ export default function ReservationSection({
               </Col>
             </Row>
 
-            {/* Select The Room */}
+            {/* Room */}
             <Row className="g-3 mb-3">
               <Col xs={12}>
                 <Form.Group
