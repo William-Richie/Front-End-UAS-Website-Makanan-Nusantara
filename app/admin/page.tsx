@@ -134,6 +134,8 @@ const ambilDaftar = <T,>(url: string): Promise<T[]> =>
   ambilJson(url).then((d: { data?: unknown } | null) => (Array.isArray(d?.data) ? (d.data as T[]) : []));
 
 // Menu di halaman Kelola: tiap tombol punya bagian di preview yang ikut digulir
+const KATEGORI_DEFAULT = ['MAIN COURSE'];
+
 const KELOLA_MENU = [
   { key: 'home', label: 'Home & About', icon: 'fa-house', target: '#home' },
   { key: 'faq', label: 'FAQ', icon: 'fa-circle-question', target: '#faq' },
@@ -376,6 +378,12 @@ export default function AdminPage() {
   }, []);
 
   // Form Tambah Menu State
+  const [kategoriBaru, setKategoriBaru] = useState(false);
+
+  const daftarKategori = Array.from(
+    new Set([...KATEGORI_DEFAULT, ...menus.map((m) => m.nama_kategori)])
+  );
+
   const [newMenu, setNewMenu] = useState<{
     nama_kategori: string;
     nama_makanan: string;
@@ -709,11 +717,12 @@ export default function AdminPage() {
       const res = await fetch(sedangEdit ? `/api/menu/${editMenuId}` : '/api/menu', {
         method: sedangEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMenu),
+        body: JSON.stringify({ ...newMenu, nama_kategori: newMenu.nama_kategori.trim() }),
       });
       if (res.ok) {
         alert(sedangEdit ? 'Menu berhasil diperbarui!' : 'Menu berhasil ditambahkan!');
         setEditMenuId(null);
+        setKategoriBaru(false);
         setNewMenu({
           nama_kategori: 'MAIN COURSE',
           nama_makanan: '',
@@ -734,6 +743,7 @@ export default function AdminPage() {
 
   const resetFormMenu = () => {
     setEditMenuId(null);
+    setKategoriBaru(false);
     setNewMenu({
       nama_kategori: 'MAIN COURSE',
       nama_makanan: '',
@@ -748,6 +758,7 @@ export default function AdminPage() {
   // isi form dengan data menu yang dipilih, lalu gulir ke form
   const handleEditMenu = (m: MenuItem) => {
     setEditMenuId(m.id);
+    setKategoriBaru(false);
     setNewMenu({
       nama_kategori: m.nama_kategori,
       nama_makanan: m.nama_makanan,
@@ -1344,17 +1355,34 @@ export default function AdminPage() {
                   <label className="form-label small fw-bold">Kategori</label>
                   <select
                     className="form-select"
-                    value={newMenu.nama_kategori}
-                    onChange={(e) => setNewMenu({ ...newMenu, nama_kategori: e.target.value })}
+                    value={kategoriBaru ? '__baru__' : newMenu.nama_kategori}
+                    onChange={(e) => {
+                      if (e.target.value === '__baru__') {
+                        setKategoriBaru(true);
+                        setNewMenu({ ...newMenu, nama_kategori: '' });
+                      } else {
+                        setKategoriBaru(false);
+                        setNewMenu({ ...newMenu, nama_kategori: e.target.value });
+                      }
+                    }}
                   >
-                    <option value="APPETIZER">APPETIZER</option>
-                    <option value="MAIN COURSE">MAIN COURSE</option>
-                    <option value="DESSERT">DESSERT</option>
-                    <option value="MINUMAN">MINUMAN</option>
-                    {!['APPETIZER', 'MAIN COURSE', 'DESSERT', 'MINUMAN'].includes(newMenu.nama_kategori) && (
-                      <option value={newMenu.nama_kategori}>{newMenu.nama_kategori}</option>
-                    )}
+                    {daftarKategori.map((k) => (
+                      <option key={k} value={k}>{k}</option>
+                    ))}
+                    <option value="__baru__">+ Kategori baru...</option>
                   </select>
+                  {kategoriBaru && (
+                    <input
+                      type="text"
+                      className="form-control mt-2"
+                      required
+                      autoFocus
+                      maxLength={30}
+                      placeholder="Nama kategori baru"
+                      value={newMenu.nama_kategori}
+                      onChange={(e) => setNewMenu({ ...newMenu, nama_kategori: e.target.value.toUpperCase() })}
+                    />
+                  )}
                 </div>
                 <div className="col-md-4">
                   <label className="form-label small fw-bold">Nama Menu</label>
