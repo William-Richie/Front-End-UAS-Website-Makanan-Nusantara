@@ -18,6 +18,7 @@ import CartFloating, { CartItem } from '@/components/User/FloatingButton/Floatin
 import CheckoutModal, { PENDING_ORDER_KEY } from '@/components/User/Checkout/CheckoutModal';
 import AuthModal from '@/components/User/Auth/AuthModal';
 import ProfileModal from '@/components/User/Profile/ProfileModal';
+import MailModal, { type MailItem } from '@/components/User/Mail/MailModal';
 import type { MenuItem } from '@/components/User/Menu/MenuSection';
 import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
 import type { FaqItem } from '@/components/User/Faq/FaqSection';
@@ -82,6 +83,11 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   const [authKey, setAuthKey] = useState(0);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Mail: jawaban admin untuk pertanyaan FAQ milik pengguna yang login
+  const [mails, setMails] = useState<MailItem[]>([]);
+  const [mailOpen, setMailOpen] = useState(false);
+  const [mailBaruIds, setMailBaruIds] = useState<number[]>([]);
 
   // State Data Database
   const [menus, setMenus] = useState<MenuItem[]>([]);
@@ -207,6 +213,42 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     document.body.classList.toggle('logged-in', !!user);
   }, [user]);
 
+  // Muat Mail saat login, lalu cek lagi tiap 60 detik supaya jawaban baru muncul tanpa refresh
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    let aktif = true;
+    const muat = () =>
+      fetch(`/api/mail?user_id=${encodeURIComponent(userId)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (aktif) setMails(Array.isArray(d.data) ? d.data : []);
+        })
+        .catch(() => { });
+    muat();
+    const timer = setInterval(muat, 60000);
+    return () => {
+      aktif = false;
+      clearInterval(timer);
+    };
+  }, [userId]);
+
+  const mailBelumDibaca = mails.filter((m) => !m.dibaca_user).length;
+
+  const handleOpenMail = () => {
+    const baru = mails.filter((m) => !m.dibaca_user).map((m) => m.id);
+    setMailBaruIds(baru);
+    setMailOpen(true);
+    if (user && baru.length > 0) {
+      setMails((prev) => prev.map((m) => ({ ...m, dibaca_user: true })));
+      fetch('/api/mail', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, ids: baru }),
+      }).catch(() => { });
+    }
+  };
+
   const cartView = useMemo<CartItem[]>(() => {
     if (menus.length === 0) return cartItems;
     const byId = new Map(menus.map((m) => [m.id, m]));
@@ -301,6 +343,7 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(PENDING_ORDER_KEY);
     setPendingOrderId(null);
     setUser(null);
+    setMails([]);
     showToast('Berhasil logout.');
   };
 
@@ -330,6 +373,8 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           onOpenAuth={openAuth}
           onLogout={handleLogout}
           onOpenProfile={() => setProfileOpen(true)}
+          mailCount={mailBelumDibaca}
+          onOpenMail={handleOpenMail}
         />
 
         <main className="flex-grow-1">{children}</main>
@@ -388,6 +433,13 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           setCartItems([]);
           showToast(`Pesanan #${orderId} berhasil diproses!`);
         }}
+      />
+
+      <MailModal
+        show={mailOpen}
+        items={mails}
+        baruIds={mailBaruIds}
+        onClose={() => setMailOpen(false)}
       />
 
       <ProfileModal

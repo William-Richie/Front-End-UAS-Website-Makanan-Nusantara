@@ -1,0 +1,90 @@
+.mailModal {
+  border-radius: 20px;
+  background: var(--color-bg-light);
+  overflow: hidden;
+}
+
+.mailHead:global(.modal-header) {
+  border-bottom: 1px solid var(--color-border-vanilla);
+  background: var(--color-bg-soft);
+}
+
+.mailTitle {
+  margin: 0;
+  color: var(--color-primary-brown);
+  font-size: 1.15rem;
+}
+
+.mailBody {
+  padding: 16px 18px 22px;
+}
+
+.mailList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mailItem {
+  padding: 14px 16px;
+  border: 1px solid var(--color-border-vanilla);
+  border-radius: 14px;
+  background: var(--color-white);
+  box-shadow: 0 3px 10px rgba(59, 35, 20, 0.05);
+}
+
+.mailMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+}
+
+.mailFrom {
+  color: var(--color-primary-brown);
+  font-weight: 700;
+}
+
+.mailDate {
+  margin-right: auto;
+  color: #8a7a6e;
+}
+
+.mailBaru {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.mailQ {
+  margin: 0 0 6px;
+  color: #6b5a4d;
+  font-size: 0.85rem;
+}
+
+.mailA {
+  margin: 0;
+  color: var(--color-primary-brown);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mailEmpty {
+  padding: 28px 8px;
+  text-align: center;
+  color: #8a7a6e;
+}
+
+.mailEmpty i {
+  margin-bottom: 10px;
+  font-size: 2rem;
+  color: var(--color-accent-tan);
+}

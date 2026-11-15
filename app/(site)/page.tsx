@@ -12,6 +12,7 @@ export default function HomePage() {
     kontenWeb,
     faqs,
     branches,
+    user,
     showToast,
   } = useSite();
 
@@ -26,6 +27,7 @@ export default function HomePage() {
       <FaqSection
         faqList={faqs}
         onSuccessNotification={showToast}
+        user={user}
       />
 
       <LocationSection branches={branches} />
