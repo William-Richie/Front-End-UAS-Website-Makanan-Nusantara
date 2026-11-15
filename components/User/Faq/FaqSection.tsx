@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Container, Accordion, Modal, Form, Button } from 'react-bootstrap';
 import styles from './FaqSection.module.css';
+import RichText from '@/components/Common/RichText/RichText';
 
 export interface FaqItem {
   id: number;
@@ -157,7 +158,7 @@ export default function FaqSection({
                         <span className={styles.faqQText}>{item.pertanyaan}</span>
                       </Accordion.Header>
                       <Accordion.Body className={styles.faqAnswerWrap}>
-                        <div className={styles.faqAnswer}>{item.jawaban}</div>
+                        <div className={styles.faqAnswer}><RichText teks={item.jawaban} /></div>
                       </Accordion.Body>
                     </Accordion.Item>
                   ))}

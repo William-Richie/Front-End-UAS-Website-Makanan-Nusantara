@@ -7,6 +7,8 @@ import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminC
 import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePreview';
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
 import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
+import TextEditor from '@/components/Admin/TextEditor/TextEditor';
+import RichText from '@/components/Common/RichText/RichText';
 import { JAM_RESERVASI } from '@/lib/jam';
 import KotakMeja, { type MejaItem } from '@/components/Admin/Meja/KotakMeja';
 import { TIPE_MEJA, INFO_TIPE, type TipeMeja } from '@/lib/mejaTipe';
@@ -242,13 +244,11 @@ function KartuPertanyaan({
       <small className="text-muted d-block mb-2">
         Dari: {q.nama} ({q.email || 'tanpa email'}) · {bisaMail ? 'akun terdaftar' : 'tanpa login'}
       </small>
-      <textarea
-        className="form-control mb-2"
-        rows={3}
-        maxLength={1000}
+      <TextEditor
+        rows={4}
         placeholder="Tulis jawaban..."
         value={jawaban}
-        onChange={(e) => setJawaban(e.target.value)}
+        onChange={setJawaban}
       />
       <div className="d-flex flex-wrap align-items-center gap-3">
         <div className="form-check mb-0">
@@ -1715,12 +1715,11 @@ export default function AdminPage() {
                         <label className="form-label small fw-bold" htmlFor="konten-hero">
                           <i className="fa-solid fa-bullhorn me-2 text-warning"></i>Judul Hero Banner
                         </label>
-                        <textarea
+                        <TextEditor
                           id="konten-hero"
-                          className="form-control"
                           rows={3}
                           value={kontenWeb.teks_hero || ''}
-                          onChange={(e) => setKontenWeb({ ...kontenWeb, teks_hero: e.target.value })}
+                          onChange={(v) => setKontenWeb({ ...kontenWeb, teks_hero: v })}
                         />
                         <small className="text-muted">Tekan Enter untuk pindah baris.</small>
                       </div>
@@ -1728,12 +1727,11 @@ export default function AdminPage() {
                         <label className="form-label small fw-bold" htmlFor="konten-about">
                           <i className="fa-solid fa-circle-info me-2 text-warning"></i>Deskripsi Tentang Kami
                         </label>
-                        <textarea
+                        <TextEditor
                           id="konten-about"
-                          className="form-control"
                           rows={7}
                           value={kontenWeb.teks_about || ''}
-                          onChange={(e) => setKontenWeb({ ...kontenWeb, teks_about: e.target.value })}
+                          onChange={(v) => setKontenWeb({ ...kontenWeb, teks_about: v })}
                         />
                       </div>
                       <button type="submit" className="btn btn-warning text-white fw-bold w-100 py-2">
@@ -1761,12 +1759,10 @@ export default function AdminPage() {
                         </div>
                         <div className="mb-3">
                           <label className="form-label small fw-bold">Jawaban</label>
-                          <textarea
-                            className="form-control"
+                          <TextEditor
                             rows={3}
-                            required
                             value={newFaq.jawaban}
-                            onChange={(e) => setNewFaq({ ...newFaq, jawaban: e.target.value })}
+                            onChange={(v) => setNewFaq({ ...newFaq, jawaban: v })}
                           />
                         </div>
                         <button type="submit" className="btn btn-warning text-white fw-bold">
@@ -1782,7 +1778,7 @@ export default function AdminPage() {
                           <li key={f.id} className="list-group-item d-flex justify-content-between align-items-start gap-2">
                             <div>
                               <div className="fw-bold">{f.pertanyaan}</div>
-                              <div className="small text-muted">{f.jawaban}</div>
+                              <div className="small text-muted"><RichText teks={f.jawaban} /></div>
                             </div>
                             <button
                               type="button"
@@ -1836,12 +1832,12 @@ export default function AdminPage() {
                         </div>
                         <div className="mb-3">
                           <label className="form-label small fw-bold">Alamat</label>
-                          <textarea
+                          <input
+                            type="text"
                             className="form-control"
-                            rows={2}
                             required
-                            value={newBranch.alamat}
-                            onChange={(e) => setNewBranch({ ...newBranch, alamat: e.target.value })}
+                            value={newBranch.nama}
+                            onChange={(e) => setNewBranch({ ...newBranch, nama: e.target.value })}
                           />
                         </div>
                         <div className="row g-2 mb-3">
@@ -1910,24 +1906,32 @@ export default function AdminPage() {
                     <form onSubmit={handleSaveFooter}>
                       {(
                         [
-                          ['judul', 'Judul Footer', 'text'],
-                          ['copyright', 'Copyright Teks', 'text'],
-                          ['link_wa', 'Tautan WhatsApp', 'text'],
-                          ['link_ig', 'Tautan Instagram', 'text'],
-                          ['link_tiktok', 'Tautan TikTok', 'text'],
-                          ['email', 'Email Restoran', 'email'],
-                          ['link_linkedin', 'Tautan LinkedIn', 'text'],
-                        ] as [keyof FooterData, string, string][]
-                      ).map(([kunci, label, tipe]) => (
+                          ['judul', 'Judul Footer', 'text', true],
+                          ['copyright', 'Copyright Teks', 'text', true],
+                          ['link_wa', 'Tautan WhatsApp', 'text', false],
+                          ['link_ig', 'Tautan Instagram', 'text', false],
+                          ['link_tiktok', 'Tautan TikTok', 'text', false],
+                          ['email', 'Email Restoran', 'email', false],
+                          ['link_linkedin', 'Tautan LinkedIn', 'text', false],
+                        ] as [keyof FooterData, string, string, boolean][]
+                      ).map(([kunci, label, tipe, rich]) => (
                         <div className="mb-3" key={kunci}>
                           <label className="form-label small fw-bold" htmlFor={`footer-${kunci}`}>{label}</label>
-                          <input
-                            id={`footer-${kunci}`}
-                            type={tipe}
-                            className="form-control"
-                            value={(footerData[kunci] as string | undefined) ?? ''}
-                            onChange={(e) => setFooterData({ ...footerData, [kunci]: e.target.value })}
-                          />
+                          {rich ? (
+                            <TextEditor
+                              id={`footer-${kunci}`}
+                              value={(footerData[kunci] as string | undefined) ?? ''}
+                              onChange={(v) => setFooterData({ ...footerData, [kunci]: v })}
+                            />
+                          ) : (
+                            <input
+                              id={`footer-${kunci}`}
+                              type={tipe}
+                              className="form-control"
+                              value={(footerData[kunci] as string | undefined) ?? ''}
+                              onChange={(e) => setFooterData({ ...footerData, [kunci]: e.target.value })}
+                            />
+                          )}
                         </div>
                       ))}
                       <button type="submit" className="btn btn-warning text-white fw-bold w-100 py-2">
