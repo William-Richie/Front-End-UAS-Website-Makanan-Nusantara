@@ -31,12 +31,9 @@ export default function ProfileModal({ show, user, onClose, onSaved, onLogout }:
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
+    // Kunci scroll body sudah diurus oleh react-bootstrap Modal. Mengaturnya lagi secara manual di sini
+    // bisa membuat body tetap overflow: hidden setelah modal ditutup (scroll hilang).
+    return () => window.removeEventListener('keydown', onKey);
   }, [show, onClose]);
 
   if (!show || !user) return null;

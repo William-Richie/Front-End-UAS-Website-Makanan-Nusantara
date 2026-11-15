@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Modal, Form, InputGroup, Button, Row, Col } from 'react-bootstrap';
 import styles from './AuthModal.module.css';
+import { useFocusReturn } from '@/hooks/useFocusReturn';
 import Image from 'next/image';
 import {
   PASSWORD_RULES,
@@ -45,6 +46,7 @@ export default function AuthModal({
   onClose,
   onSuccess,
 }: AuthModalProps) {
+  const handleExited = useFocusReturn(show);
   const [tab, setTab] = useState<Tab>(initialTab);
 
   const [login, setLogin] = useState({ email: '', password: '' });
@@ -87,12 +89,9 @@ export default function AuthModal({
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
+    // Kunci scroll body sudah diurus oleh react-bootstrap Modal. Mengaturnya lagi secara manual di sini
+    // bisa membuat body tetap overflow: hidden setelah modal ditutup (scroll hilang).
+    return () => window.removeEventListener('keydown', onKey);
   }, [show, onClose]);
 
   useEffect(() => {
@@ -200,6 +199,8 @@ export default function AuthModal({
       onHide={onClose}
       centered
       size="lg"
+      restoreFocus={false}
+      onExited={handleExited}
       backdrop="static"
       dialogClassName={styles.authDialog}
       contentClassName={`${styles.authCard} border-0 overflow-hidden`}
