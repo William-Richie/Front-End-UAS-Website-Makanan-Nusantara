@@ -378,6 +378,8 @@ export default function AdminPage() {
     jawaban: '',
   });
 
+  const [editFaqId, setEditFaqId] = useState<number | null>(null);
+
   // Cek sesi login admin
   useEffect(() => {
     // sesi lama yang tersimpan permanen di localStorage dibuang, login admin hanya berlaku selama tab terbuka
@@ -850,27 +852,46 @@ export default function AdminPage() {
   };
 
   // FAQ Handlers
+  const resetFormFaq = () => {
+    setEditFaqId(null);
+    setNewFaq({ pertanyaan: '', jawaban: '' });
+  };
+
+  const handleEditFaq = (f: FaqItem) => {
+    setEditFaqId(f.id);
+    setNewFaq({ pertanyaan: f.pertanyaan, jawaban: f.jawaban });
+    document.getElementById('form-faq')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const handleAddFaq = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newFaq.pertanyaan.trim() || !newFaq.jawaban.trim()) {
+      alert('Pertanyaan dan jawaban wajib diisi.');
+      return;
+    }
+    const sedangEdit = editFaqId !== null;
     try {
-      const res = await fetch('/api/faq', {
-        method: 'POST',
+      const res = await fetch(sedangEdit ? `/api/faq/${editFaqId}` : '/api/faq', {
+        method: sedangEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newFaq),
       });
       if (res.ok) {
-        alert('FAQ berhasil ditambahkan!');
-        setNewFaq({ pertanyaan: '', jawaban: '' });
+        alert(sedangEdit ? 'FAQ berhasil diperbarui!' : 'FAQ berhasil ditambahkan!');
+        resetFormFaq();
         loadFaq();
+      } else {
+        alert('Gagal menyimpan FAQ');
       }
     } catch {
-      alert('Gagal menambah FAQ');
+      alert('Gagal menyimpan FAQ');
     }
   };
 
   const handleDeleteFaq = async (id: number) => {
     if (!confirm('Hapus FAQ ini?')) return;
     await fetch(`/api/faq/${id}`, { method: 'DELETE' });
+    if (editFaqId === id) resetFormFaq();
     loadFaq();
   };
 
@@ -1783,17 +1804,16 @@ export default function AdminPage() {
                 {/* FAQ */}
                 {kelolaTab === 'faq' && (
                   <>
-                    <div className="card shadow-sm border-0 p-4 mb-4">
-                      <h5 className="fw-bold mb-3">Tambah FAQ</h5>
+                    <div id="form-faq" className="card shadow-sm border-0 p-4 mb-4">
+                      <h5 className="fw-bold mb-3">
+                        {editFaqId !== null ? 'Edit FAQ' : 'Tambah FAQ'}
+                      </h5>
                       <form onSubmit={handleAddFaq}>
                         <div className="mb-3">
                           <label className="form-label small fw-bold">Pertanyaan</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            required
+                          <TextEditor
                             value={newFaq.pertanyaan}
-                            onChange={(e) => setNewFaq({ ...newFaq, pertanyaan: e.target.value })}
+                            onChange={(v) => setNewFaq({ ...newFaq, pertanyaan: v })}
                           />
                         </div>
                         <div className="mb-3">
@@ -1804,9 +1824,20 @@ export default function AdminPage() {
                             onChange={(v) => setNewFaq({ ...newFaq, jawaban: v })}
                           />
                         </div>
-                        <button type="submit" className="btn btn-warning text-white fw-bold">
-                          Simpan FAQ
-                        </button>
+                        <div className="d-flex gap-2">
+                          <button type="submit" className="btn btn-warning text-white fw-bold">
+                            {editFaqId !== null ? 'Simpan Perubahan' : 'Simpan FAQ'}
+                          </button>
+                          {editFaqId !== null && (
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary fw-bold"
+                              onClick={resetFormFaq}
+                            >
+                              Batal
+                            </button>
+                          )}
+                        </div>
                       </form>
                     </div>
 
@@ -1816,16 +1847,25 @@ export default function AdminPage() {
                         {faqList.map((f) => (
                           <li key={f.id} className="list-group-item d-flex justify-content-between align-items-start gap-2">
                             <div>
-                              <div className="fw-bold">{f.pertanyaan}</div>
+                              <div className="fw-bold"><RichText teks={f.pertanyaan} /></div>
                               <div className="small text-muted"><RichText teks={f.jawaban} /></div>
                             </div>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => handleDeleteFaq(f.id)}
-                            >
-                              Hapus
-                            </button>
+                            <div className="d-flex gap-2 flex-shrink-0">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => handleEditFaq(f)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => handleDeleteFaq(f.id)}
+                              >
+                                Hapus
+                              </button>
+                            </div>
                           </li>
                         ))}
                       </ul>
