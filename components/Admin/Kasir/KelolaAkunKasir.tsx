@@ -6,6 +6,7 @@ import { ambilDaftar } from '@/lib/adminApi';
 import type { KasirFilter, KasirItem } from './types';
 import './KelolaAkunKasir.css';
 import { useNotify } from '@/components/Common/Notify/NotifyProvider';
+import Select from '@/components/Common/Select/Select';
 
 const WARNA = [
   ['#8b5e34', '#d9ae78'],
@@ -283,22 +284,19 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
                 <div className="kx-body">
                   <div className="kx-name">{k.nama}</div>
                   <div className="kx-user">@{k.username}</div>
-                  <label className="kx-gerai" title="Ubah gerai kasir">
+                  <div className="kx-gerai" title="Ubah gerai kasir">
                     <i className="fa-solid fa-store"></i>
-                    <select
-                      className="kx-select"
+                    <Select
+                      variant="bare"
+                      ariaLabel={`Gerai ${k.nama}`}
                       value={k.gerai}
-                      onChange={(e) => handleGantiGeraiKasir(k, e.target.value)}
-                      aria-label={`Gerai ${k.nama}`}
-                    >
-                      {!branches.some((b) => b.nama === k.gerai) && <option value={k.gerai}>{k.gerai}</option>}
-                      {branches.map((b) => (
-                        <option key={b.id} value={b.nama}>
-                          {b.nama}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      onChange={(v) => handleGantiGeraiKasir(k, v)}
+                      options={[
+                        ...(branches.some((b) => b.nama === k.gerai) ? [] : [{ value: k.gerai, label: k.gerai }]),
+                        ...branches.map((b) => ({ value: b.nama, label: b.nama })),
+                      ]}
+                    />
+                  </div>
                 </div>
 
                 <div className="kx-actions">
