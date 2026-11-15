@@ -1,0 +1,520 @@
+.admin-main .kx-page { width: 100%; }
+
+/* Banner */
+.admin-main .kx-hero {
+    padding: 24px 26px;
+    border-radius: 18px;
+    background: #4a2c17;
+    box-shadow: 0 8px 22px rgba(59,35,20,.16);
+    color: #f7ede1;
+}
+.admin-main .kx-hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.admin-main .kx-hero-text { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.admin-main .kx-hero-icon {
+    flex: 0 0 54px;
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.18);
+    color: #e8c590;
+    font-size: 1.3rem;
+}
+.admin-main .kx-hero .kx-title {
+    margin: 0 0 4px;
+    font-family: var(--font-playfair), 'Playfair Display', serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #fff7ec;
+}
+.admin-main .kx-sub {
+    margin: 0;
+    max-width: 540px;
+    font-size: .9rem;
+    color: rgba(247,237,225,.75);
+}
+
+.admin-main .kx-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 44px;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 11px;
+    background: #c99b63;
+    color: #3b2314;
+    font-size: .92rem;
+    font-weight: 700;
+    box-shadow: 0 6px 14px rgba(0,0,0,.18);
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .kx-add:hover { background: #d8ab74; transform: translateY(-1px); }
+.admin-main .kx-add.dark { background: #4a2c17; color: #fff; box-shadow: 0 6px 14px rgba(74,44,23,.25); }
+.admin-main .kx-add.dark:hover { background: #654329; }
+.admin-main .kx-add:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Ringkasan di banner */
+.admin-main .kx-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 22px;
+}
+.admin-main .kx-stat {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 13px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+}
+.admin-main .kx-stat-icon {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(201,155,99,.25);
+    color: #f0cf9d;
+    font-size: .9rem;
+}
+.admin-main .kx-stat strong {
+    display: block;
+    font-size: 1.35rem;
+    line-height: 1.1;
+    color: #fff;
+}
+.admin-main .kx-stat div span {
+    font-size: .76rem;
+    color: rgba(247,237,225,.7);
+}
+
+/* Filter + cari */
+.admin-main .kx-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 22px 0 18px;
+}
+.admin-main .kx-tabs {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 13px;
+    background: #ecdfcf;
+}
+.admin-main .kx-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #765b47;
+    font-size: .86rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .kx-tab em {
+    padding: 1px 8px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.6);
+    font-size: .73rem;
+    font-style: normal;
+}
+.admin-main .kx-tab:hover { color: #3b2314; }
+.admin-main .kx-tab.on { background: #fff; color: #3b2314; box-shadow: 0 2px 8px rgba(59,35,20,.12); }
+.admin-main .kx-tab.on em { background: #4a2c17; color: #fff; }
+
+.admin-main .kx-search { position: relative; }
+.admin-main .kx-search i {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    font-size: .82rem;
+    color: #a09386;
+    pointer-events: none;
+}
+.admin-main .kx-search input {
+    width: 260px;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 10px 14px 10px 38px;
+    border: 1px solid #dfd0bf;
+    border-radius: 12px;
+    background: #fff;
+    color: #3b2314;
+    font-size: .9rem;
+}
+.admin-main .kx-search input:focus {
+    outline: none;
+    border-color: #b68b5b;
+    box-shadow: 0 0 0 3px rgba(182,139,91,.15);
+}
+
+/* Kartu akun profil */
+.admin-main .kx-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+    gap: 18px;
+}
+.admin-main .kx-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #fffdf9;
+    border: 1px solid #eee2d5;
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(59,35,20,.07);
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+.admin-main .kx-card:hover { box-shadow: 0 12px 26px rgba(59,35,20,.13); transform: translateY(-3px); }
+.admin-main .kx-strip { height: 68px; }
+.admin-main .kx-pill {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.92);
+    color: #85776a;
+    font-size: .73rem;
+    font-weight: 700;
+}
+.admin-main .kx-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: #b9ab9c; }
+.admin-main .kx-pill.on { color: #2f8a55; }
+.admin-main .kx-pill.on .kx-pill-dot { background: #3d9a5f; box-shadow: 0 0 0 3px rgba(61,154,95,.2); }
+
+.admin-main .kx-avatar {
+    position: relative;
+    z-index: 1;
+    width: 64px;
+    height: 64px;
+    margin: -32px auto 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid #fffdf9;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(59,35,20,.18);
+    color: #fff;
+    font-family: var(--font-playfair), serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+.admin-main .kx-body { padding: 10px 16px 16px; text-align: center; }
+.admin-main .kx-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #3b2314;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.admin-main .kx-user {
+    margin-bottom: 12px;
+    font-size: .84rem;
+    color: #85776a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.admin-main .kx-gerai {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 10px 0 13px;
+    margin: 0;
+    border: 1px solid #e8dac9;
+    border-radius: 11px;
+    background: #faf3ea;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .kx-gerai:hover { border-color: #c9ae8d; background: #f6ebdd; }
+.admin-main .kx-gerai i { color: #8b5e34; font-size: .85rem; }
+.admin-main .kx-select {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #4a2c17;
+    font-size: .86rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.admin-main .kx-select:focus { outline: none; }
+.admin-main .kx-gerai:focus-within { border-color: #b68b5b; box-shadow: 0 0 0 3px rgba(182,139,91,.18); }
+
+.admin-main .kx-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: auto;
+    border-top: 1px solid #f0e7dc;
+}
+.admin-main .kx-act {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 4px 11px;
+    border: none;
+    border-left: 1px solid #f0e7dc;
+    background: transparent;
+    color: #6b5444;
+    font-size: .72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .kx-act:first-child { border-left: none; }
+.admin-main .kx-act i { font-size: .98rem; }
+.admin-main .kx-act:hover { background: #fcf5eb; color: #3b2314; }
+.admin-main .kx-act.danger { color: #9a4040; }
+.admin-main .kx-act.danger:hover { background: #fbeeee; color: #8f3535; }
+
+/* Akun kasir nonaktif */
+.admin-main .kx-card.is-off .kx-strip,
+.admin-main .kx-card.is-off .kx-avatar { filter: grayscale(1); opacity: .5; }
+.admin-main .kx-card.is-off .kx-name,
+.admin-main .kx-card.is-off .kx-user { opacity: .6; }
+
+/* Kosong */
+.admin-main .kx-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 44px 20px;
+    text-align: center;
+    background: #fffaf3;
+    border: 2px dashed #dfd0bf;
+    border-radius: 18px;
+    color: #85776a;
+}
+.admin-main .kx-empty-icon {
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    border-radius: 50%;
+    background: #f1e6d9;
+    color: #8b5e34;
+    font-size: 1.6rem;
+}
+.admin-main .kx-empty strong { font-size: 1.05rem; color: #4a2c17; }
+.admin-main .kx-empty .kx-add { margin-top: 14px; }
+
+/* Pop-up tambah akun kasir */
+.admin-main .kx-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(40,22,10,.55);
+    backdrop-filter: blur(2px);
+    animation: kxFade .18s ease;
+}
+.admin-main .kx-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(760px, 100%);
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+    overflow: hidden;
+    background: #fffaf4;
+    border-radius: 22px;
+    box-shadow: 0 20px 55px rgba(0,0,0,.3);
+    animation: kxPop .22s ease;
+}
+@keyframes kxFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kxPop { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+.admin-main .kx-modal-head {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 74px 18px 28px;
+    border-bottom: 1px solid #f0e4d6;
+}
+.admin-main .kx-modal-icon {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #c99b63, #e2bd8a);
+    color: #3b2314;
+    font-size: 1.15rem;
+}
+.admin-main .kx-modal-title {
+    font-family: var(--font-playfair), 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #3b2314;
+}
+.admin-main .kx-modal-sub {
+    margin: 2px 0 0;
+    font-size: .86rem;
+    color: #85776a;
+}
+.admin-main .kx-modal-close {
+    position: absolute;
+    top: 50%;
+    right: 22px;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: #f1e6d9;
+    color: #654936;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .kx-modal-close:hover { background: #e4d3bf; }
+
+.admin-main .kx-form { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.admin-main .kx-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    padding: 20px 28px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #cdb79d transparent;
+}
+.admin-main .kx-modal-body::-webkit-scrollbar { width: 6px; }
+.admin-main .kx-modal-body::-webkit-scrollbar-track { background: transparent; border: none; }
+.admin-main .kx-modal-body::-webkit-scrollbar-thumb { background: #cdb79d; border-radius: 6px; }
+.admin-main .kx-field { min-width: 0; }
+.admin-main .kx-field.wide { grid-column: 1 / -1; }
+.admin-main .kx-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: .85rem;
+    font-weight: 700;
+    color: #4a2c17;
+}
+.admin-main .kx-pass { position: relative; }
+.admin-main .kx-pass .form-control { padding-right: 44px; }
+.admin-main .kx-pass-btn {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #85776a;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .kx-pass-btn:hover { background: #f1e6d9; color: #4a2c17; }
+
+.admin-main .kx-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-main .kx-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 15px;
+    border: 1.5px solid #dfd0bf;
+    border-radius: 999px;
+    background: #fff;
+    color: #4a2c17;
+    font-size: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .kx-chip i { font-size: .78rem; color: #b68b5b; }
+.admin-main .kx-chip:hover { border-color: #b68b5b; }
+.admin-main .kx-chip.on { background: #4a2c17; border-color: #4a2c17; color: #fff; }
+.admin-main .kx-chip.on i { color: #e8c590; }
+.admin-main .kx-hint { font-size: .85rem; color: #a09386; }
+
+.admin-main .kx-form-actions {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 28px 20px;
+    border-top: 1px solid #f0e4d6;
+}
+.admin-main .kx-form-actions .kx-add { min-width: 150px; }
+.admin-main .kx-ghost {
+    min-width: 110px;
+    min-height: 44px;
+    border: 1px solid #cdbba9;
+    border-radius: 11px;
+    background: #fff;
+    color: #654936;
+    font-size: .92rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.admin-main .kx-ghost:hover { background: #f1e6d9; }
+
+@media (max-width: 768px) {
+    .admin-main .kx-hero { padding: 20px 18px; }
+}
+@media (max-width: 576px) {
+    .admin-main .kx-hero-text { align-items: flex-start; }
+    .admin-main .kx-hero-icon { flex-basis: 46px; width: 46px; height: 46px; font-size: 1.1rem; }
+    .admin-main .kx-hero .kx-title { font-size: 1.4rem; }
+    .admin-main .kx-add { width: 100%; }
+    .admin-main .kx-stats { gap: 8px; }
+    .admin-main .kx-stat { flex-direction: column; gap: 6px; padding: 11px 6px; text-align: center; }
+    .admin-main .kx-toolbar { flex-direction: column; align-items: stretch; }
+    .admin-main .kx-tabs { display: flex; }
+    .admin-main .kx-tab { flex: 1; justify-content: center; padding: 8px 6px; }
+    .admin-main .kx-search input { width: 100%; }
+    .admin-main .kx-grid { grid-template-columns: 1fr; }
+    .admin-main .kx-modal-head { padding: 16px 62px 14px 18px; }
+    .admin-main .kx-modal-close { right: 14px; }
+    .admin-main .kx-modal-body { grid-template-columns: 1fr; padding: 16px 18px; gap: 14px; }
+    .admin-main .kx-form-actions { padding: 12px 18px 16px; }
+    .admin-main .kx-form-actions .kx-ghost,
+    .admin-main .kx-form-actions .kx-add { flex: 1; min-width: 0; }
+}

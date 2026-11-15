@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// PUT /api/admin/users/status  body: { ids: string[], Is_Active: boolean }
 export async function PUT(req: Request) {
   try {
     const { ids, Is_Active } = (await req.json()) as { ids: string[]; Is_Active: boolean };

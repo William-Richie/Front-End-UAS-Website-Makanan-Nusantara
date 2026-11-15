@@ -12,6 +12,9 @@ interface NavbarProps {
   onOpenAuth?: (tab: 'login' | 'register') => void;
   onLogout?: () => void;
   onOpenProfile?: () => void;
+  /** jumlah pesan Mail yang belum dibaca */
+  mailCount?: number;
+  onOpenMail?: () => void;
 }
 
 export default function Navbar({
@@ -19,6 +22,8 @@ export default function Navbar({
   onOpenAuth,
   onLogout,
   onOpenProfile,
+  mailCount = 0,
+  onOpenMail,
 }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -127,6 +132,18 @@ export default function Navbar({
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
+          )}
+
+          {user && (
+            <button
+              type="button"
+              className={styles.mailBtn}
+              onClick={() => onOpenMail?.()}
+              aria-label={mailCount > 0 ? `Buka Mail, ${mailCount} pesan baru` : 'Buka Mail'}
+            >
+              <i className="fa-solid fa-envelope" />
+              {mailCount > 0 && <span className={styles.mailBadge}>{mailCount > 9 ? '9+' : mailCount}</span>}
+            </button>
           )}
         </div>
 

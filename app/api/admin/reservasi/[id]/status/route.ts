@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 
 const STATUS_VALID = ['pending', 'approved', 'complete', 'dibatalkan'];
 
-// PUT /api/admin/reservasi/:id/status  body: { status }
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;

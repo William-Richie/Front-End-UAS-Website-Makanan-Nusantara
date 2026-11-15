@@ -54,6 +54,8 @@ model Reservasi {
   catatan    String?
   status     String   @default("pending")
   created_at DateTime @default(now())
+  meja_id     Int?
+  nomor_meja  Int?
 
   user       User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
@@ -104,7 +106,14 @@ model FaqPertanyaan {
   pertanyaan String
   dibaca     Boolean  @default(false)
   created_at DateTime @default(now())
+  user_id     String?
+  jawaban     String?
+  dijawab_at  DateTime?
+  kirim_mail  Boolean   @default(false)
+  tampil_web  Boolean   @default(false)
+  dibaca_user Boolean   @default(false)
 
+  @@index([user_id])
   @@map("faq_pertanyaan")
 }
 
@@ -176,4 +185,44 @@ model PengaturanOrbit {
   warna     String @default("#ffffff")
 
   @@map("pengaturan_orbit")
+}
+
+
+// 13. Kasir (Akun Kasir: satu akun hanya memiliki akses ke satu gerai)
+model Kasir {
+  id         String   @id @default(uuid())
+  nama       String
+  username   String   @unique
+  password   String
+  gerai      String
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  @@map("kasir")
+}
+
+// 14. Reservasi Booking Table Schema
+model Meja {
+  id             Int        @id @default(autoincrement())
+  gerai          String
+  tipe           String     // indoor | outdoor | vip
+  nomor          Int
+  kapasitas_min  Int        @default(1)
+  kapasitas_maks Int        @default(4)
+  slots          MejaSlot[]
+
+  @@unique([gerai, tipe, nomor])
+}
+
+model MejaSlot {
+  id        Int     @id @default(autoincrement())
+  meja_id   Int
+  tanggal   String  // 'YYYY-MM-DD' atau '*' (berlaku semua tanggal)
+  jam       String  // 'HH:MM' atau '*' (berlaku semua jam)
+  published Boolean @default(false)
+  open      Boolean @default(true)
+  catatan   String  @default("") @db.VarChar(100)
+  meja      Meja    @relation(fields: [meja_id], references: [id], onDelete: Cascade)
+
+  @@unique([meja_id, tanggal, jam])
 }
