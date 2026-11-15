@@ -717,6 +717,10 @@ export default function AdminPage() {
 
   // Kelola Favorit Slot (1 - 5)
   const handleSaveFavorit = async (slot: number, menuId: number) => {
+    if (menuId && favoritList.some((f) => f.slot !== slot && f.menu_id === menuId)) {
+      alert('Menu ini sudah dipakai di slot lain. Pilih menu yang berbeda.');
+      return;
+    }
     try {
       const selectedItem = menus.find((m) => m.id === menuId);
       const updatedData = favoritList.map((f) => ({ ...f }));
@@ -1577,11 +1581,17 @@ export default function AdminPage() {
                                   onChange={(e) => handleSaveFavorit(slotNum, Number(e.target.value))}
                                 >
                                   <option value="">-- Pilih Menu --</option>
-                                  {menus.map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                      {m.nama_makanan} - ({m.nama_kategori})
-                                    </option>
-                                  ))}
+                                  {menus.map((m) => {
+                                    const dipakaiSlotLain = favoritList.some(
+                                      (f) => f.slot !== slotNum && f.menu_id === m.id
+                                    );
+                                    return (
+                                      <option key={m.id} value={m.id} disabled={dipakaiSlotLain}>
+                                        {m.nama_makanan} - ({m.nama_kategori})
+                                        {dipakaiSlotLain ? ' (sudah dipilih)' : ''}
+                                      </option>
+                                    );
+                                  })}
                                 </select>
                               </div>
                             );
