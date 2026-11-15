@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Container, Row, Col } from 'react-bootstrap';
 import styles from './Hero.module.css';
+import RichText from '@/components/Common/RichText/RichText';
 
 interface HeroProps {
   teksHero?: string | null;
@@ -19,8 +20,8 @@ export default function Hero({ teksHero }: HeroProps) {
               <p className="hero-eyebrow reveal" id="hero-eyebrow">
                 Cita Rasa Timur Indonesia
               </p>
-              <h1
-                id="judul-hero" className={`${styles.heroTitle} reveal reveal-d1`} style={{ whiteSpace: 'pre-line' }} > {teksHero || 'Welcome to Our Papeda Restaurant'}
+              <h1 id="judul-hero" className={`${styles.heroTitle} reveal reveal-d1`} style={{ whiteSpace: 'pre-line' }}>
+                <RichText teks={teksHero || 'Welcome to Our Papeda Restaurant'} />
               </h1>
               <p className={`${styles.heroSub} reveal reveal-d2`} id="hero-sub">
                 Cita rasa asli Timur Indonesia, dari sagu hingga kuah kuning.
