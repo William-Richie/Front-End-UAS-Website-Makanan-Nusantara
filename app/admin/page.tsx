@@ -7,6 +7,7 @@ import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminC
 import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePreview';
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
 import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
+import LevelPedas from '@/components/Admin/LevelCabe/LevelPedas';
 import TextEditor from '@/components/Admin/TextEditor/TextEditor';
 import RichText from '@/components/Common/RichText/RichText';
 import { JAM_RESERVASI } from '@/lib/jam';
@@ -1390,11 +1391,15 @@ export default function AdminPage() {
                 <div className="col-md-4">
                   <label className="form-label small fw-bold">Harga (Rp)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     className="form-control"
                     required
-                    value={newMenu.harga}
-                    onChange={(e) => setNewMenu({ ...newMenu, harga: Number(e.target.value) })}
+                    value={newMenu.harga ? String(newMenu.harga).replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''}
+                    onChange={(e) => {
+                      const angka = e.target.value.replace(/\D/g, '').slice(0, 9);
+                      setNewMenu({ ...newMenu, harga: angka ? Number(angka) : 0 });
+                    }}
                   />
                 </div>
                 <div className="col-md-6">
@@ -1407,15 +1412,11 @@ export default function AdminPage() {
                     onChange={(e) => setNewMenu({ ...newMenu, gambar: e.target.value })}
                   />
                 </div>
-                <div className="col-md-3">
-                  <label className="form-label small fw-bold">Level Pedas (0 - 5)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    min="0"
-                    max="5"
+                <div className="col-md-4">
+                  <label className="form-label small fw-bold">Level Pedas</label>
+                  <LevelPedas
                     value={newMenu.pedas}
-                    onChange={(e) => setNewMenu({ ...newMenu, pedas: Number(e.target.value) })}
+                    onChange={(v) => setNewMenu({ ...newMenu, pedas: v })}
                   />
                 </div>
                 <div className="col-md-3 d-flex align-items-end gap-2">

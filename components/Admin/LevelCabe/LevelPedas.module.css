@@ -1,0 +1,84 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cabai {
+  padding: 2px 3px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cabai:focus-visible {
+  outline: 2px solid #c9a17a;
+}
+
+.efek {
+  display: inline-block;
+}
+
+.ikon {
+  display: block;
+  font-size: 1.7rem;
+  color: #d9d0c6;
+  -webkit-text-stroke: 2px #bfb4a8;
+  paint-order: stroke fill;
+  transform: rotate(0deg);
+  transition: color 0.2s, -webkit-text-stroke-color 0.2s, filter 0.2s, transform 0.2s;
+}
+
+.cabai:hover .ikon {
+  transform: rotate(-10deg) scale(1.12);
+}
+
+.menyala .ikon {
+  color: #ff4d3a;
+  -webkit-text-stroke: 3px #7a1f16;
+  filter:
+    drop-shadow(0 3px 0 #7a1f16)
+    drop-shadow(0 0 6px rgba(255, 77, 58, 0.5));
+  transform: rotate(-8deg);
+}
+
+.cabai:hover.menyala .ikon {
+  transform: rotate(-14deg) scale(1.15);
+}
+
+.teks {
+  margin-left: 8px;
+  font-size: 0.8rem;
+  color: #8a6d55;
+}
+
+.pop {
+  animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.turun {
+  animation: turun 0.3s ease-out both;
+}
+
+@keyframes pop {
+  0%   { transform: scale(0.6); }
+  45%  { transform: scale(1.5) rotate(-14deg); }
+  70%  { transform: scale(0.9) rotate(6deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes turun {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.65); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop,
+  .turun {
+    animation: none;
+  }
+}
