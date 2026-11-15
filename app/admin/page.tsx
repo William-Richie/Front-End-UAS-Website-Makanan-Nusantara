@@ -10,6 +10,7 @@ import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
 import LevelPedas from '@/components/Admin/LevelCabe/LevelPedas';
 import TextEditor from '@/components/Admin/TextEditor/TextEditor';
 import RichText from '@/components/Common/RichText/RichText';
+import Select from '@/components/Common/Select/Select';
 import { JAM_RESERVASI } from '@/lib/jam';
 import KotakMeja, { type MejaItem } from '@/components/Admin/Meja/KotakMeja';
 import PertanyaanMasuk from '@/components/Admin/Pertanyaan/PertanyaanMasuk';
@@ -1383,24 +1384,23 @@ export default function AdminPage() {
               <form onSubmit={handleAddMenu} className="row g-3" noValidate>
                 <div className="col-md-4">
                   <label className="form-label small fw-bold">Kategori</label>
-                  <select
-                    className="form-select"
+                  <Select
+                    ariaLabel="Kategori"
                     value={kategoriBaru ? '__baru__' : newMenu.nama_kategori}
-                    onChange={(e) => {
-                      if (e.target.value === '__baru__') {
+                    onChange={(v) => {
+                      if (v === '__baru__') {
                         setKategoriBaru(true);
                         setNewMenu({ ...newMenu, nama_kategori: '' });
                       } else {
                         setKategoriBaru(false);
-                        setNewMenu({ ...newMenu, nama_kategori: e.target.value });
+                        setNewMenu({ ...newMenu, nama_kategori: v });
                       }
                     }}
-                  >
-                    {daftarKategori.map((k) => (
-                      <option key={k} value={k}>{k}</option>
-                    ))}
-                    <option value="__baru__">+ Kategori baru...</option>
-                  </select>
+                    options={[
+                      ...daftarKategori.map((k) => ({ value: k, label: k })),
+                      { value: '__baru__', label: 'Kategori baru...', icon: 'fa-solid fa-plus' },
+                    ]}
+                  />
                   {kategoriBaru && (
                     <input
                       type="text"
@@ -1485,30 +1485,31 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div className="col-md-3">
-                  <select
-                    className="form-select"
+                  <Select
+                    ariaLabel="Filter kategori"
                     value={filterAktif}
-                    onChange={(e) => setFilterKategori(e.target.value)}
-                  >
-                    <option value="">Semua kategori ({menus.length})</option>
-                    {kategoriAda.map((k) => (
-                      <option key={k} value={k}>
-                        {k} ({menus.filter((m) => m.nama_kategori === k).length})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setFilterKategori}
+                    options={[
+                      { value: '', label: `Semua kategori (${menus.length})` },
+                      ...kategoriAda.map((k) => ({
+                        value: k,
+                        label: `${k} (${menus.filter((m) => m.nama_kategori === k).length})`,
+                      })),
+                    ]}
+                  />
                 </div>
                 <div className="col-md-3">
-                  <select
-                    className="form-select"
+                  <Select
+                    ariaLabel="Urutkan menu"
                     value={urutMenu}
-                    onChange={(e) => setUrutMenu(e.target.value as UrutMenu)}
-                  >
-                    <option value="terbaru">Terbaru dimasukkan</option>
-                    <option value="terlama">Terlama dimasukkan</option>
-                    <option value="az">Nama A–Z</option>
-                    <option value="za">Nama Z–A</option>
-                  </select>
+                    onChange={(v) => setUrutMenu(v as UrutMenu)}
+                    options={[
+                      { value: 'terbaru', label: 'Terbaru dimasukkan' },
+                      { value: 'terlama', label: 'Terlama dimasukkan' },
+                      { value: 'az', label: 'Nama A–Z' },
+                      { value: 'za', label: 'Nama Z–A' },
+                    ]}
+                  />
                 </div>
                 <div className="col-md-1 d-grid">
                   <button
@@ -1650,25 +1651,27 @@ export default function AdminPage() {
                                 <label className="form-label fw-bold text-warning small mb-1">
                                   {slotLabels[slotNum - 1]}
                                 </label>
-                                <select
-                                  className="form-select form-select-sm"
-                                  value={currentSlot?.menu_id || ''}
-                                  onChange={(e) => handleSaveFavorit(slotNum, Number(e.target.value))}
-                                >
-                                  <option value="">-- Pilih Menu --</option>
-                                  {menus.map((m) => {
-                                    // menu yang sudah dipilih di slot lain tidak bisa dipilih lagi
-                                    const dipakaiSlotLain = favoritList.some(
-                                      (f) => f.slot !== slotNum && f.menu_id === m.id
-                                    );
-                                    return (
-                                      <option key={m.id} value={m.id} disabled={dipakaiSlotLain}>
-                                        {m.nama_makanan} - ({m.nama_kategori})
-                                        {dipakaiSlotLain ? ' (sudah dipilih)' : ''}
-                                      </option>
-                                    );
-                                  })}
-                                </select>
+                                <Select
+                                  size="sm"
+                                  ariaLabel={slotLabels[slotNum - 1]}
+                                  value={currentSlot?.menu_id ? String(currentSlot.menu_id) : ''}
+                                  onChange={(v) => handleSaveFavorit(slotNum, Number(v))}
+                                  options={[
+                                    { value: '', label: '-- Pilih Menu --' },
+                                    ...menus.map((m) => {
+                                      // menu yang sudah dipilih di slot lain tidak bisa dipilih lagi
+                                      const dipakaiSlotLain = favoritList.some(
+                                        (f) => f.slot !== slotNum && f.menu_id === m.id
+                                      );
+                                      return {
+                                        value: String(m.id),
+                                        label: `${m.nama_makanan} - (${m.nama_kategori})`,
+                                        note: dipakaiSlotLain ? 'sudah dipilih' : undefined,
+                                        disabled: dipakaiSlotLain,
+                                      };
+                                    }),
+                                  ]}
+                                />
                               </div>
                             );
                           })}
@@ -2384,15 +2387,12 @@ export default function AdminPage() {
               <div className="card shadow-sm border-0 p-4 mb-4">
                 <div className="row g-2 mb-3">
                   <div className="col-md-5">
-                    <select
-                      className="form-select"
+                    <Select
+                      ariaLabel="Gerai"
                       value={geraiAktif}
-                      onChange={(e) => setRuanganGerai(e.target.value)}
-                    >
-                      {branches.map((b) => (
-                        <option key={b.id} value={b.nama}>{b.nama}</option>
-                      ))}
-                    </select>
+                      onChange={setRuanganGerai}
+                      options={branches.map((b) => ({ value: b.nama, label: b.nama, icon: 'fa-solid fa-store' }))}
+                    />
                   </div>
                   <div className="col-md-4">
                     <input
@@ -2403,15 +2403,12 @@ export default function AdminPage() {
                     />
                   </div>
                   <div className="col-md-3">
-                    <select
-                      className="form-select"
+                    <Select
+                      ariaLabel="Sesi"
                       value={ruanganSesi}
-                      onChange={(e) => setRuanganSesi(e.target.value)}
-                    >
-                      {JAM_RESERVASI.map((j) => (
-                        <option key={j} value={j}>{j}</option>
-                      ))}
-                    </select>
+                      onChange={setRuanganSesi}
+                      options={JAM_RESERVASI.map((j) => ({ value: j, label: j }))}
+                    />
                   </div>
                 </div>
 

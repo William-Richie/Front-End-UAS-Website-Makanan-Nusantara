@@ -258,19 +258,7 @@
 }
 .admin-main .kx-gerai:hover { border-color: #c9ae8d; background: #f6ebdd; }
 .admin-main .kx-gerai i { color: #8b5e34; font-size: .85rem; }
-.admin-main .kx-select {
-    flex: 1 1 0;
-    min-width: 0;
-    min-height: 40px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    color: #4a2c17;
-    font-size: .86rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-.admin-main .kx-select:focus { outline: none; }
+.admin-main .kx-gerai > div { flex: 1 1 0; min-width: 0; }
 .admin-main .kx-gerai:focus-within { border-color: #b68b5b; box-shadow: 0 0 0 3px rgba(182,139,91,.18); }
 
 .admin-main .kx-actions {
