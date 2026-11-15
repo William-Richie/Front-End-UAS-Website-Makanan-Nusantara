@@ -6,6 +6,7 @@ import { buildReceiptHtml, type OrderType, type Receipt } from '@/lib/receiptPri
 import type { CartItem } from '@/components/User/FloatingButton/FloatingButton';
 import { BATAS_BAYAR_KASIR_DETIK } from '@/lib/paymentTimeout';
 import { namaSingkatGerai } from '@/lib/gerai';
+import { useNotify } from '@/components/Common/Notify/NotifyProvider';
 
 const REFRESH_MS = 4000;
 const BATAS_BAYAR_MENIT = Math.round(BATAS_BAYAR_KASIR_DETIK / 60);
@@ -183,14 +184,12 @@ function buatStruk(p: Pesanan): Receipt {
   };
 }
 
-function cetakStruk(p: Pesanan) {
+function cetakStruk(p: Pesanan): boolean {
   const w = window.open('', '_blank', 'width=420,height=700');
-  if (!w) {
-    alert('Pop-up diblokir browser. Izinkan pop-up untuk mencetak struk.');
-    return;
-  }
+  if (!w) return false;
   w.document.write(buildReceiptHtml(buatStruk(p)));
   w.document.close();
+  return true;
 }
 
 function bunyi() {
@@ -229,6 +228,12 @@ async function ubahPesanan(id: number, body: Record<string, string>) {
 }
 
 export default function KasirPage() {
+  const notify = useNotify();
+  const cetak = (p: Pesanan) => {
+    if (!cetakStruk(p)) {
+      notify.warning('Pop-up diblokir browser. Izinkan pop-up untuk mencetak struk.', 'Cetak struk gagal');
+    }
+  };
   const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
@@ -396,6 +401,7 @@ export default function KasirPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!notify.validateForm(e.currentTarget)) return;
     try {
       const res = await fetch('/api/cashier/login', {
         method: 'POST',
@@ -438,7 +444,16 @@ export default function KasirPage() {
       setKonfirmasiId(p.id);
       return;
     }
-    if (aksi === 'batal' && !confirm(`Batalkan pesanan #${p.id} atas nama ${p.nama}?`)) return;
+    if (aksi === 'batal') {
+      const yakin = await notify.confirm({
+        title: 'Batalkan Pesanan?',
+        message: `Pesanan #${p.id} atas nama ${p.nama} akan dibatalkan.`,
+        confirmText: 'Ya, Batalkan',
+        cancelText: 'Kembali',
+        danger: true,
+      });
+      if (!yakin) return;
+    }
 
     setKonfirmasiId(null);
     setSibukId(p.id);
@@ -672,7 +687,7 @@ export default function KasirPage() {
                 </div>
                 {(p.status === 'selesai' || p.status === 'pending' || p.status === 'diproses') && (
                   <div className={styles.actions}>
-                    <button type="button" className={styles.btnReprint} onClick={() => cetakStruk(p)}>
+                    <button type="button" className={styles.btnReprint} onClick={() => cetak(p)}>
                       <i className="fa-solid fa-print"></i> Cetak Ulang Struk
                     </button>
                   </div>
@@ -690,7 +705,7 @@ export default function KasirPage() {
   if (!loggedIn) {
     return (
       <div className={styles.loginWrap}>
-        <form className={styles.loginCard} onSubmit={handleLogin}>
+        <form className={styles.loginCard} onSubmit={handleLogin} noValidate>
           <div className={styles.loginIcon}>
             <i className="fa-solid fa-cash-register"></i>
           </div>
@@ -837,7 +852,7 @@ export default function KasirPage() {
             {rupiah(baruDibayar.total)}) diterima dan masuk antrian.
           </span>
           <span className={styles.alertActions}>
-            <button type="button" className={styles.btnSmall} onClick={() => cetakStruk(baruDibayar)}>
+            <button type="button" className={styles.btnSmall} onClick={() => cetak(baruDibayar)}>
               <i className="fa-solid fa-print"></i> Cetak Struk
             </button>
             <button type="button" className={styles.btnClose} onClick={() => setBaruDibayar(null)} aria-label="Tutup">
@@ -1032,7 +1047,7 @@ export default function KasirPage() {
                               </button>
                             )}
                             {k.key === 'selesai' && (
-                              <button type="button" className={styles.btnReprint} onClick={() => cetakStruk(p)}>
+                              <button type="button" className={styles.btnReprint} onClick={() => cetak(p)}>
                                 <i className="fa-solid fa-print"></i> Cetak Ulang Struk
                               </button>
                             )}
@@ -1041,7 +1056,7 @@ export default function KasirPage() {
                                 type="button"
                                 className={styles.btnIcon}
                                 title="Cetak struk"
-                                onClick={() => cetakStruk(p)}
+                                onClick={() => cetak(p)}
                               >
                                 <i className="fa-solid fa-print"></i>
                               </button>

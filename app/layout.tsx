@@ -3,6 +3,7 @@ import { Playfair_Display, Lato } from 'next/font/google';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import './globals.css';
+import { NotifyProvider } from '@/components/Common/Notify/NotifyProvider';
 
 const playfair = Playfair_Display({
   variable: '--font-playfair',
@@ -41,7 +42,9 @@ export default function RootLayout({
           referrerPolicy="no-referrer"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <NotifyProvider>{children}</NotifyProvider>
+      </body>
     </html>
   );
 }
