@@ -6,7 +6,6 @@ import 'leaflet/dist/leaflet.css';
 import { Container, Button, Card, Row, Col, Stack, Ratio } from 'react-bootstrap';
 import styles from './LocationSection.module.css';
 import { BranchMap } from '../Reservation/ReservationSection';
-import RichText from '@/components/Common/RichText/RichText';
 
 interface LocationSectionProps {
   branches: BranchMap[];

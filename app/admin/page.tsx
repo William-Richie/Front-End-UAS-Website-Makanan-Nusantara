@@ -7,6 +7,7 @@ import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminC
 import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePreview';
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
 import type { FavoriteItem } from '@/components/User/Orbit/OrbitCarousel';
+import LevelPedas from '@/components/Admin/LevelCabe/LevelPedas';
 import TextEditor from '@/components/Admin/TextEditor/TextEditor';
 import RichText from '@/components/Common/RichText/RichText';
 import { JAM_RESERVASI } from '@/lib/jam';
@@ -75,6 +76,7 @@ export interface UserItem {
   is_active?: boolean | string | number | null;
 }
 
+type UrutMenu = 'terbaru' | 'terlama' | 'az' | 'za';
 type ReservasiTabKey = 'user' | 'pending' | 'approved' | 'complete' | 'dibatalkan';
 type UserFilter = '' | 'active' | 'blocked';
 type UserAksi = '' | 'modifikasi' | 'blokir' | 'hapus';
@@ -114,6 +116,8 @@ const adminFetch = (url: string, opts: RequestInit = {}) => {
 };
 
 // Menu di halaman Kelola: tiap tombol punya bagian di preview yang ikut digulir
+const KATEGORI_DEFAULT = ['MAIN COURSE'];
+
 const KELOLA_MENU = [
   { key: 'home', label: 'Home & About', icon: 'fa-house', target: '#home' },
   { key: 'faq', label: 'FAQ', icon: 'fa-circle-question', target: '#faq' },
@@ -274,6 +278,12 @@ export default function AdminPage() {
   }, []);
 
   // Form Tambah Menu State
+  const [kategoriBaru, setKategoriBaru] = useState(false);
+
+  const daftarKategori = Array.from(
+    new Set([...KATEGORI_DEFAULT, ...menus.map((m) => m.nama_kategori)])
+  );
+
   const [newMenu, setNewMenu] = useState<{
     nama_kategori: string;
     nama_makanan: string;
@@ -291,6 +301,25 @@ export default function AdminPage() {
     status: true,
     deskripsi: '',
   });
+
+  const [cariMenu, setCariMenu] = useState('');
+  const [filterKategori, setFilterKategori] = useState('');
+  const [urutMenu, setUrutMenu] = useState<UrutMenu>('terbaru');
+
+  const kategoriAda = Array.from(new Set(menus.map((m) => m.nama_kategori))).sort();
+  const filterAktif = kategoriAda.includes(filterKategori) ? filterKategori : '';
+
+  const menuTampil = menus
+    .filter((m) => filterAktif === '' || m.nama_kategori === filterAktif)
+    .filter((m) => {
+      const k = cariMenu.toLowerCase().trim();
+      return !k || m.nama_makanan.toLowerCase().includes(k) || m.nama_kategori.toLowerCase().includes(k);
+    })
+    .sort((a, b) => {
+      if (urutMenu === 'az') return a.nama_makanan.localeCompare(b.nama_makanan, 'id', { sensitivity: 'base' });
+      if (urutMenu === 'za') return b.nama_makanan.localeCompare(a.nama_makanan, 'id', { sensitivity: 'base' });
+      return urutMenu === 'terbaru' ? b.id - a.id : a.id - b.id;
+    });
 
   // Meja (menggantikan pengaturan ruangan lama)
   const [mejaList, setMejaList] = useState<MejaItem[]>([]);
@@ -608,11 +637,12 @@ export default function AdminPage() {
       const res = await fetch(sedangEdit ? `/api/menu/${editMenuId}` : '/api/menu', {
         method: sedangEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMenu),
+        body: JSON.stringify({ ...newMenu, nama_kategori: newMenu.nama_kategori.trim() }),
       });
       if (res.ok) {
         alert(sedangEdit ? 'Menu berhasil diperbarui!' : 'Menu berhasil ditambahkan!');
         setEditMenuId(null);
+        setKategoriBaru(false);
         setNewMenu({
           nama_kategori: 'MAIN COURSE',
           nama_makanan: '',
@@ -633,6 +663,7 @@ export default function AdminPage() {
 
   const resetFormMenu = () => {
     setEditMenuId(null);
+    setKategoriBaru(false);
     setNewMenu({
       nama_kategori: 'MAIN COURSE',
       nama_makanan: '',
@@ -647,6 +678,7 @@ export default function AdminPage() {
   // isi form dengan data menu yang dipilih, lalu gulir ke form
   const handleEditMenu = (m: MenuItem) => {
     setEditMenuId(m.id);
+    setKategoriBaru(false);
     setNewMenu({
       nama_kategori: m.nama_kategori,
       nama_makanan: m.nama_makanan,
@@ -1268,17 +1300,34 @@ export default function AdminPage() {
                   <label className="form-label small fw-bold">Kategori</label>
                   <select
                     className="form-select"
-                    value={newMenu.nama_kategori}
-                    onChange={(e) => setNewMenu({ ...newMenu, nama_kategori: e.target.value })}
+                    value={kategoriBaru ? '__baru__' : newMenu.nama_kategori}
+                    onChange={(e) => {
+                      if (e.target.value === '__baru__') {
+                        setKategoriBaru(true);
+                        setNewMenu({ ...newMenu, nama_kategori: '' });
+                      } else {
+                        setKategoriBaru(false);
+                        setNewMenu({ ...newMenu, nama_kategori: e.target.value });
+                      }
+                    }}
                   >
-                    <option value="APPETIZER">APPETIZER</option>
-                    <option value="MAIN COURSE">MAIN COURSE</option>
-                    <option value="DESSERT">DESSERT</option>
-                    <option value="MINUMAN">MINUMAN</option>
-                    {!['APPETIZER', 'MAIN COURSE', 'DESSERT', 'MINUMAN'].includes(newMenu.nama_kategori) && (
-                      <option value={newMenu.nama_kategori}>{newMenu.nama_kategori}</option>
-                    )}
+                    {daftarKategori.map((k) => (
+                      <option key={k} value={k}>{k}</option>
+                    ))}
+                    <option value="__baru__">+ Kategori baru...</option>
                   </select>
+                  {kategoriBaru && (
+                    <input
+                      type="text"
+                      className="form-control mt-2"
+                      required
+                      autoFocus
+                      maxLength={30}
+                      placeholder="Nama kategori baru"
+                      value={newMenu.nama_kategori}
+                      onChange={(e) => setNewMenu({ ...newMenu, nama_kategori: e.target.value.toUpperCase() })}
+                    />
+                  )}
                 </div>
                 <div className="col-md-4">
                   <label className="form-label small fw-bold">Nama Menu</label>
@@ -1293,11 +1342,15 @@ export default function AdminPage() {
                 <div className="col-md-4">
                   <label className="form-label small fw-bold">Harga (Rp)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     className="form-control"
                     required
-                    value={newMenu.harga}
-                    onChange={(e) => setNewMenu({ ...newMenu, harga: Number(e.target.value) })}
+                    value={newMenu.harga ? String(newMenu.harga).replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''}
+                    onChange={(e) => {
+                      const angka = e.target.value.replace(/\D/g, '').slice(0, 9);
+                      setNewMenu({ ...newMenu, harga: angka ? Number(angka) : 0 });
+                    }}
                   />
                 </div>
                 <div className="col-md-6">
@@ -1310,15 +1363,11 @@ export default function AdminPage() {
                     onChange={(e) => setNewMenu({ ...newMenu, gambar: e.target.value })}
                   />
                 </div>
-                <div className="col-md-3">
-                  <label className="form-label small fw-bold">Level Pedas (0 - 5)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    min="0"
-                    max="5"
+                <div className="col-md-4">
+                  <label className="form-label small fw-bold">Level Pedas</label>
+                  <LevelPedas
                     value={newMenu.pedas}
-                    onChange={(e) => setNewMenu({ ...newMenu, pedas: Number(e.target.value) })}
+                    onChange={(v) => setNewMenu({ ...newMenu, pedas: v })}
                   />
                 </div>
                 <div className="col-md-3 d-flex align-items-end gap-2">
@@ -1335,6 +1384,67 @@ export default function AdminPage() {
             </div>
 
             <div className="card shadow-sm border-0 p-3">
+              <div className="row g-2 mb-3">
+                <div className="col-md-5">
+                  <div className="input-group">
+                    <span className="input-group-text">
+                      <i className="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input
+                      type="search"
+                      className="form-control"
+                      placeholder="Cari nama menu atau kategori..."
+                      value={cariMenu}
+                      onChange={(e) => setCariMenu(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <select
+                    className="form-select"
+                    value={filterAktif}
+                    onChange={(e) => setFilterKategori(e.target.value)}
+                  >
+                    <option value="">Semua kategori ({menus.length})</option>
+                    {kategoriAda.map((k) => (
+                      <option key={k} value={k}>
+                        {k} ({menus.filter((m) => m.nama_kategori === k).length})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-3">
+                  <select
+                    className="form-select"
+                    value={urutMenu}
+                    onChange={(e) => setUrutMenu(e.target.value as UrutMenu)}
+                  >
+                    <option value="terbaru">Terbaru dimasukkan</option>
+                    <option value="terlama">Terlama dimasukkan</option>
+                    <option value="az">Nama A–Z</option>
+                    <option value="za">Nama Z–A</option>
+                  </select>
+                </div>
+                <div className="col-md-1 d-grid">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    title="Reset pencarian"
+                    onClick={() => {
+                      setCariMenu('');
+                      setFilterKategori('');
+                      setUrutMenu('terbaru');
+                    }}
+                  >
+                    <i className="fa-solid fa-rotate-left"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div className="small text-muted mb-2">
+                Menampilkan {menuTampil.length} dari {menus.length} menu
+              </div>
+
               <table className="table table-hover align-middle">
                 <thead>
                   <tr>
@@ -1347,7 +1457,15 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {menus.map((m) => (
+                  {menuTampil.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center text-muted py-4">
+                        Tidak ada menu yang cocok.
+                      </td>
+                    </tr>
+                  )}
+                  
+                  {menuTampil.map((m) => (
                     <tr key={m.id}>
                       <td>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
