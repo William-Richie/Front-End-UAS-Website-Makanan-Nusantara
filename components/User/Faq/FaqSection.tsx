@@ -204,7 +204,7 @@ export default function FaqSection({
             </Modal.Header>
 
             <Modal.Body>
-              <Form className={styles.faqModalBody} onSubmit={handleSubmit}>
+              <Form className={styles.faqModalBody} onSubmit={handleSubmit} noValidate>
                 <p className="small text-muted mb-3">
                   Bertanya sebagai <strong>{user?.nama}</strong>
                 </p>

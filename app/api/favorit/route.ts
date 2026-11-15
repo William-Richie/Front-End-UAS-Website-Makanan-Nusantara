@@ -60,6 +60,16 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Format data tidak valid.' }, { status: 400 });
     }
 
+    const menuTerpilih = items
+      .filter((item) => item.slot && item.menu_id)
+      .map((item) => Number(item.menu_id));
+    if (new Set(menuTerpilih).size !== menuTerpilih.length) {
+      return NextResponse.json(
+        { error: 'Menu yang sama tidak bisa dipilih dua kali' },
+        { status: 400 }
+      );
+    }
+
     // Update or insert slot 1 - 5
     for (const item of items) {
       if (item.slot && item.menu_id) {

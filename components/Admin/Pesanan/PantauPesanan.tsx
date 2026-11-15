@@ -17,6 +17,7 @@ import {
   waktuPesanan,
 } from './pesananUtils';
 import './PantauPesanan.css';
+import { useNotify } from '@/components/Common/Notify/NotifyProvider';
 
 const KEY_GERAI = 'papeda_admin_gerai';
 
@@ -27,6 +28,7 @@ interface PantauPesananProps {
 }
 
 export default function PantauPesanan({ pesananList, branches, onRefresh }: PantauPesananProps) {
+  const notify = useNotify();
   const [filterPesanan, setFilterPesanan] = useState<PesananFilterKey>('aktif');
   const [cariPesanan, setCariPesanan] = useState('');
   const [modeTgl, setModeTgl] = useState<ModeTanggal>('semua');
@@ -66,14 +68,26 @@ export default function PantauPesanan({ pesananList, branches, onRefresh }: Pant
   };
 
   const handleHapusPesanan = async (id: number) => {
-    if (!confirm(`Hapus pesanan #${id} secara permanen?`)) return;
+    const yakin = await notify.confirm({
+      title: 'Hapus Pesanan?',
+      message: `Pesanan #${id} akan dihapus permanen.`,
+      confirmText: 'Ya, Hapus',
+      danger: true,
+    });
+    if (!yakin) return;
     await fetch(`/api/pesanan/${id}`, { method: 'DELETE' });
     onRefresh();
   };
 
   const handleHapusSemuaDibatalkan = async (daftarId: number[], namaGerai: string) => {
     if (daftarId.length === 0) return;
-    if (!confirm(`Hapus ${daftarId.length} pesanan yang dibatalkan${namaGerai} secara permanen?`)) return;
+    const yakin = await notify.confirm({
+      title: 'Hapus Pesanan Dibatalkan?',
+      message: `${daftarId.length} pesanan yang dibatalkan${namaGerai} akan dihapus permanen.`,
+      confirmText: 'Ya, Hapus Semua',
+      danger: true,
+    });
+    if (!yakin) return;
     await Promise.all(daftarId.map((id) => fetch(`/api/pesanan/${id}`, { method: 'DELETE' })));
     onRefresh();
   };
