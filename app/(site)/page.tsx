@@ -14,6 +14,7 @@ export default function HomePage() {
     branches,
     user,
     showToast,
+    openAuth,
   } = useSite();
 
   useReveal([kontenWeb, faqs, branches]);
@@ -28,6 +29,10 @@ export default function HomePage() {
         faqList={faqs}
         onSuccessNotification={showToast}
         user={user}
+        onRequireLogin={() => {
+          showToast('Silakan login terlebih dahulu untuk mengirim pertanyaan.');
+          openAuth('login');
+        }}
       />
 
       <LocationSection branches={branches} />

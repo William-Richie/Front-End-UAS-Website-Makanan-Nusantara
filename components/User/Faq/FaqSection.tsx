@@ -15,24 +15,28 @@ interface FaqSectionProps {
   onSuccessNotification?: (msg: string) => void;
   /** pengguna yang sedang login; jawaban admin masuk ke Mail miliknya */
   user?: { id: string; nama: string; email: string } | null;
+  /** dipanggil saat pengunjung yang belum login menekan tombol bertanya */
+  onRequireLogin?: () => void;
 }
 
 export default function FaqSection({
   faqList = [],
   onSuccessNotification,
   user = null,
+  onRequireLogin,
 }: FaqSectionProps) {
   const [showModal, setShowModal] = useState(false);
-  const [nama, setNama] = useState('');
-  const [email, setEmail] = useState('');
   const [pertanyaan, setPertanyaan] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleOpenModal = () => {
-    setNama(user?.nama ?? '');
-    setEmail(user?.email ?? '');
+    // bertanya hanya untuk pengguna yang sudah login
+    if (!user) {
+      onRequireLogin?.();
+      return;
+    }
     setPertanyaan('');
     setErrorMsg('');
     setIsSubmitted(false);
@@ -41,12 +45,12 @@ export default function FaqSection({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pertanyaan.trim().length < 10) {
-      setErrorMsg('Pertanyaan minimal 10 karakter ya.');
+    if (!user) {
+      setErrorMsg('Silakan login terlebih dahulu untuk mengirim pertanyaan.');
       return;
     }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setErrorMsg('Format email belum benar.');
+    if (pertanyaan.trim().length < 10) {
+      setErrorMsg('Pertanyaan minimal 10 karakter ya.');
       return;
     }
 
@@ -57,7 +61,7 @@ export default function FaqSection({
       const res = await fetch('/api/faq/pertanyaan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nama: nama.trim(), email: email.trim(), pertanyaan: pertanyaan.trim(), user_id: user?.id ?? null }),
+        body: JSON.stringify({ pertanyaan: pertanyaan.trim(), user_id: user.id }),
       });
 
       if (!res.ok) {
@@ -123,15 +127,15 @@ export default function FaqSection({
                     <span></span><i className="fa-solid fa-leaf"></i><span></span>
                   </div>
                   <p className={styles.faqAsideDesc} id="faq-aside-desc">
-                    Tulis pertanyaan Anda, tim kami akan membacanya dan menambahkannya ke FAQ bila sering ditanyakan.
+                    Login lalu tulis pertanyaan Anda. Jawaban dari tim kami akan masuk ke Mail Anda, dan pertanyaan yang sering ditanyakan akan kami tambahkan ke FAQ.
                   </p>
                   <Button
                     variant="papeda"
                     className={styles.askBtn}
                     onClick={handleOpenModal}
                   >
-                    <i className="fa-solid fa-pen-to-square me-2"></i>
-                    <span id="faq-aside-btn">Tulis Pertanyaan</span>
+                    <i className={`fa-solid ${user ? 'fa-pen-to-square' : 'fa-right-to-bracket'} me-2`}></i>
+                    <span id="faq-aside-btn">{user ? 'Tulis Pertanyaan' : 'Login untuk Bertanya'}</span>
                   </Button>
                 </div>
               </aside>
@@ -198,33 +202,9 @@ export default function FaqSection({
 
             <Modal.Body>
               <Form className={styles.faqModalBody} onSubmit={handleSubmit}>
-                <Form.Group className={`${styles.faqField} mb-3`}>
-                  <Form.Label htmlFor="faq-nama">
-                    Nama <span>(opsional)</span>
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    id="faq-nama"
-                    maxLength={40}
-                    placeholder="Nama Anda"
-                    value={nama}
-                    onChange={(e) => setNama(e.target.value)}
-                  />
-                </Form.Group>
-
-                <Form.Group className={`${styles.faqField} mb-3`}>
-                  <Form.Label htmlFor="faq-email">
-                    Email <span>(opsional)</span>
-                  </Form.Label>
-                  <Form.Control
-                    type="email"
-                    id="faq-email"
-                    maxLength={100}
-                    placeholder="nama@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </Form.Group>
+                <p className="small text-muted mb-3">
+                  Bertanya sebagai <strong>{user?.nama}</strong>
+                </p>
 
                 <Form.Group className={`${styles.faqField} mb-3`}>
                   <Form.Label htmlFor="faq-text">Pertanyaan Anda</Form.Label>
@@ -245,9 +225,7 @@ export default function FaqSection({
 
                 <p className="small text-muted mb-2">
                   <i className="fa-solid fa-envelope me-1"></i>
-                  {user
-                    ? 'Jawaban dari kami akan masuk ke Mail Anda (ikon amplop di bagian atas).'
-                    : 'Login dulu agar jawaban masuk ke Mail Anda. Tanpa login, jawaban hanya muncul kalau kami menambahkannya ke daftar FAQ.'}
+                  Jawaban dari kami akan masuk ke Mail Anda (ikon amplop di bagian atas).
                 </p>
 
                 {errorMsg && (
@@ -283,11 +261,7 @@ export default function FaqSection({
               <i className="fa-solid fa-check"></i>
             </div>
             <h3>Terima kasih!</h3>
-            <p>
-              {user
-                ? 'Pertanyaan Anda sudah kami terima. Jawabannya akan masuk ke Mail Anda.'
-                : 'Pertanyaan Anda sudah kami terima dan akan segera kami baca.'}
-            </p>
+            <p>Pertanyaan Anda sudah kami terima. Jawabannya akan masuk ke Mail Anda.</p>
             <Button
               variant="papeda"
               className="mt-3"
