@@ -13,11 +13,14 @@ export interface FaqItem {
 interface FaqSectionProps {
   faqList?: FaqItem[];
   onSuccessNotification?: (msg: string) => void;
+  /** pengguna yang sedang login; jawaban admin masuk ke Mail miliknya */
+  user?: { id: string; nama: string; email: string } | null;
 }
 
 export default function FaqSection({
   faqList = [],
   onSuccessNotification,
+  user = null,
 }: FaqSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [nama, setNama] = useState('');
@@ -28,8 +31,8 @@ export default function FaqSection({
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleOpenModal = () => {
-    setNama('');
-    setEmail('');
+    setNama(user?.nama ?? '');
+    setEmail(user?.email ?? '');
     setPertanyaan('');
     setErrorMsg('');
     setIsSubmitted(false);
@@ -54,7 +57,7 @@ export default function FaqSection({
       const res = await fetch('/api/faq/pertanyaan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nama: nama.trim(), email: email.trim(), pertanyaan: pertanyaan.trim() }),
+        body: JSON.stringify({ nama: nama.trim(), email: email.trim(), pertanyaan: pertanyaan.trim(), user_id: user?.id ?? null }),
       });
 
       if (!res.ok) {
@@ -240,6 +243,13 @@ export default function FaqSection({
                   </div>
                 </Form.Group>
 
+                <p className="small text-muted mb-2">
+                  <i className="fa-solid fa-envelope me-1"></i>
+                  {user
+                    ? 'Jawaban dari kami akan masuk ke Mail Anda (ikon amplop di bagian atas).'
+                    : 'Login dulu agar jawaban masuk ke Mail Anda. Tanpa login, jawaban hanya muncul kalau kami menambahkannya ke daftar FAQ.'}
+                </p>
+
                 {errorMsg && (
                   <p className={styles.faqError} role="alert">
                     {errorMsg}
@@ -273,7 +283,11 @@ export default function FaqSection({
               <i className="fa-solid fa-check"></i>
             </div>
             <h3>Terima kasih!</h3>
-            <p>Pertanyaan Anda sudah kami terima dan akan segera kami baca.</p>
+            <p>
+              {user
+                ? 'Pertanyaan Anda sudah kami terima. Jawabannya akan masuk ke Mail Anda.'
+                : 'Pertanyaan Anda sudah kami terima dan akan segera kami baca.'}
+            </p>
             <Button
               variant="papeda"
               className="mt-3"
