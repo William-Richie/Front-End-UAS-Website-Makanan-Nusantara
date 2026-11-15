@@ -86,6 +86,7 @@ export interface UserItem {
   is_active?: boolean | string | number | null;
 }
 
+type UrutMenu = 'terbaru' | 'terlama' | 'az' | 'za';
 type ReservasiTabKey = 'user' | 'pending' | 'approved' | 'complete' | 'dibatalkan';
 type UserFilter = '' | 'active' | 'blocked';
 type UserAksi = '' | 'modifikasi' | 'blokir' | 'hapus';
@@ -392,6 +393,25 @@ export default function AdminPage() {
     status: true,
     deskripsi: '',
   });
+
+  const [cariMenu, setCariMenu] = useState('');
+  const [filterKategori, setFilterKategori] = useState('');
+  const [urutMenu, setUrutMenu] = useState<UrutMenu>('terbaru');
+
+  const kategoriAda = Array.from(new Set(menus.map((m) => m.nama_kategori))).sort();
+  const filterAktif = kategoriAda.includes(filterKategori) ? filterKategori : '';
+
+  const menuTampil = menus
+    .filter((m) => filterAktif === '' || m.nama_kategori === filterAktif)
+    .filter((m) => {
+      const k = cariMenu.toLowerCase().trim();
+      return !k || m.nama_makanan.toLowerCase().includes(k) || m.nama_kategori.toLowerCase().includes(k);
+    })
+    .sort((a, b) => {
+      if (urutMenu === 'az') return a.nama_makanan.localeCompare(b.nama_makanan, 'id', { sensitivity: 'base' });
+      if (urutMenu === 'za') return b.nama_makanan.localeCompare(a.nama_makanan, 'id', { sensitivity: 'base' });
+      return urutMenu === 'terbaru' ? b.id - a.id : a.id - b.id;
+    });
 
   // Meja (menggantikan pengaturan ruangan lama)
   const [mejaList, setMejaList] = useState<MejaItem[]>([]);
@@ -1433,6 +1453,67 @@ export default function AdminPage() {
             </div>
 
             <div className="card shadow-sm border-0 p-3">
+              <div className="row g-2 mb-3">
+                <div className="col-md-5">
+                  <div className="input-group">
+                    <span className="input-group-text">
+                      <i className="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input
+                      type="search"
+                      className="form-control"
+                      placeholder="Cari nama menu atau kategori..."
+                      value={cariMenu}
+                      onChange={(e) => setCariMenu(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <select
+                    className="form-select"
+                    value={filterAktif}
+                    onChange={(e) => setFilterKategori(e.target.value)}
+                  >
+                    <option value="">Semua kategori ({menus.length})</option>
+                    {kategoriAda.map((k) => (
+                      <option key={k} value={k}>
+                        {k} ({menus.filter((m) => m.nama_kategori === k).length})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-3">
+                  <select
+                    className="form-select"
+                    value={urutMenu}
+                    onChange={(e) => setUrutMenu(e.target.value as UrutMenu)}
+                  >
+                    <option value="terbaru">Terbaru dimasukkan</option>
+                    <option value="terlama">Terlama dimasukkan</option>
+                    <option value="az">Nama A–Z</option>
+                    <option value="za">Nama Z–A</option>
+                  </select>
+                </div>
+                <div className="col-md-1 d-grid">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    title="Reset pencarian"
+                    onClick={() => {
+                      setCariMenu('');
+                      setFilterKategori('');
+                      setUrutMenu('terbaru');
+                    }}
+                  >
+                    <i className="fa-solid fa-rotate-left"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div className="small text-muted mb-2">
+                Menampilkan {menuTampil.length} dari {menus.length} menu
+              </div>
+
               <table className="table table-hover align-middle">
                 <thead>
                   <tr>
@@ -1445,7 +1526,15 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {menus.map((m) => (
+                  {menuTampil.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center text-muted py-4">
+                        Tidak ada menu yang cocok.
+                      </td>
+                    </tr>
+                  )}
+                  
+                  {menuTampil.map((m) => (
                     <tr key={m.id}>
                       <td>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
