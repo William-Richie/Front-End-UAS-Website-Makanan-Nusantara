@@ -26,6 +26,13 @@ export interface LaporanHari {
   pendapatan: number;
 }
 
+// Semua perhitungan hari memakai waktu Jakarta (WIB), bukan zona waktu server, supaya total
+// dan rincian harian selalu sama (server di Vercel memakai UTC, laptop memakai WIB).
+const WIB = 'Asia/Jakarta';
+const kunciWib = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: WIB });
+const jamWib = (d: Date) =>
+  Number(new Intl.DateTimeFormat('en-GB', { timeZone: WIB, hour: '2-digit', hourCycle: 'h23' }).format(d));
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -33,9 +40,9 @@ export async function GET(req: NextRequest) {
 
     const n = range === 'hari' ? 1 : range === '30' ? 30 : 7;
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - (n - 1));
-    startDate.setHours(0, 0, 0, 0);
+    // n hari terakhir (hari ini termasuk), diurutkan dari yang paling lama
+    const kunciHari = Array.from({ length: n }, (_, k) => kunciWib(new Date(Date.now() - (n - 1 - k) * 86400000)));
+    const startDate = new Date(`${kunciHari[0]}T00:00:00+07:00`);
 
     const [rows, menus] = await Promise.all([
       prisma.pesanan.findMany({
@@ -60,10 +67,7 @@ export async function GET(req: NextRequest) {
     });
 
     const perHari: Record<string, LaporanHari> = {};
-    for (let i = n - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
+    for (const key of kunciHari) {
       perHari[key] = { tanggal: key, pesanan: 0, item: 0, pendapatan: 0 };
     }
 
@@ -78,7 +82,9 @@ export async function GET(req: NextRequest) {
     let totalPesanan = 0;
 
     rows.forEach((r) => {
-      const t = r.created_at.toISOString().slice(0, 10);
+      const t = kunciWib(r.created_at);
+      // di luar rentang yang ditampilkan tidak dihitung, sehingga total = jumlah rincian harian
+      if (!perHari[t]) return;
       const nilai = Number(r.total) || 0;
 
       let itemsCountInOrder = 0;
@@ -121,7 +127,7 @@ export async function GET(req: NextRequest) {
         perHari[t].pendapatan += nilai;
       }
 
-      const hour = r.created_at.getHours();
+      const hour = jamWib(r.created_at);
       if (perJam[hour]) {
         perJam[hour].total += nilai;
       }
