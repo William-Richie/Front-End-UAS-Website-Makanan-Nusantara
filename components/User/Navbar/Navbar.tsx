@@ -8,7 +8,13 @@ import { usePathname } from 'next/navigation';
 import { Dropdown, Nav } from 'react-bootstrap';
 
 interface NavbarProps {
-  user?: { nama: string; email: string } | null;
+  user?: {
+    nama: string;
+    email?: string;
+    role?: string;
+    gerai?: string;
+    username?: string;
+  } | null;
   onOpenAuth?: (tab: 'login' | 'register') => void;
   onLogout?: () => void;
   onOpenProfile?: () => void;
@@ -93,28 +99,56 @@ export default function Navbar({
               </Dropdown.Toggle>
 
               <Dropdown.Menu className={styles.userMenu}>
-                <Dropdown.Item
-                  as="button"
-                  type="button"
-                  className={styles.userItem}
-                  onClick={() => {
-                    setDropdownOpen(false);
-                    onOpenProfile?.();
-                  }}
-                >
-                  <i className="fa-solid fa-user me-2" />
-                  Profile
-                </Dropdown.Item>
+                {user.role === 'admin' && (
+                  <Dropdown.Item
+                    as={Link}
+                    href="/admin"
+                    className={`${styles.userItem} text-warning fw-bold`}
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    <i className="fa-solid fa-gauge-high me-2 text-warning" />
+                    Dashboard Admin
+                  </Dropdown.Item>
+                )}
 
-                <Dropdown.Item
-                  as={Link}
-                  href="/my-reservation"
-                  className={styles.userItem}
-                  onClick={() => setDropdownOpen(false)}
-                >
-                  <i className="fa-solid fa-calendar-check me-2" />
-                  My Reservation
-                </Dropdown.Item>
+                {user.role === 'cashier' && (
+                  <Dropdown.Item
+                    as={Link}
+                    href="/cashier"
+                    className={`${styles.userItem} text-info fw-bold`}
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    <i className="fa-solid fa-cash-register me-2 text-info" />
+                    Panel Kasir {user.gerai ? `(${user.gerai})` : ''}
+                  </Dropdown.Item>
+                )}
+
+                {(!user.role || user.role === 'user') && (
+                  <>
+                    <Dropdown.Item
+                      as="button"
+                      type="button"
+                      className={styles.userItem}
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        onOpenProfile?.();
+                      }}
+                    >
+                      <i className="fa-solid fa-user me-2" />
+                      Profile
+                    </Dropdown.Item>
+
+                    <Dropdown.Item
+                      as={Link}
+                      href="/my-reservation"
+                      className={styles.userItem}
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <i className="fa-solid fa-calendar-check me-2" />
+                      My Reservation
+                    </Dropdown.Item>
+                  </>
+                )}
 
                 <Dropdown.Divider />
 

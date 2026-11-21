@@ -9,6 +9,7 @@ interface ProfileUser {
   id: string;
   nama: string;
   email: string;
+  username?: string;
 }
 
 interface ProfileModalProps {
@@ -16,10 +17,9 @@ interface ProfileModalProps {
   user: ProfileUser | null;
   onClose: () => void;
   onSaved: (user: ProfileUser) => void;
-  onLogout: () => void;
 }
 
-export default function ProfileModal({ show, user, onClose, onSaved, onLogout }: ProfileModalProps) {
+export default function ProfileModal({ show, user, onClose, onSaved }: ProfileModalProps) {
   const [nama, setNama] = useState(user?.nama ?? '');
   const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -99,8 +99,22 @@ export default function ProfileModal({ show, user, onClose, onSaved, onLogout }:
           <h5 className="fw-bold mb-0">Profile</h5>
         </div>
 
+        {user.username && (
+          <Form.Group className="mb-3">
+            <Form.Label className={styles.label}>Username</Form.Label>
+            <Form.Control
+              id="profile-username"
+              type="text"
+              value={`@${user.username}`}
+              disabled
+              readOnly
+            />
+            <Form.Text className="small">Username tidak bisa diubah.</Form.Text>
+          </Form.Group>
+        )}
+
         <Form.Group className="mb-3">
-          <Form.Label className={styles.label}>Nama Pengguna</Form.Label>
+          <Form.Label className={styles.label}>Nama Lengkap</Form.Label>
           <Form.Control
             id="profile-nama"
             type="text"
@@ -134,16 +148,6 @@ export default function ProfileModal({ show, user, onClose, onSaved, onLogout }:
 
         <Button type="submit" disabled={loading} variant="papeda" className="w-100">
           {loading ? 'Menyimpan...' : 'Simpan'}
-        </Button>
-        <Button
-          variant="outline-danger"
-          className="w-100 mt-2"
-          onClick={() => {
-            onClose();
-            onLogout();
-          }}
-        >
-          <i className="fa-solid fa-right-from-bracket me-2"></i>Logout
         </Button>
       </Form>
     </Modal>

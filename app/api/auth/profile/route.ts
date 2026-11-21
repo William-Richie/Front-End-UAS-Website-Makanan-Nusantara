@@ -32,7 +32,12 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({
       pesan: 'Profil berhasil diperbarui!',
-      user: { id: updated.id, nama: updated.nama, email: updated.email },
+      user: {
+        id: updated.id,
+        nama: updated.nama,
+        email: updated.email,
+        username: (updated as { username?: string | null }).username || undefined,
+      },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Terjadi kesalahan server.';

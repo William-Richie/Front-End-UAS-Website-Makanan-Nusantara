@@ -34,14 +34,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={`${playfair.variable} ${lato.variable}`}>
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-        />
-      </head>
       <body>
         <NotifyProvider>{children}</NotifyProvider>
       </body>

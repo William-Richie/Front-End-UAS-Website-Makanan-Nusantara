@@ -29,6 +29,9 @@ export interface UserData {
   id: string;
   nama: string;
   email: string;
+  username?: string;
+  role?: string;
+  gerai?: string;
 }
 
 interface KontenWebData {
@@ -123,10 +126,40 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('papeda_user');
         }
       }
-      setUserReady(true);
+      // Verifikasi sesi cookie ke server
+      fetch('/api/auth/session')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.authenticated && data.session) {
+            setUser(data.session);
+            localStorage.setItem('papeda_user', JSON.stringify(data.session));
+          } else if (saved) {
+            setUser(null);
+            localStorage.removeItem('papeda_user');
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setUserReady(true);
+        });
+
+      // Cek apakah ada redirect dari middleware (misal akses /admin atau /cashier tanpa izin)
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('auth') === 'login') {
+          setAuthTab('login');
+          setAuthModalOpen(true);
+          const pesan = params.get('pesan');
+          if (pesan) {
+            showToast(pesan);
+          }
+          // Segera bersihkan query params dari URL address bar agar tidak tersangkut
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
     }, 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -338,12 +371,19 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     setAuthModalOpen(true);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
     localStorage.removeItem('papeda_user');
     localStorage.removeItem(PENDING_ORDER_KEY);
     setPendingOrderId(null);
     setUser(null);
     setMails([]);
+    // Bersihkan URL address bar jika ada parameter tersisa
+    if (typeof window !== 'undefined' && window.location.search) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     showToast('Berhasil logout.');
   };
 
@@ -451,7 +491,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           setUser(u);
           showToast('Profil berhasil diperbarui.');
         }}
-        onLogout={handleLogout}
       />
 
       <AuthModal
