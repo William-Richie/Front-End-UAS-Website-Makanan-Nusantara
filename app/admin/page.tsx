@@ -3,6 +3,7 @@
 import './admin-global.css';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminCharts';
 import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePreview';
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
@@ -32,7 +33,6 @@ import {
 } from '@/lib/orbit';
 import { useNotify } from '@/components/Common/Notify/NotifyProvider';
 
-// Definisikan Interface TypeScript lengkap untuk membasmi 'any'
 export interface MenuItem {
   id: number;
   nama_kategori: string;
@@ -207,10 +207,8 @@ export interface PendapatanSummary {
 }
 
 export default function AdminPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [username, setUsername] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [errorMsg, setErrorMsg] = useState<string>('');
+  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
@@ -395,14 +393,16 @@ export default function AdminPage() {
 
   // Cek sesi login admin
   useEffect(() => {
-    // sesi lama yang tersimpan permanen di localStorage dibuang, login admin hanya berlaku selama tab terbuka
-    localStorage.removeItem('papeda_admin_logged');
-    const adminSession = sessionStorage.getItem('papeda_admin_logged');
-    if (adminSession === 'true') {
-      const timer = setTimeout(() => setIsLoggedIn(true), 0);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+    fetch('/api/auth/session')
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d?.authenticated || d?.session?.role !== 'admin') {
+          setIsLoggedIn(false);
+          router.push('/?auth=login&pesan=Silakan+login+sebagai+admin');
+        }
+      })
+      .catch(() => {});
+  }, [router]);
 
   // Reload sebagian data saja, supaya isian form yang belum disimpan tidak ikut ter-reset
   const loadFavorit = () => {
@@ -452,7 +452,6 @@ export default function AdminPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, pendapatanRange]);
 
-  // daftar pesanan diperbarui otomatis tiap 5 detik (juga untuk badge di sidebar)
   useEffect(() => {
     if (!isLoggedIn) return;
     const t = setInterval(() => {
@@ -466,7 +465,6 @@ export default function AdminPage() {
     return () => clearInterval(t);
   }, [isLoggedIn]);
 
-  // Preview di halaman Kelola menggulir ke bagian yang sedang diedit
   useEffect(() => {
     if (activeTab !== 'konten') return;
     const box = previewRef.current;
@@ -514,7 +512,6 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isLoggedIn || activeTab !== 'pertanyaan') return;
     loadPertanyaan();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, activeTab]);
 
   const bukaConfirm = (c: Omit<ConfirmState, 'danger' | 'icon'> & { danger?: boolean; icon?: string }) =>
@@ -631,22 +628,14 @@ export default function AdminPage() {
     hapus: '🗑️ Hapus Akun',
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!notify.validateForm(e.currentTarget)) return;
-    if (username === 'admin' && password === 'admin123') {
-      sessionStorage.setItem('papeda_admin_logged', 'true');
-      setIsLoggedIn(true);
-      setErrorMsg('');
-    } else {
-      setErrorMsg('Username atau password admin salah (default: admin / admin123)');
-    }
-  };
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    localStorage.removeItem('papeda_user');
     sessionStorage.removeItem('papeda_admin_logged');
-    localStorage.removeItem('papeda_admin_logged');
     setIsLoggedIn(false);
+    window.location.replace('/');
   };
 
   // Menu Handlers
@@ -1035,42 +1024,9 @@ export default function AdminPage() {
   if (!isLoggedIn) {
     return (
       <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
-        <div className="card shadow-lg p-4" style={{ maxWidth: '420px', width: '100%', borderRadius: '12px' }}>
-          <div className="text-center mb-4">
-            <h3 className="fw-bold text-dark">Admin Papeda</h3>
-            <p className="text-muted small">Masuk untuk mengelola restoran</p>
-          </div>
-          <form onSubmit={handleLogin} noValidate>
-            <div className="mb-3">
-              <label className="form-label small fw-bold">Username</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="admin"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label small fw-bold">Password</label>
-              <input
-                type="password"
-                className="form-control"
-                placeholder="admin123"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {errorMsg && <div className="alert alert-danger py-2 small">{errorMsg}</div>}
-            <button type="submit" className="btn btn-warning w-100 fw-bold text-white mb-2">
-              Masuk
-            </button>
-            <Link href="/" className="btn btn-outline-secondary w-100 btn-sm">
-              Kembali ke Beranda
-            </Link>
-          </form>
+        <div className="text-center">
+          <div className="spinner-border text-warning mb-3" role="status"></div>
+          <p className="text-muted small">Memuat Dashboard Admin...</p>
         </div>
       </div>
     );

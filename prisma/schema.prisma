@@ -76,6 +76,7 @@ model PengaturanRuangan {
 // 4. Users
 model User {
   id            String      @id @default(uuid())
+  username      String?     @unique
   nama          String
   email         String      @unique
   password      String

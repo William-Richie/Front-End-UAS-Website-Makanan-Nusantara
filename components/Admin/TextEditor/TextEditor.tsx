@@ -62,19 +62,6 @@ export default function EditorTeks({ id, value, onChange, rows, placeholder, gar
     if (k === 'u' && garisBawah) { e.preventDefault(); bungkus('__'); }
   };
 
-  // onMouseDown + preventDefault supaya seleksi teks tidak hilang saat klik tombol
-  const tombol = (label: React.ReactNode, title: string, aksi: () => void) => (
-    <button
-      type="button"
-      className="btn btn-sm btn-outline-secondary"
-      title={title}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={aksi}
-    >
-      {label}
-    </button>
-  );
-
   const umum = {
     id,
     ref,
@@ -88,10 +75,44 @@ export default function EditorTeks({ id, value, onChange, rows, placeholder, gar
   return (
     <div className="editor-rich">
       <div className="toolbar">
-        {tombol(<b>B</b>, 'Tebal (Ctrl+B)', () => bungkus('**'))}
-        {tombol(<i>I</i>, 'Miring (Ctrl+I)', () => bungkus('/'))}
-        {garisBawah && tombol(<u>U</u>, 'Garis bawah (Ctrl+U)', () => bungkus('__'))}
-        {tombol(<i className="fa-solid fa-eraser"></i>, 'Hapus format', hapusFormat)}
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary"
+          title="Tebal (Ctrl+B)"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => bungkus('**')}
+        >
+          <b>B</b>
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary"
+          title="Miring (Ctrl+I)"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => bungkus('/')}
+        >
+          <i>I</i>
+        </button>
+        {garisBawah && (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            title="Garis bawah (Ctrl+U)"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => bungkus('__')}
+          >
+            <u>U</u>
+          </button>
+        )}
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary"
+          title="Hapus format"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={hapusFormat}
+        >
+          <i className="fa-solid fa-eraser"></i>
+        </button>
       </div>
       {rows ? <textarea {...umum} rows={rows} /> : <input type="text" {...umum} />}
     </div>

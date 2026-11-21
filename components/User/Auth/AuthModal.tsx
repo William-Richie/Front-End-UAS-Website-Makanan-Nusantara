@@ -10,10 +10,18 @@ import {
   isPasswordStrong,
   validateEmail,
   validateNama,
+  validateUsername,
 } from '@/lib/validation';
 
 type Tab = 'login' | 'register';
-type AuthUser = { id: string; nama: string; email: string };
+export type AuthUser = {
+  id: string;
+  nama: string;
+  email: string;
+  username?: string;
+  role?: string;
+  gerai?: string;
+};
 
 interface AuthModalProps {
   show: boolean;
@@ -49,8 +57,8 @@ export default function AuthModal({
   const handleExited = useFocusReturn(show);
   const [tab, setTab] = useState<Tab>(initialTab);
 
-  const [login, setLogin] = useState({ email: '', password: '' });
-  const [reg, setReg] = useState({ nama: '', email: '', password: '', confirm: '' });
+  const [login, setLogin] = useState({ identifier: '', password: '' });
+  const [reg, setReg] = useState({ username: '', nama: '', email: '', password: '', confirm: '' });
 
   const [showPass, setShowPass] = useState({ login: false, reg: false, confirm: false });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -89,8 +97,6 @@ export default function AuthModal({
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    // Kunci scroll body sudah diurus oleh react-bootstrap Modal. Mengaturnya lagi secara manual di sini
-    // bisa membuat body tetap overflow: hidden setelah modal ditutup (scroll hilang).
     return () => window.removeEventListener('keydown', onKey);
   }, [show, onClose]);
 
@@ -112,10 +118,11 @@ export default function AuthModal({
   const tampil = (key: string, pane: Tab) => touched[key] || tried[pane];
 
   const loginErr = {
-    email: validateEmail(login.email),
+    identifier: !login.identifier.trim() ? 'Email atau username wajib diisi.' : '',
     password: login.password ? '' : 'Password wajib diisi.',
   };
   const regErr = {
+    username: validateUsername(reg.username),
     nama: validateNama(reg.nama),
     email: validateEmail(reg.email),
     password: !reg.password
@@ -152,6 +159,14 @@ export default function AuthModal({
       localStorage.setItem('papeda_user', JSON.stringify(data.user));
       onSuccess(data.user);
       onClose();
+
+      if (data.redirectTo && data.redirectTo !== '/') {
+        window.location.replace(data.redirectTo);
+      } else {
+        if (typeof window !== 'undefined' && window.location.search) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
     } catch {
       gagal('Tidak bisa terhubung ke server. Cek koneksi kamu lalu coba lagi.');
     } finally {
@@ -162,12 +177,12 @@ export default function AuthModal({
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setTried((t) => ({ ...t, login: true }));
-    if (loginErr.email || loginErr.password) {
+    if (loginErr.identifier || loginErr.password) {
       setShakeKey((k) => k + 1);
-      document.getElementById(loginErr.email ? 'login-email' : 'login-password')?.focus();
+      document.getElementById(loginErr.identifier ? 'login-identifier' : 'login-password')?.focus();
       return;
     }
-    kirim('/api/auth/login', { email: login.email.trim(), password: login.password }, 'Login gagal.');
+    kirim('/api/auth/login', { identifier: login.identifier.trim(), password: login.password }, 'Login gagal.');
   };
 
   const handleRegister = (e: React.FormEvent<HTMLFormElement>) => {
@@ -175,13 +190,18 @@ export default function AuthModal({
     setTried((t) => ({ ...t, register: true }));
     if (Object.values(regErr).some(Boolean)) {
       setShakeKey((k) => k + 1);
-      const pertama = (['nama', 'email', 'password', 'confirm'] as const).find((k) => regErr[k]);
+      const pertama = (['username', 'nama', 'email', 'password', 'confirm'] as const).find((k) => regErr[k]);
       document.getElementById(`reg-${pertama}`)?.focus();
       return;
     }
     kirim(
       '/api/auth/register',
-      { nama: reg.nama.trim(), email: reg.email.trim(), password: reg.password },
+      {
+        username: reg.username.trim().toLowerCase(),
+        nama: reg.nama.trim(),
+        email: reg.email.trim(),
+        password: reg.password,
+      },
       'Pendaftaran gagal.'
     );
   };
@@ -285,20 +305,20 @@ export default function AuthModal({
             >
               <Form onSubmit={handleLogin} noValidate autoComplete="off" className={styles.authForm}>
                 <Form.Group className="mb-3">
-                  <Form.Label className={styles.authLabel}>Email</Form.Label>
+                  <Form.Label className={styles.authLabel}>Email atau Username</Form.Label>
                   <InputGroup hasValidation>
-                    <InputGroup.Text><i className="fa-solid fa-envelope"></i></InputGroup.Text>
+                    <InputGroup.Text><i className="fa-solid fa-user"></i></InputGroup.Text>
                     <Form.Control
-                      id="login-email"
-                      type="email"
-                      placeholder="nama@email.com"
-                      value={login.email}
-                      onChange={(e) => setLogin({ ...login, email: e.target.value })}
-                      onBlur={() => sentuh('l.email')}
-                      isInvalid={!!msg(loginErr.email, 'l.email', 'login')}
+                      id="login-identifier"
+                      type="text"
+                      placeholder="nama@email.com atau username"
+                      value={login.identifier}
+                      onChange={(e) => setLogin({ ...login, identifier: e.target.value })}
+                      onBlur={() => sentuh('l.identifier')}
+                      isInvalid={!!msg(loginErr.identifier, 'l.identifier', 'login')}
                     />
                     <Form.Control.Feedback type="invalid">
-                      <i className="fa-solid fa-circle-exclamation"></i> {msg(loginErr.email, 'l.email', 'login')}
+                      <i className="fa-solid fa-circle-exclamation"></i> {msg(loginErr.identifier, 'l.identifier', 'login')}
                     </Form.Control.Feedback>
                   </InputGroup>
                 </Form.Group>
@@ -348,6 +368,26 @@ export default function AuthModal({
               inert={isLogin}
             >
               <Form onSubmit={handleRegister} noValidate autoComplete="off" className={styles.authForm}>
+                <Form.Group className="mb-3">
+                  <Form.Label className={styles.authLabel}>Username</Form.Label>
+                  <InputGroup hasValidation>
+                    <InputGroup.Text><i className="fa-solid fa-at"></i></InputGroup.Text>
+                    <Form.Control
+                      id="reg-username"
+                      type="text"
+                      maxLength={20}
+                      placeholder="contoh: budi99"
+                      value={reg.username}
+                      onChange={(e) => setReg({ ...reg, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                      onBlur={() => sentuh('r.username')}
+                      isInvalid={!!msg(regErr.username, 'r.username', 'register')}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      <i className="fa-solid fa-circle-exclamation"></i> {msg(regErr.username, 'r.username', 'register')}
+                    </Form.Control.Feedback>
+                  </InputGroup>
+                </Form.Group>
+
                 <Form.Group className="mb-3">
                   <Form.Label className={styles.authLabel}>Nama Lengkap</Form.Label>
                   <InputGroup hasValidation>

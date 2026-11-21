@@ -24,7 +24,7 @@ interface MenuSectionProps {
 }
 
 const URUTAN_KATEGORI = ['APPETIZER', 'MAIN COURSE', 'DESSERT', 'MINUMAN', 'DRINK', 'ADDITIONAL'];
-const LABEL_PEDAS = ['Tidak Pedas', 'Mild', 'Mild', 'Medium', 'Hot', 'Extra Hot'];
+const LABEL_PEDAS = ['Tidak Pedas', 'Sedikit Pedas', 'Sedang', 'Pedas', 'Sangat Pedas', 'Ekstra Pedas'];
 const MAX_QTY = 20;
 
 function clampPedas(level: number) {

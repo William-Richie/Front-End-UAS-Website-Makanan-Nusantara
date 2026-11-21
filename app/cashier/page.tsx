@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './cashier.module.css';
 import { buildReceiptHtml, type OrderType, type Receipt } from '@/lib/receiptPrint';
 import type { CartItem } from '@/components/User/FloatingButton/FloatingButton';
@@ -228,6 +229,7 @@ async function ubahPesanan(id: number, body: Record<string, string>) {
 }
 
 export default function KasirPage() {
+  const router = useRouter();
   const notify = useNotify();
   const cetak = (p: Pesanan) => {
     if (!cetakStruk(p)) {
@@ -236,9 +238,6 @@ export default function KasirPage() {
   };
   const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
 
   const [daftarGerai, setDaftarGerai] = useState<string[]>([]);
   const [gerai, setGerai] = useState('');
@@ -298,9 +297,13 @@ export default function KasirPage() {
         if (d?.data?.gerai) {
           setGerai(d.data.gerai);
           setLoggedIn(true);
+        } else {
+          router.push('/?auth=login&pesan=Silakan+login+sebagai+kasir');
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!batal) router.push('/?auth=login&pesan=Silakan+login+sebagai+kasir');
+      })
       .finally(() => {
         if (batal) return;
         setNow(Date.now());
@@ -309,7 +312,7 @@ export default function KasirPage() {
     return () => {
       batal = true;
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     fetch('/api/maps')
@@ -318,7 +321,7 @@ export default function KasirPage() {
         if (Array.isArray(d?.data)) setDaftarGerai(d.data.map((m) => m.nama).filter(Boolean));
       })
       .catch(() => {});
-  }, []);
+  }, [router]);
 
   const muat = useCallback(async () => {
     try {
@@ -330,7 +333,7 @@ export default function KasirPage() {
         setMemuat(true);
         prevAktif.current = null;
         setGerai('');
-        setLoginError(data?.error || 'Sesi kasir berakhir, silakan login lagi.');
+        router.push('/?auth=login&pesan=Sesi+kasir+berakhir');
         return;
       }
       if (!res.ok) throw new Error(data?.error || 'Gagal memuat pesanan.');
@@ -345,7 +348,7 @@ export default function KasirPage() {
     } finally {
       setMemuat(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!loggedIn) return;
@@ -399,37 +402,16 @@ export default function KasirPage() {
     };
   }, [butuhTindakan.length, loggedIn]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!notify.validateForm(e.currentTarget)) return;
-    try {
-      const res = await fetch('/api/cashier/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const d = await res.json().catch(() => null);
-      if (!res.ok || !d?.data?.gerai) {
-        setLoginError(d?.error || 'Username atau password kasir salah.');
-        return;
-      }
-      setGerai(d.data.gerai);
-      setLoggedIn(true);
-      setLoginError('');
-      setPassword('');
-    } catch {
-      setLoginError('Tidak bisa terhubung ke server.');
-    }
-  };
-
   const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     await fetch('/api/cashier/login', { method: 'DELETE' }).catch(() => {});
+    localStorage.removeItem('papeda_user');
     setLoggedIn(false);
     setDaftar([]);
     setMemuat(true);
     setGerai('');
-    setUsername('');
     prevAktif.current = null;
+    window.location.replace('/');
   };
 
   const toggleSuara = () => {
@@ -700,39 +682,13 @@ export default function KasirPage() {
     </section>
   );
 
-  if (!ready) return <div className={styles.page} />;
-
-  if (!loggedIn) {
+  if (!ready || !loggedIn) {
     return (
-      <div className={styles.loginWrap}>
-        <form className={styles.loginCard} onSubmit={handleLogin} noValidate>
-          <div className={styles.loginIcon}>
-            <i className="fa-solid fa-cash-register"></i>
-          </div>
-          <h1 className={styles.loginTitle}>Kasir Papeda</h1>
-          <p className={styles.loginSub}>Masuk untuk mengelola pesanan</p>
-          {loginError && <div className={styles.alertError}>{loginError}</div>}
-          <label className={styles.label}>Username</label>
-          <input
-            className={styles.input}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            required
-          />
-          <label className={styles.label}>Password</label>
-          <input
-            className={styles.input}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-          <button type="submit" className={styles.btnPrimary}>
-            Masuk
-          </button>
-        </form>
+      <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" role="status"></div>
+          <p className="text-muted small">Memuat Panel Kasir...</p>
+        </div>
       </div>
     );
   }
