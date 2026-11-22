@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import Navbar from '@/components/User/Navbar/Navbar';
 import styles from './PendingOrderBar.module.css';
 import Footer from '@/components/User/Footer/Footer';
@@ -58,6 +59,8 @@ interface SiteContextValue {
   menus: MenuItem[];
   favorites: FavoriteItem[];
   orbitSetting: OrbitSetting;
+  cartQty: Record<number, number>;
+  setCartQty: (menu: MenuItem, qty: number) => void;
   faqs: FaqItem[];
   branches: BranchMap[];
   kontenWeb: KontenWebData | null;
@@ -107,6 +110,8 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
   const [pendingOrderId, setPendingOrderId] = useState<number | null>(null); // pesanan yang menunggu konfirmasi kasir
   const [resumeOrderId, setResumeOrderId] = useState<number | null>(null); // pesanan yang sedang dibuka lagi di modal
+  const pathname = usePathname();
+  const isMenuPage = pathname.startsWith('/menu');
 
   // Toast Notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -322,6 +327,26 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     [showToast]
   );
 
+  const cartQty = useMemo(
+    () => Object.fromEntries(cartItems.map((i) => [i.id, i.quantity])) as Record<number, number>,
+    [cartItems]
+  );
+
+  // set jumlah langsung (tanpa toast). 0 = hapus dari keranjang
+  const setCartQty = useCallback((menu: MenuItem, qty: number) => {
+    const next = Math.min(MAX_QTY_PER_ITEM, Math.max(0, Math.floor(qty)));
+    setCartItems((prev) => {
+      if (next === 0) return prev.filter((i) => i.id !== menu.id);
+      if (prev.some((i) => i.id === menu.id)) {
+        return prev.map((i) => (i.id === menu.id ? { ...i, quantity: next } : i));
+      }
+      return [
+        ...prev,
+        { id: menu.id, nama_makanan: menu.nama_makanan, harga: menu.harga, quantity: next, gambar: menu.gambar },
+      ];
+    });
+  }, []);
+
   const handleUpdateQty = (id: number, delta: number) => {
     setCartItems((prev) =>
       prev
@@ -393,6 +418,8 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     menus,
     favorites,
     orbitSetting,
+    cartQty,
+    setCartQty,
     faqs,
     branches,
     kontenWeb,
@@ -424,6 +451,7 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
 
       {/* Floating Actions */}
       <CartFloating
+        showCart={isMenuPage}
         items={cartView}
         onUpdateQuantity={handleUpdateQty}
         onRemoveItem={handleRemoveItem}

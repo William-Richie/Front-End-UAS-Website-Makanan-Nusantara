@@ -114,6 +114,9 @@ export default function CheckoutModal({
   const [selectedBranch, setSelectedBranch] = useState('');
   const [deliveryBranchId, setDeliveryBranchId] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [addressStatus, setAddressStatus] = useState<'idle' | 'loading' | 'searching' | 'notfound'>('idle');
+  const addressFromMap = useRef('');
+  const coordFromAddress = useRef<{ lat: number; lng: number } | null>(null);
   const [userCoord, setUserCoord] = useState<{ lat: number; lng: number } | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState('');
@@ -224,6 +227,70 @@ export default function CheckoutModal({
       cancelled = true;
     };
   }, [show, resumeOrderId]);
+
+  useEffect(() => {
+    if (!userCoord || userCoord === coordFromAddress.current) return;
+    const controller = new AbortController();
+
+    const timer = setTimeout(async () => {
+      setAddressStatus('loading');
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${userCoord.lat}&lon=${userCoord.lng}&zoom=18&accept-language=id`,
+          { signal: controller.signal }
+        );
+        if (!res.ok) throw new Error('reverse geocode gagal');
+        const data = await res.json();
+        if (data?.display_name) {
+          addressFromMap.current = data.display_name;
+          setDeliveryAddress(data.display_name);
+        }
+        setAddressStatus('idle');
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setAddressStatus('idle');
+      }
+    }, 600);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [userCoord]);
+
+  useEffect(() => {
+    const q = deliveryAddress.trim();
+    if (q.length < 8 || q === addressFromMap.current) return;
+    const controller = new AbortController();
+
+    const timer = setTimeout(async () => {
+      setAddressStatus('searching');
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=id&accept-language=id&q=${encodeURIComponent(q)}`,
+          { signal: controller.signal }
+        );
+        if (!res.ok) throw new Error('geocode gagal');
+        const results = await res.json();
+        if (Array.isArray(results) && results.length > 0) {
+          const coord = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+          coordFromAddress.current = coord;
+          setUserCoord(coord);
+          setAddressStatus('idle');
+        } else {
+          setAddressStatus('notfound');
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setAddressStatus('idle');
+      }
+    }, 1000);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [deliveryAddress]);
 
   if (!show) return null;
 
@@ -725,6 +792,14 @@ export default function CheckoutModal({
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
                   />
+                  
+                  {addressStatus === 'loading' && <div className={styles.hint}>Mengambil alamat dari peta...</div>}
+                  {addressStatus === 'searching' && <div className={styles.hint}>Mencari lokasi di peta...</div>}
+                  {addressStatus === 'notfound' && (
+                    <div className={styles.hint}>
+                      Alamat belum ditemukan di peta, pin tidak berubah. Coba perjelas alamat atau geser pin manual.
+                    </div>
+                  )}
                 </Form.Group>
 
                 <p className={styles.sectionTitle}>Lokasi pengantaran</p>

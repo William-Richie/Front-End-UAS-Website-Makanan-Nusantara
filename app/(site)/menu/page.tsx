@@ -7,7 +7,7 @@ import { useSite } from '@/components/User/Site/SiteContext';
 import { useReveal } from '@/hooks/useReveal';
 
 export default function MenuPage() {
-  const { menus, favorites, orbitSetting, addToCart } = useSite();
+  const { menus, favorites, orbitSetting, addToCart,  cartQty, setCartQty  } = useSite();
   const [selectedFavoriteId, setSelectedFavoriteId] = useState<number | null>(null);
 
   useReveal([menus, favorites]);
@@ -23,6 +23,8 @@ export default function MenuPage() {
       <MenuSection
         menus={menus}
         onAddToCart={addToCart}
+        cartQty={cartQty}
+        onSetCartQty={setCartQty}
         focusMenuId={selectedFavoriteId}
         onFocusComplete={() => setSelectedFavoriteId(null)}
       />
