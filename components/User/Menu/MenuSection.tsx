@@ -19,13 +19,15 @@ export interface MenuItem {
 interface MenuSectionProps {
   menus?: MenuItem[];
   onAddToCart?: (menu: MenuItem, qty?: number) => void;
+  cartQty?: Record<number, number>;
+  onSetCartQty?: (menu: MenuItem, qty: number) => void;
   focusMenuId?: number | null;
   onFocusComplete?: () => void;
 }
 
 const URUTAN_KATEGORI = ['APPETIZER', 'MAIN COURSE', 'DESSERT', 'MINUMAN', 'DRINK', 'ADDITIONAL'];
 const LABEL_PEDAS = ['Tidak Pedas', 'Sedikit Pedas', 'Sedang', 'Pedas', 'Sangat Pedas', 'Ekstra Pedas'];
-const MAX_QTY = 20;
+const MAX_CART_QTY = 99;
 
 function clampPedas(level: number) {
   return Math.max(0, Math.min(5, Math.round(level || 0)));
@@ -46,9 +48,70 @@ function Chili({ level }: { level: number }) {
   );
 }
 
+function QtyStepper({
+  value,
+  min = 0,
+  max,
+  onChange,
+  className = '',
+}: {
+  value: number;
+  min?: number,
+  max: number;
+  onChange: (n: number) => void;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null); 
+  const shown = draft ?? String(value);
+
+  const commit = () => {
+    if (draft === null) return;
+    const n = parseInt(draft, 10);
+    setDraft(null);
+    if (Number.isNaN(n)) return; 
+    onChange(Math.min(max, Math.max(0, n)));
+  };
+
+  return (
+    <div className={styles.stepper} onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        className={styles.stepBtn}
+        disabled={min > 0 && value <= min}
+        onClick={() => onChange(value - 1)}
+      >
+        -
+      </button>
+      <input
+        type="text"
+        inputMode="numeric"
+        className={styles.stepInput}
+        value={shown}
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => setDraft(e.target.value.replace(/\D/g, '').slice(0, String(max).length))}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') setDraft(null);
+        }}
+      />
+      <button
+        type="button"
+        className={styles.stepBtn}
+        disabled={value >= max}
+        onClick={() => onChange(Math.min(max, value + 1))}
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
 export default function MenuSection({
   menus = [],
   onAddToCart,
+  cartQty = {},
+  onSetCartQty,
   focusMenuId,
   onFocusComplete,
 }: MenuSectionProps) {
@@ -56,7 +119,6 @@ export default function MenuSection({
   const [modalQty, setModalQty] = useState(1);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentTab, setCurrentTab] = useState('');
-  const [justAddedId, setJustAddedId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredMenus = useMemo(() => {
@@ -111,7 +173,7 @@ export default function MenuSection({
 }, [focusMenuId, menus, onFocusComplete]);
 
   const openDetail = (menu: MenuItem) => {
-      setModalQty(1);
+      setModalQty(0);
       setModalVisible(false);
       setSelectedMenu(menu);
       setModalVisible(true);
@@ -124,8 +186,6 @@ export default function MenuSection({
 
   const addToCart = (menu: MenuItem, qty = 1) => {
     onAddToCart?.(menu, qty);
-    setJustAddedId(menu.id);
-    setTimeout(() => setJustAddedId((cur) => (cur === menu.id ? null : cur)), 1000);
   };
 
   const harga = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
@@ -271,16 +331,24 @@ export default function MenuSection({
                             <div className={styles.details}>
                               <div className={styles.price}>{harga(makanan.harga)}</div>
                               {tersedia ? (
-                                <button
-                                  type="button"
-                                  className={`${styles.addBtn} ${justAddedId === makanan.id ? styles.added : ''}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addToCart(makanan);
-                                  }}
-                                >
-                                  {justAddedId === makanan.id ? 'Berhasil!' : '+ Keranjang'}
-                                </button>
+                                (cartQty[makanan.id] ?? 0) > 0 ? (
+                                  <QtyStepper
+                                    value={cartQty[makanan.id]}
+                                    max={MAX_CART_QTY}
+                                    onChange={(n) => onSetCartQty?.(makanan, n)}
+                                  />
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className={styles.addBtn}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addToCart(makanan);
+                                    }}
+                                  >
+                                    + Keranjang
+                                  </button>
+                                )
                               ) : (
                                 <button type="button" className={`${styles.addBtn} ${styles.disabledBtn}`} disabled>
                                   Habis
@@ -362,26 +430,13 @@ export default function MenuSection({
               
               {selectedTersedia ? (
                 <div className="d-flex align-items-center gap-3 flex-wrap">
-                  <div className="d-flex align-items-center border rounded p-1" aria-label="Jumlah porsi">
-                    <Button
-                      variant="light"
-                      className={`${styles.qtyBtn} border-0 py-0`}
-                      aria-label="Kurangi"
-                      disabled={modalQty <= 1}
-                      onClick={() => setModalQty((q) => Math.max(1, q - 1))}
-                    >
-                      -
-                    </Button>
-                    <span className={`${styles.qtyNumber} px-3 fw-bold`}>{modalQty}</span>
-                    <Button
-                      variant="light"
-                      className={`${styles.qtyBtn} border-0 py-0`}
-                      aria-label="Tambah"
-                      disabled={modalQty >= MAX_QTY}
-                      onClick={() => setModalQty((q) => Math.min(MAX_QTY, q + 1))}
-                    >
-                      +
-                    </Button>
+                  <div className="d-flex align-items-center gap-3 flex-wrap">
+                    <QtyStepper
+                      value={modalQty}
+                      min={1}
+                      max={MAX_CART_QTY}
+                      onChange={setModalQty}
+                    />
                   </div>
                   <Button
                     variant="papeda"
