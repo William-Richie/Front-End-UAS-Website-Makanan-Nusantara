@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import Navbar from '@/components/User/Navbar/Navbar';
 import styles from './PendingOrderBar.module.css';
 import Footer from '@/components/User/Footer/Footer';
@@ -107,6 +108,8 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
   const [pendingOrderId, setPendingOrderId] = useState<number | null>(null); // pesanan yang menunggu konfirmasi kasir
   const [resumeOrderId, setResumeOrderId] = useState<number | null>(null); // pesanan yang sedang dibuka lagi di modal
+  const pathname = usePathname();
+  const isMenuPage = pathname.startsWith('/menu');
 
   // Toast Notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -424,6 +427,7 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
 
       {/* Floating Actions */}
       <CartFloating
+        showCart={isMenuPage}
         items={cartView}
         onUpdateQuantity={handleUpdateQty}
         onRemoveItem={handleRemoveItem}

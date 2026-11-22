@@ -14,6 +14,7 @@ export interface CartItem {
 }
 
 interface CartDrawerProps {
+  showCart?: boolean;
   items: CartItem[];
   onUpdateQuantity: (id: number, delta: number) => void;
   onRemoveItem: (id: number) => void;
@@ -21,6 +22,7 @@ interface CartDrawerProps {
 }
 
 export default function CartFloating({
+  showCart = true,
   items,
   onUpdateQuantity,
   onRemoveItem,
@@ -47,31 +49,33 @@ export default function CartFloating({
   return (
     <>
       <div className={styles.fabContainer}>
-        <div
-          className={`fab ${styles.fabAction} d-flex justify-content-center align-items-center rounded-circle`}
-          id="cart-button"
-          onClick={() => setIsOpen(true)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setIsOpen(true);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label="Buka keranjang pesanan"
-          title="Keranjang Pesanan"
-        >
-          <i className={`fa-solid fa-cart-shopping ${styles.cartIcon}`}></i>
-          <span
-            key={totalItems}
-            className={`${styles.cartBadge} ${totalItems > 0 ? styles.bump : ''}`}
-            id="cart-count"
-            style={{ display: totalItems > 0 ? 'flex' : 'none' }}
+        {showCart && (
+          <div
+            className={`fab ${styles.fabAction} d-flex justify-content-center align-items-center rounded-circle`}
+            id="cart-button"
+            onClick={() => setIsOpen(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsOpen(true);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Buka keranjang pesanan"
+            title="Keranjang Pesanan"
           >
-            {totalItems}
-          </span>
-        </div>
+            <i className={`fa-solid fa-cart-shopping ${styles.cartIcon}`}></i>
+            <span
+              key={totalItems}
+              className={`${styles.cartBadge} ${totalItems > 0 ? styles.bump : ''}`}
+              id="cart-count"
+              style={{ display: totalItems > 0 ? 'flex' : 'none' }}
+            >
+              {totalItems}
+            </span>
+          </div>
+        )}
 
         {showScrollTop && (
           <div
