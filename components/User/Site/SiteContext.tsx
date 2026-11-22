@@ -418,7 +418,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     menus,
     favorites,
     orbitSetting,
-    addToCart,
     cartQty,
     setCartQty,
     faqs,
