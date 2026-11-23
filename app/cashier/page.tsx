@@ -443,7 +443,13 @@ export default function KasirPage() {
     try {
       const cek = await fetch(`/api/cashier/pesanan/${p.id}`, { cache: 'no-store' }).then((r) => r.json());
       const statusSekarang: string | undefined = cek?.data?.status;
-      if (statusSekarang !== STATUS_AWAL[aksi]) {
+      if (aksi === 'batal') {
+        if (!['menunggu_bayar', 'pending', 'diproses'].includes(statusSekarang || '')) {
+          throw new Error(
+            `Pesanan #${p.id} tidak dapat dibatalkan (status: ${statusSekarang || 'tidak ditemukan'}). Papan diperbarui.`,
+          );
+        }
+      } else if (statusSekarang !== STATUS_AWAL[aksi]) {
         throw new Error(
           `Pesanan #${p.id} sudah berubah (status: ${statusSekarang || 'tidak ditemukan'}). Papan diperbarui.`,
         );
@@ -464,6 +470,61 @@ export default function KasirPage() {
     } finally {
       setSibukId(null);
       muat();
+    }
+  };
+
+  const handleHapusItemMenu = async (p: Pesanan, indexItem: number) => {
+    const itemYangDihapus = p.items[indexItem];
+    if (!itemYangDihapus) return;
+
+    const yakin = await notify.confirm({
+      title: 'Hapus Menu dari Pesanan?',
+      message: `Menu "${itemYangDihapus.nama_makanan}" akan dihapus dari pesanan #${p.id} karena stok habis. Total harga akan berkurang otomatis.`,
+      confirmText: 'Ya, Hapus Menu',
+      cancelText: 'Kembali',
+      danger: true,
+    });
+    if (!yakin) return;
+
+    const itemsBaru = p.items.filter((_, idx) => idx !== indexItem);
+
+    if (itemsBaru.length === 0) {
+      const batalSemua = await notify.confirm({
+        title: 'Batalkan Seluruh Pesanan?',
+        message: `Semua menu dalam pesanan #${p.id} telah dihapus. Batalkan seluruh pesanan ini?`,
+        confirmText: 'Ya, Batalkan Pesanan',
+        cancelText: 'Kembali',
+        danger: true,
+      });
+      if (batalSemua) {
+        jalankan(p, 'batal');
+      }
+      return;
+    }
+
+    const subtotalBaru = itemsBaru.reduce((sum, it) => sum + it.harga * it.quantity, 0);
+    const totalBaru = subtotalBaru + p.ongkir;
+
+    setSibukId(p.id);
+    try {
+      const res = await fetch(`/api/cashier/pesanan/${p.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: itemsBaru,
+          total: totalBaru,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error || 'Gagal menghapus menu.');
+      }
+      notify.success(`Menu "${itemYangDihapus.nama_makanan}" berhasil dihapus.`);
+      muat();
+    } catch (err: unknown) {
+      notify.error(err instanceof Error ? err.message : 'Gagal menghapus menu.');
+    } finally {
+      setSibukId(null);
     }
   };
 
@@ -946,7 +1007,20 @@ export default function KasirPage() {
                           {p.items.map((m, i) => (
                             <li key={i}>
                               <span>{m.nama_makanan}</span>
-                              <b>x{m.quantity}</b>
+                              <div className={styles.itemKanan}>
+                                <b>x{m.quantity}</b>
+                                {(k.key === 'pending' || k.key === 'menunggu_bayar' || k.key === 'diproses') && (
+                                  <button
+                                    type="button"
+                                    className={styles.btnHapusItem}
+                                    title={`Hapus ${m.nama_makanan} (stok habis)`}
+                                    disabled={sibuk}
+                                    onClick={() => handleHapusItemMenu(p, i)}
+                                  >
+                                    <i className="fa-solid fa-xmark"></i>
+                                  </button>
+                                )}
+                              </div>
                             </li>
                           ))}
                         </ul>
@@ -993,14 +1067,36 @@ export default function KasirPage() {
                               </>
                             )}
                             {k.key === 'pending' && (
-                              <button type="button" className={styles.btnProses} disabled={sibuk} onClick={() => jalankan(p, 'proses')}>
-                                {sibuk ? 'Memproses…' : 'Proses'}
-                              </button>
+                              <>
+                                <button type="button" className={styles.btnProses} disabled={sibuk} onClick={() => jalankan(p, 'proses')}>
+                                  {sibuk ? 'Memproses…' : 'Proses'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.btnCancel}
+                                  disabled={sibuk}
+                                  title="Batalkan pesanan"
+                                  onClick={() => jalankan(p, 'batal')}
+                                >
+                                  <i className="fa-solid fa-xmark"></i>
+                                </button>
+                              </>
                             )}
                             {k.key === 'diproses' && (
-                              <button type="button" className={styles.btnSelesai} disabled={sibuk} onClick={() => jalankan(p, 'selesai')}>
-                                {sibuk ? 'Memproses…' : 'Selesai'}
-                              </button>
+                              <>
+                                <button type="button" className={styles.btnSelesai} disabled={sibuk} onClick={() => jalankan(p, 'selesai')}>
+                                  {sibuk ? 'Memproses…' : 'Selesai'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.btnCancel}
+                                  disabled={sibuk}
+                                  title="Batalkan pesanan"
+                                  onClick={() => jalankan(p, 'batal')}
+                                >
+                                  <i className="fa-solid fa-xmark"></i>
+                                </button>
+                              </>
                             )}
                             {k.key === 'selesai' && (
                               <button type="button" className={styles.btnReprint} onClick={() => cetak(p)}>
