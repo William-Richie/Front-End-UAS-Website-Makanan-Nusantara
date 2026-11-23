@@ -655,8 +655,42 @@
 .items li {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 8px;
-  padding: 2px 0;
+  padding: 3px 0;
+}
+
+.itemKanan {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btnHapusItem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #d8a09b;
+  background: #fff;
+  color: #c0524a;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnHapusItem:hover:not(:disabled) {
+  background: #c0524a;
+  border-color: #c0524a;
+  color: #fff;
+}
+
+.btnHapusItem:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .timer {
