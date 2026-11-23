@@ -22,7 +22,7 @@ export async function daftarMeja(gerai: string, tanggal: string, jam: string, ti
       gerai,
       tanggal,
       meja_id: { not: null },
-      status: { in: ['pending', 'approved', 'dikonfirmasi'] },
+      status: { in: [ 'approved', 'dikonfirmasi'] },
     },
     select: { meja_id: true, sesi: true },
   });
