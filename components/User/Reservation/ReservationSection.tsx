@@ -237,7 +237,7 @@ export default function ReservationSection({
           </h1>
           <ul className="loc-chips reveal reveal-d2">
             <li><i className="fa-solid fa-bolt"></i>Konfirmasi Cepat</li>
-            <li><i className="fa-solid fa-ticket"></i>Gratis Reservasi</li>
+            <li><i className="fa-solid fa-ticket"></i>Gratis Reservasi</li>          
           </ul>
         </Container>
       </div>
@@ -269,7 +269,7 @@ export default function ReservationSection({
         </Container>
       ) : (
         <Container className="text-content py-4" style={{ maxWidth: '720px' }}>
-          <div className="mb-4">
+          <div className={`${styles.lol}"mb-4"`}>
             <Form.Label className={styles.storeLabel}>
               <i className="fa-solid fa-store me-2"></i>please choose a restaurant outlet&nbsp;<strong>!</strong>
             </Form.Label>

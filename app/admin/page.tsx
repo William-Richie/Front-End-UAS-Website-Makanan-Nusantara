@@ -79,6 +79,7 @@ export interface UserItem {
 }
 
 type UrutMenu = 'terbaru' | 'terlama' | 'az' | 'za';
+type FilterStok = 'semua' | 'tersedia' | 'habis'; 
 type ReservasiTabKey = 'user' | 'pending' | 'approved' | 'complete' | 'dibatalkan';
 type UserFilter = '' | 'active' | 'blocked';
 type UserAksi = '' | 'modifikasi' | 'blokir' | 'hapus';
@@ -320,6 +321,7 @@ export default function AdminPage() {
 
   const [cariMenu, setCariMenu] = useState('');
   const [filterKategori, setFilterKategori] = useState('');
+  const [filterStok, setFilterStok] = useState<FilterStok>('semua');
   const [urutMenu, setUrutMenu] = useState<UrutMenu>('terbaru');
 
   const kategoriAda = Array.from(new Set(menus.map((m) => m.nama_kategori))).sort();
@@ -327,6 +329,7 @@ export default function AdminPage() {
 
   const menuTampil = menus
     .filter((m) => filterAktif === '' || m.nama_kategori === filterAktif)
+    .filter((m) => filterStok === 'semua' || (filterStok === 'tersedia' ? m.status : !m.status)) 
     .filter((m) => {
       const k = cariMenu.toLowerCase().trim();
       return !k || m.nama_makanan.toLowerCase().includes(k) || m.nama_kategori.toLowerCase().includes(k);
@@ -1453,7 +1456,7 @@ export default function AdminPage() {
 
             <div className="card shadow-sm border-0 p-3">
               <div className="row g-2 mb-3">
-                <div className="col-md-5">
+                <div className="col-md-3">
                   <div className="input-group">
                     <span className="input-group-text">
                       <i className="fa-solid fa-magnifying-glass"></i>
@@ -1481,6 +1484,18 @@ export default function AdminPage() {
                     ]}
                   />
                 </div>
+                <div className="col-md-2">
+                  <Select
+                    ariaLabel="Filter stok"
+                    value={filterStok}
+                    onChange={(v) => setFilterStok(v as FilterStok)}
+                    options={[
+                      { value: 'semua', label: `Semua stok (${menus.length})` },
+                      { value: 'tersedia', label: `Tersedia (${menus.filter((m) => m.status).length})` },
+                      { value: 'habis', label: `Stok Habis (${menus.filter((m) => !m.status).length})` },
+                    ]}
+                  />
+                </div>
                 <div className="col-md-3">
                   <Select
                     ariaLabel="Urutkan menu"
@@ -1502,6 +1517,7 @@ export default function AdminPage() {
                     onClick={() => {
                       setCariMenu('');
                       setFilterKategori('');
+                      setFilterStok('semua'); 
                       setUrutMenu('terbaru');
                     }}
                   >
