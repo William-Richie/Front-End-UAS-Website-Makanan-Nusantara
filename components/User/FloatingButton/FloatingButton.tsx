@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type RefObject } from 'react';
 import { Offcanvas, ListGroup, Button } from 'react-bootstrap';
 import Image from "next/image";
 import styles from './FloatingButton.module.css';
@@ -19,6 +19,7 @@ interface CartDrawerProps {
   onUpdateQuantity: (id: number, delta: number) => void;
   onRemoveItem: (id: number) => void;
   onCheckout: () => void;
+  scrollContainerRef?: RefObject<HTMLElement | null>;
 }
 
 export default function CartFloating({
@@ -27,6 +28,7 @@ export default function CartFloating({
   onUpdateQuantity,
   onRemoveItem,
   onCheckout,
+  scrollContainerRef,
 }: CartDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -35,15 +37,26 @@ export default function CartFloating({
   const totalPrice = items.reduce((sum, item) => sum + item.harga * item.quantity, 0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 200);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    const el = scrollContainerRef?.current ?? null;
+
+    if (el) {
+      const onScroll = () => setShowScrollTop(el.scrollTop > 200);
+      el.addEventListener('scroll', onScroll, { passive: true });
+      return () => el.removeEventListener('scroll', onScroll);
+    }
+
+    const onScroll = () => setShowScrollTop(window.scrollY > 200);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [scrollContainerRef]);
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const el = scrollContainerRef?.current;
+    if (el) {
+      el.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -82,12 +95,18 @@ export default function CartFloating({
             className={`fab ${styles.fabAction} d-flex justify-content-center align-items-center rounded-circle`}
             id="back-to-top"
             onClick={scrollToTop}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                scrollToTop();
+              }
+            }}
             role="button"
             tabIndex={0}
+            aria-label="Kembali ke atas"
             title="Kembali ke atas"
-            style={{ display: 'flex' }}
           >
-            <i className="fa-solid fa-arrow-up ${styles.upIcon}"></i>
+            <i className={`fa-solid fa-arrow-up ${styles.upIcon ?? ''}`}></i>
           </div>
         )}
       </div>
