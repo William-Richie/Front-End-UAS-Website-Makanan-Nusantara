@@ -263,6 +263,11 @@ export default function AdminPage() {
   const [usersList, setUsersList] = useState<UserItem[]>([]);
   const [reservasiTab, setReservasiTab] = useState<ReservasiTabKey>('user');
   const [globalSearch, setGlobalSearch] = useState<string>('');
+  const [filterOpen, setFilterOpen] = useState<boolean>(false);
+  const [fGerai, setFGerai] = useState<string>('');
+  const [fTanggal, setFTanggal] = useState<string>('');
+  const [fSesi, setFSesi] = useState<string>('');
+  const [fRuangan, setFRuangan] = useState<string>('');
   const [userFilter, setUserFilter] = useState<UserFilter>('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [userAksi, setUserAksi] = useState<UserAksi>('');
@@ -607,7 +612,29 @@ export default function AdminPage() {
   const filteredReservasi =
     reservasiTab === 'user'
       ? []
-      : reservasiAdmin.filter((r) => statusMatch(r.status, reservasiTab) && cocokSearch(r, globalSearch));
+      : reservasiAdmin.filter(
+          (r) =>
+            statusMatch(r.status, reservasiTab) &&
+            cocokSearch(r, globalSearch) &&
+            (!fGerai || r.gerai === fGerai) &&
+            (!fTanggal || (r.tanggal ?? '').slice(0, 10) === fTanggal) &&
+            (!fSesi || (r.sesi || r.jam) === fSesi) &&
+            (!fRuangan || r.ruangan === fRuangan)
+        );
+
+  const opsiGerai = Array.from(
+    new Set([
+      ...branches.map((b) => b.nama),
+      ...reservasiAdmin.map((r) => r.gerai).filter(Boolean),
+    ])
+  );
+  const opsiRuangan = Array.from(new Set(reservasiAdmin.map((r) => r.ruangan).filter(Boolean)));
+  const resetFilter = () => {
+    setFGerai('');
+    setFTanggal('');
+    setFSesi('');
+    setFRuangan('');
+  };
 
   const countReservasi = (tab: ReservasiTabKey) => reservasiAdmin.filter((r) => statusMatch(r.status, tab)).length;
   const pertanyaanBaru = pertanyaanList.filter((q) => !q.dibaca && !q.dijawab_at).length;
@@ -2121,13 +2148,9 @@ export default function AdminPage() {
                   <div className="reservation-tools">
                     <button
                       type="button"
-                      className={`filter-button ${userFilter ? 'on' : ''}`}
-                      title={
-                        reservasiTab === 'user'
-                          ? `Filter user: ${userFilter === '' ? 'semua' : userFilter === 'active' ? 'aktif' : 'diblokir'}`
-                          : 'Filter'
-                      }
-                      onClick={() => reservasiTab === 'user' && toggleFilterUser()}
+                      className={`filter-button ${(reservasiTab === 'user' ? userFilter : filterOpen) ? 'on' : ''}`}
+                      title="Filter"
+                      onClick={() => (reservasiTab === 'user' ? toggleFilterUser() : setFilterOpen((o) => !o))}
                     >
                       <i className="fa-solid fa-filter"></i>
                     </button>
@@ -2140,6 +2163,42 @@ export default function AdminPage() {
                     />
                   </div>
                 </div>
+                {reservasiTab !== 'user' && filterOpen && (
+                  <div className="row g-2 mb-3">
+                    <div className="col-md-3">
+                      <select className="form-select" value={fGerai} onChange={(e) => setFGerai(e.target.value)}>
+                        <option value="">Semua gerai</option>
+                        {opsiGerai.map((g) => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-3">
+                      <input type="date" className="form-control" value={fTanggal} onChange={(e) => setFTanggal(e.target.value)} />
+                    </div>
+                    <div className="col-md-2">
+                      <select className="form-select" value={fSesi} onChange={(e) => setFSesi(e.target.value)}>
+                        <option value="">Semua waktu</option>
+                        {JAM_RESERVASI.map((j) => (
+                          <option key={j} value={j}>{j}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-3">
+                      <select className="form-select" value={fRuangan} onChange={(e) => setFRuangan(e.target.value)}>
+                        <option value="">Semua ruangan</option>
+                        {opsiRuangan.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-1 d-grid">
+                      <button type="button" className="btn btn-outline-secondary" title="Reset filter" onClick={resetFilter}>
+                        <i className="fa-solid fa-rotate-left"></i>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Users reservasi*/}
                 {reservasiTab === 'user' && (

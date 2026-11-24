@@ -57,7 +57,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'ID pesanan tidak valid.' }, { status: 400 });
     }
 
-    const { status, status_bayar, metode_bayar } = await req.json();
+    const body = await req.json();
+    const { status, status_bayar, metode_bayar, items, total } = body;
     if (status && !STATUS_VALID.includes(String(status))) {
       return NextResponse.json({ error: 'Status tidak valid.' }, { status: 400 });
     }
@@ -68,15 +69,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Pesanan ini bukan milik gerai Anda.' }, { status: 403 });
     }
 
-    const data: { status?: string; item?: string } = {};
+    const data: { status?: string; item?: string; total?: number } = {};
     if (status) data.status = String(status);
+    if (typeof total === 'number') data.total = total;
 
-    if (status_bayar || metode_bayar) {
+    if (status_bayar || metode_bayar || Array.isArray(items)) {
       try {
         const parsed = JSON.parse(current.item);
         if (parsed && typeof parsed === 'object') {
           if (status_bayar) parsed.status_bayar = String(status_bayar);
           if (metode_bayar) parsed.metode_bayar = String(metode_bayar);
+          if (Array.isArray(items)) parsed.daftar_menu = items;
           data.item = JSON.stringify(parsed);
         }
       } catch {}
