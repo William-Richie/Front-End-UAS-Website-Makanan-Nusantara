@@ -94,6 +94,15 @@ export async function POST(req: NextRequest) {
 
     let created;
     try {
+      if (user_id) {
+        const userAda = await prisma.user.findUnique({ where: { id: user_id } });
+        if (!userAda) {
+          return NextResponse.json(
+            { error: 'Sesi login tidak valid. Silakan login ulang.' },
+            { status: 401 }
+          );
+        }
+      }
       created = await prisma.reservasi.create({
         data: {
           user_id: user_id || null,

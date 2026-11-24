@@ -111,7 +111,7 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   const [pendingOrderId, setPendingOrderId] = useState<number | null>(null); // pesanan yang menunggu konfirmasi kasir
   const [resumeOrderId, setResumeOrderId] = useState<number | null>(null); // pesanan yang sedang dibuka lagi di modal
   const pathname = usePathname();
-  const isMenuPage = pathname.startsWith('/menu');
+  const isMenuPage = !!pathname && (pathname === '/menu' || pathname.startsWith('/menu/'));
 
   // Toast Notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
