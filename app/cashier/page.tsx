@@ -8,6 +8,9 @@ import type { CartItem } from '@/components/User/FloatingButton/FloatingButton';
 import { BATAS_BAYAR_KASIR_DETIK } from '@/lib/paymentTimeout';
 import { namaSingkatGerai } from '@/lib/gerai';
 import { useNotify } from '@/components/Common/Notify/NotifyProvider';
+import MenuSection, { type MenuItem } from '@/components/User/Menu/MenuSection';
+import FloatingButton from '@/components/User/FloatingButton/FloatingButton';
+import { Modal, Button, Form } from 'react-bootstrap';
 
 const REFRESH_MS = 4000;
 const BATAS_BAYAR_MENIT = Math.round(BATAS_BAYAR_KASIR_DETIK / 60);
@@ -243,6 +246,7 @@ export default function KasirPage() {
   const [gerai, setGerai] = useState('');
   const [geraiBuka, setGeraiBuka] = useState(false);
   const geraiRef = useRef<HTMLDivElement>(null);
+  const menuScrollRef = useRef<HTMLElement>(null);
 
   // Tutup dropdown gerai kalau klik di luar atau tekan Escape
   useEffect(() => {
@@ -287,6 +291,15 @@ export default function KasirPage() {
   const [tglRiwayatPilih, setTglRiwayatPilih] = useState('');
   const [filterRiwayat, setFilterRiwayat] = useState<'semua' | 'selesai' | 'dibatalkan'>('semua');
 
+  const [inputMenu, setInputMenu] = useState(false);
+  const [keranjang, setKeranjang] = useState<CartItem[]>([]);
+  const [checkoutBuka, setCheckoutBuka] = useState(false);
+  const [namaPelanggan, setNamaPelanggan] = useState('');
+  const [percobaanSimpan, setPercobaanSimpan] = useState(false);
+  const [menyimpan, setMenyimpan] = useState(false);
+  const namaBersih = namaPelanggan.trim();
+  const [menus, setMenus] = useState<MenuItem[]>([]);
+
   // Cek sesi kasir ke server (cookie httpOnly), gerai kasir ikut dari server
   useEffect(() => {
     let batal = false;
@@ -313,6 +326,16 @@ export default function KasirPage() {
       batal = true;
     };
   }, [router]);
+
+  useEffect(() => {
+  if (!loggedIn) return;
+  fetch('/api/menu', { cache: 'no-store' })
+    .then((r) => r.json())
+    .then((d: { data?: MenuItem[] }) => {
+      if (Array.isArray(d?.data)) setMenus(d.data);
+    })
+    .catch(() => {});
+}, [loggedIn]);
 
   useEffect(() => {
     fetch('/api/maps')
@@ -529,6 +552,62 @@ export default function KasirPage() {
   };
 
   const hariIni = now ? tglLokal(new Date(now)) : '';
+
+  const tambahKeKeranjang = (menu: MenuItem, qty = 1) =>
+    setKeranjang((k) =>
+      k.some((x) => x.id === menu.id)
+        ? k.map((x) => (x.id === menu.id ? { ...x, quantity: x.quantity + qty } : x))
+        : [
+            ...k,
+            { id: menu.id, nama_makanan: menu.nama_makanan, harga: menu.harga, gambar: menu.gambar, quantity: qty },
+          ],
+    );
+
+  const aturQty = (menu: MenuItem, qty: number) =>
+    setKeranjang((k) =>
+      qty <= 0 ? k.filter((x) => x.id !== menu.id) : k.map((x) => (x.id === menu.id ? { ...x, quantity: qty } : x)),
+    );
+
+  const cartQty = Object.fromEntries(keranjang.map((x) => [x.id, x.quantity]));
+
+  const ubahQty = (id: number, delta: number) =>
+    setKeranjang((k) =>
+      k.map((x) => (x.id === id ? { ...x, quantity: x.quantity + delta } : x)).filter((x) => x.quantity > 0),
+    );
+
+  const hapusItem = (id: number) => setKeranjang((k) => k.filter((x) => x.id !== id));
+
+  const totalKeranjang = keranjang.reduce((t, x) => t + x.harga * x.quantity, 0);
+
+  const simpanPesananKasir = async () => {
+    setPercobaanSimpan(true);
+    if (!namaBersih || menyimpan) {
+      return;
+    }
+
+    setMenyimpan(true);
+
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/cashier/pesanan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nama: namaPelanggan, items: keranjang }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Gagal menyimpan pesanan.');
+      setKeranjang([]);
+      setNamaPelanggan('');
+      setPercobaanSimpan(false);
+      setCheckoutBuka(false);
+      setInputMenu(false);
+      setKolomAktif('menunggu_bayar');
+      muat();
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Gagal menyimpan pesanan.');
+    } finally {
+      setMenyimpan(false);
+    }
+  };
 
   const cocokCari = useCallback(
     (p: Pesanan) => {
@@ -826,6 +905,11 @@ export default function KasirPage() {
         </div>
 
         <div className={styles.headerActions}>
+          <button type="button" className={styles.btnGhost} onClick={() => setInputMenu((v) => !v)}>
+            <i className={`fa-solid ${inputMenu ? 'fa-arrow-left' : 'fa-plus'}`}></i>
+            <span className={styles.hideSm}> {inputMenu ? 'Kembali ke Kasir' : 'Pesanan Baru'}</span>
+          </button>
+
           <button
             type="button"
             className={styles.btnGhost}
@@ -849,7 +933,7 @@ export default function KasirPage() {
         </div>
       </header>
 
-      {!riwayatBuka && (
+      {!riwayatBuka && !inputMenu && (
         <div className={styles.subbar}>
           <div className={styles.searchBox}>
             <i className="fa-solid fa-magnifying-glass"></i>
@@ -885,234 +969,264 @@ export default function KasirPage() {
         </div>
       )}
 
-      {riwayatBuka ? (
-        renderRiwayat()
+      {inputMenu ? (
+        <section 
+          ref={menuScrollRef}
+          style={{ height: 'calc(100vh - 64px)', overflowY: 'auto' }}
+        >
+          <div className="p-3 bg-white border-bottom">
+            <Button variant="papeda" className="text-white" onClick={() => setInputMenu(false)}>
+              <i className="fa-solid fa-arrow-left me-2"></i>Kembali ke Kasir
+            </Button>
+          </div>
+
+          <style>{`.kasir-menu .reveal { opacity: 1 !important; transform: none !important; }`}</style>
+          <div className="kasir-menu">
+            <MenuSection
+              menus={menus}
+              onAddToCart={tambahKeKeranjang}
+              cartQty={cartQty}
+              onSetCartQty={aturQty}
+            />
+          </div>
+
+          <FloatingButton
+            scrollContainerRef={menuScrollRef}
+            items={keranjang}
+            onUpdateQuantity={ubahQty}
+            onRemoveItem={hapusItem}
+            onCheckout={() => setCheckoutBuka(true)}
+          />
+        </section>
+      ) : riwayatBuka ? (
+          renderRiwayat()
       ) : (
         <>
-      <nav className={styles.mobileTabs} aria-label="Status pesanan">
-        {KOLOM.map((k) => (
-          <button
-            key={k.key}
-            type="button"
-            className={`${styles.mTab} ${styles[`k_${k.key}`]} ${kolomAktif === k.key ? styles.mTabAktif : ''}`}
-            onClick={() => setKolomAktif(k.key)}
-          >
-            <i className={`fa-solid ${k.icon}`}></i>
-            <span>{k.label}</span>
-            <b>{perKolom[k.key].length}</b>
-          </button>
-        ))}
-      </nav>
-
-      <main className={styles.board}>
-        {KOLOM.map((k) => {
-          const list = perKolom[k.key];
-          return (
-            <section
+        <nav className={styles.mobileTabs} aria-label="Status pesanan">
+          {KOLOM.map((k) => (
+            <button
               key={k.key}
-              className={`${styles.col} ${styles[`k_${k.key}`]} ${kolomAktif === k.key ? styles.colAktif : ''}`}
+              type="button"
+              className={`${styles.mTab} ${styles[`k_${k.key}`]} ${kolomAktif === k.key ? styles.mTabAktif : ''}`}
+              onClick={() => setKolomAktif(k.key)}
             >
-              <div className={styles.colHead}>
-                <span>
-                  <i className={`fa-solid ${k.icon}`}></i> {k.label}
-                </span>
-                <b className={styles.colCount}>{list.length}</b>
-              </div>
+              <i className={`fa-solid ${k.icon}`}></i>
+              <span>{k.label}</span>
+              <b>{perKolom[k.key].length}</b>
+            </button>
+          ))}
+        </nav>
 
-              {k.key === 'selesai' && (
-                <div className={styles.riwayat}>
-                  <div className={styles.riwayatInfo}>
-                    <span>
-                      <b>{list.length}</b> pesanan hari ini
-                      {!cari && <> · {rupiah(list.reduce((t, p) => t + p.total, 0))}</>}
-                    </span>
-                  </div>
-                  <button type="button" className={styles.btnRiwayat} onClick={() => setRiwayatBuka(true)}>
-                    <i className="fa-solid fa-clock-rotate-left"></i> Riwayat pesanan
-                    <i className="fa-solid fa-chevron-right"></i>
-                  </button>
+        <main className={styles.board}>
+          {KOLOM.map((k) => {
+            const list = perKolom[k.key];
+            return (
+              <section
+                key={k.key}
+                className={`${styles.col} ${styles[`k_${k.key}`]} ${kolomAktif === k.key ? styles.colAktif : ''}`}
+              >
+                <div className={styles.colHead}>
+                  <span>
+                    <i className={`fa-solid ${k.icon}`}></i> {k.label}
+                  </span>
+                  <b className={styles.colCount}>{list.length}</b>
                 </div>
-              )}
 
-              <div className={styles.colBody}>
-                {memuat ? (
-                  <div className={styles.empty}>Memuat pesanan…</div>
-                ) : list.length === 0 ? (
-                  <div className={styles.empty}>
-                    <i className={`fa-solid ${k.icon}`}></i>
-                    <p>
-                      {cari
-                        ? 'Tidak ada yang cocok dengan pencarian.'
-                        : k.kosong}
-                    </p>
+                {k.key === 'selesai' && (
+                  <div className={styles.riwayat}>
+                    <div className={styles.riwayatInfo}>
+                      <span>
+                        <b>{list.length}</b> pesanan hari ini
+                        {!cari && <> · {rupiah(list.reduce((t, p) => t + p.total, 0))}</>}
+                      </span>
+                    </div>
+                    <button type="button" className={styles.btnRiwayat} onClick={() => setRiwayatBuka(true)}>
+                      <i className="fa-solid fa-clock-rotate-left"></i> Riwayat pesanan
+                      <i className="fa-solid fa-chevron-right"></i>
+                    </button>
                   </div>
-                ) : (
-                  list.map((p) => {
-                    const menit = now ? Math.max(0, Math.floor((now - new Date(p.createdAt).getTime()) / 60000)) : 0;
-                    const sisa = Math.max(0, BATAS_BAYAR_MENIT - menit);
-                    const persen = Math.min(100, (sisa / BATAS_BAYAR_MENIT) * 100);
-                    const hampirHabis = k.key === 'menunggu_bayar' && sisa <= 5;
-                    const lama = (k.key === 'pending' || k.key === 'diproses') && menit >= BATAS_LAMA_MENIT;
-                    const sibuk = sibukId === p.id;
-                    const sedangKonfirmasi = konfirmasiId === p.id;
-                    const baru = baruIds.includes(p.id);
-                    return (
-                      <article
-                        key={p.id}
-                        className={`${styles.card} ${k.key === 'selesai' ? styles.cardArsip : ''} ${hampirHabis || lama ? styles.cardPeringatan : ''} ${baru ? styles.cardBaru : ''}`}
-                      >
-                        <div className={styles.cardTop}>
-                          <div>
-                            <div className={styles.orderId}>#{p.id}</div>
-                            <div className={styles.orderTime}>
-                              {jam(p.createdAt)}
-                              {k.key !== 'selesai' && (
-                                <span className={lama ? styles.merah : ''}> · {menit} mnt lalu</span>
-                              )}
+                )}
+
+                <div className={styles.colBody}>
+                  {memuat ? (
+                    <div className={styles.empty}>Memuat pesanan…</div>
+                  ) : list.length === 0 ? (
+                    <div className={styles.empty}>
+                      <i className={`fa-solid ${k.icon}`}></i>
+                      <p>
+                        {cari
+                          ? 'Tidak ada yang cocok dengan pencarian.'
+                          : k.kosong}
+                      </p>
+                    </div>
+                  ) : (
+                    list.map((p) => {
+                      const menit = now ? Math.max(0, Math.floor((now - new Date(p.createdAt).getTime()) / 60000)) : 0;
+                      const sisa = Math.max(0, BATAS_BAYAR_MENIT - menit);
+                      const persen = Math.min(100, (sisa / BATAS_BAYAR_MENIT) * 100);
+                      const hampirHabis = k.key === 'menunggu_bayar' && sisa <= 5;
+                      const lama = (k.key === 'pending' || k.key === 'diproses') && menit >= BATAS_LAMA_MENIT;
+                      const sibuk = sibukId === p.id;
+                      const sedangKonfirmasi = konfirmasiId === p.id;
+                      const baru = baruIds.includes(p.id);
+                      return (
+                        <article
+                          key={p.id}
+                          className={`${styles.card} ${k.key === 'selesai' ? styles.cardArsip : ''} ${hampirHabis || lama ? styles.cardPeringatan : ''} ${baru ? styles.cardBaru : ''}`}
+                        >
+                          <div className={styles.cardTop}>
+                            <div>
+                              <div className={styles.orderId}>#{p.id}</div>
+                              <div className={styles.orderTime}>
+                                {jam(p.createdAt)}
+                                {k.key !== 'selesai' && (
+                                  <span className={lama ? styles.merah : ''}> · {menit} mnt lalu</span>
+                                )}
+                              </div>
                             </div>
+                            
+                            {baru && <span className={styles.tagBaru}>BARU</span>}
+                            {k.key === 'selesai' && (
+                              <span className={styles.tagSelesai}>
+                                <i className="fa-solid fa-circle-check"></i> Selesai
+                              </span>
+                            )}
                           </div>
-                          {baru && <span className={styles.tagBaru}>BARU</span>}
-                          {k.key === 'selesai' && (
-                            <span className={styles.tagSelesai}>
-                              <i className="fa-solid fa-circle-check"></i> Selesai
-                            </span>
-                          )}
-                        </div>
 
-                        <div className={styles.nama}>{p.nama}</div>
-                        <div className={styles.chips}>
-                          <span className={styles.chip}>
-                            <i className={`fa-solid ${p.orderType === 'online' ? 'fa-motorcycle' : 'fa-utensils'}`}></i>
-                            {p.orderType === 'online' ? 'Pesan Antar' : 'Makan di Tempat'}
-                          </span>
-                          {gerai === 'semua' && p.gerai && (
+                          <div className={styles.nama}>{p.nama}</div>
+                          <div className={styles.chips}>
                             <span className={styles.chip}>
-                              <i className="fa-solid fa-location-dot"></i>
-                              {namaSingkatGerai(p.gerai)}
+                              <i className={`fa-solid ${p.orderType === 'online' ? 'fa-motorcycle' : 'fa-utensils'}`}></i>
+                              {p.orderType === 'online' ? 'Pesan Antar' : 'Makan di Tempat'}
                             </span>
-                          )}
-                          <span className={`${styles.chip} ${p.lunas ? styles.chipLunas : ''}`}>
-                            <i className={`fa-solid ${p.lunas ? 'fa-circle-check' : 'fa-clock'}`}></i>
-                            {labelMetode(p)}
-                            {p.lunas ? ' · Lunas' : p.cod ? ' · Bayar ke kurir' : ''}
-                          </span>
-                        </div>
-                        {p.alamat && (
-                          <div className={styles.alamat}>
-                            <i className="fa-solid fa-map-pin"></i> {p.alamat}
+                            {gerai === 'semua' && p.gerai && (
+                              <span className={styles.chip}>
+                                <i className="fa-solid fa-location-dot"></i>
+                                {namaSingkatGerai(p.gerai)}
+                              </span>
+                            )}
+                            <span className={`${styles.chip} ${p.lunas ? styles.chipLunas : ''}`}>
+                              <i className={`fa-solid ${p.lunas ? 'fa-circle-check' : 'fa-clock'}`}></i>
+                              {labelMetode(p)}
+                              {p.lunas ? ' · Lunas' : p.cod ? ' · Bayar ke kurir' : ''}
+                            </span>
                           </div>
-                        )}
+                          {p.alamat && (
+                            <div className={styles.alamat}>
+                              <i className="fa-solid fa-map-pin"></i> {p.alamat}
+                            </div>
+                          )}
 
-                        <ul className={styles.items}>
-                          {p.items.map((m, i) => (
-                            <li key={i}>
-                              <span>{m.nama_makanan}</span>
-                              <div className={styles.itemKanan}>
-                                <b>x{m.quantity}</b>
-                                {(k.key === 'pending' || k.key === 'menunggu_bayar' || k.key === 'diproses') && (
+                          <ul className={styles.items}>
+                            {p.items.map((m, i) => (
+                              <li key={i}>
+                                <span>{m.nama_makanan}</span>
+                                <div className={styles.itemKanan}>
+                                  <b>x{m.quantity}</b>
+                                  {(k.key === 'pending' || k.key === 'menunggu_bayar' || k.key === 'diproses') && (
+                                    <button
+                                      type="button"
+                                      className={styles.btnHapusItem}
+                                      title={`Hapus ${m.nama_makanan} (stok habis)`}
+                                      disabled={sibuk}
+                                      onClick={() => handleHapusItemMenu(p, i)}
+                                    >
+                                      <i className="fa-solid fa-xmark"></i>
+                                    </button>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+
+                          {k.key === 'menunggu_bayar' && (
+                            <div className={styles.timer} title={`Dibatalkan otomatis setelah ${BATAS_BAYAR_MENIT} menit`}>
+                              <div className={styles.timerBar}>
+                                <span
+                                  className={hampirHabis ? styles.timerHabis : ''}
+                                  style={{ width: `${persen}%` }}
+                                ></span>
+                              </div>
+                              <small className={hampirHabis ? styles.merah : ''}>
+                                Sisa {sisa} mnt sebelum dibatalkan otomatis
+                              </small>
+                            </div>
+                          )}
+
+                          <div className={styles.cardBottom}>
+                            <div className={styles.total}>
+                              <small>Total</small>
+                              {rupiah(p.total)}
+                            </div>
+                            <div className={styles.actions}>
+                              {k.key === 'menunggu_bayar' && (
+                                <>
                                   <button
                                     type="button"
-                                    className={styles.btnHapusItem}
-                                    title={`Hapus ${m.nama_makanan} (stok habis)`}
+                                    className={sedangKonfirmasi ? styles.btnConfirm : styles.btnPay}
                                     disabled={sibuk}
-                                    onClick={() => handleHapusItemMenu(p, i)}
+                                    onClick={() => jalankan(p, 'bayar')}
+                                  >
+                                    {sibuk ? 'Memproses…' : sedangKonfirmasi ? `Ya, terima ${rupiah(p.total)}` : 'Terima Pembayaran'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.btnCancel}
+                                    disabled={sibuk}
+                                    title="Batalkan pesanan"
+                                    onClick={() => jalankan(p, 'batal')}
                                   >
                                     <i className="fa-solid fa-xmark"></i>
                                   </button>
-                                )}
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-
-                        {k.key === 'menunggu_bayar' && (
-                          <div className={styles.timer} title={`Dibatalkan otomatis setelah ${BATAS_BAYAR_MENIT} menit`}>
-                            <div className={styles.timerBar}>
-                              <span
-                                className={hampirHabis ? styles.timerHabis : ''}
-                                style={{ width: `${persen}%` }}
-                              ></span>
-                            </div>
-                            <small className={hampirHabis ? styles.merah : ''}>
-                              Sisa {sisa} mnt sebelum dibatalkan otomatis
-                            </small>
-                          </div>
-                        )}
-
-                        <div className={styles.cardBottom}>
-                          <div className={styles.total}>
-                            <small>Total</small>
-                            {rupiah(p.total)}
-                          </div>
-                          <div className={styles.actions}>
-                            {k.key === 'menunggu_bayar' && (
-                              <>
+                                </>
+                              )}
+                              {k.key === 'pending' && (
+                                <>
+                                  <button type="button" className={styles.btnProses} disabled={sibuk} onClick={() => jalankan(p, 'proses')}>
+                                    {sibuk ? 'Memproses…' : 'Proses'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.btnCancel}
+                                    disabled={sibuk}
+                                    title="Batalkan pesanan"
+                                    onClick={() => jalankan(p, 'batal')}
+                                  >
+                                    <i className="fa-solid fa-xmark"></i>
+                                  </button>
+                                </>
+                              )}
+                              {k.key === 'diproses' && (
+                                <>
+                                  <button type="button" className={styles.btnSelesai} disabled={sibuk} onClick={() => jalankan(p, 'selesai')}>
+                                    {sibuk ? 'Memproses…' : 'Selesai'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.btnCancel}
+                                    disabled={sibuk}
+                                    title="Batalkan pesanan"
+                                    onClick={() => jalankan(p, 'batal')}
+                                  >
+                                    <i className="fa-solid fa-xmark"></i>
+                                  </button>
+                                </>
+                              )}
+                              {k.key === 'selesai' && (
+                                <button type="button" className={styles.btnReprint} onClick={() => cetak(p)}>
+                                  <i className="fa-solid fa-print"></i> Cetak Ulang Struk
+                                </button>
+                              )}
+                              {(k.key === 'pending' || k.key === 'diproses') && (
                                 <button
                                   type="button"
-                                  className={sedangKonfirmasi ? styles.btnConfirm : styles.btnPay}
-                                  disabled={sibuk}
-                                  onClick={() => jalankan(p, 'bayar')}
+                                  className={styles.btnIcon}
+                                  title="Cetak struk"
+                                  onClick={() => cetak(p)}
                                 >
-                                  {sibuk ? 'Memproses…' : sedangKonfirmasi ? `Ya, terima ${rupiah(p.total)}` : 'Terima Pembayaran'}
+                                  <i className="fa-solid fa-print"></i>
                                 </button>
-                                <button
-                                  type="button"
-                                  className={styles.btnCancel}
-                                  disabled={sibuk}
-                                  title="Batalkan pesanan"
-                                  onClick={() => jalankan(p, 'batal')}
-                                >
-                                  <i className="fa-solid fa-xmark"></i>
-                                </button>
-                              </>
-                            )}
-                            {k.key === 'pending' && (
-                              <>
-                                <button type="button" className={styles.btnProses} disabled={sibuk} onClick={() => jalankan(p, 'proses')}>
-                                  {sibuk ? 'Memproses…' : 'Proses'}
-                                </button>
-                                <button
-                                  type="button"
-                                  className={styles.btnCancel}
-                                  disabled={sibuk}
-                                  title="Batalkan pesanan"
-                                  onClick={() => jalankan(p, 'batal')}
-                                >
-                                  <i className="fa-solid fa-xmark"></i>
-                                </button>
-                              </>
-                            )}
-                            {k.key === 'diproses' && (
-                              <>
-                                <button type="button" className={styles.btnSelesai} disabled={sibuk} onClick={() => jalankan(p, 'selesai')}>
-                                  {sibuk ? 'Memproses…' : 'Selesai'}
-                                </button>
-                                <button
-                                  type="button"
-                                  className={styles.btnCancel}
-                                  disabled={sibuk}
-                                  title="Batalkan pesanan"
-                                  onClick={() => jalankan(p, 'batal')}
-                                >
-                                  <i className="fa-solid fa-xmark"></i>
-                                </button>
-                              </>
-                            )}
-                            {k.key === 'selesai' && (
-                              <button type="button" className={styles.btnReprint} onClick={() => cetak(p)}>
-                                <i className="fa-solid fa-print"></i> Cetak Ulang Struk
-                              </button>
-                            )}
-                            {(k.key === 'pending' || k.key === 'diproses') && (
-                              <button
-                                type="button"
-                                className={styles.btnIcon}
-                                title="Cetak struk"
-                                onClick={() => cetak(p)}
-                              >
-                                <i className="fa-solid fa-print"></i>
-                              </button>
-                            )}
+                              )}
                           </div>
                         </div>
                       </article>
@@ -1126,6 +1240,62 @@ export default function KasirPage() {
       </main>
         </>
       )}
+
+      <Modal 
+        show={checkoutBuka}
+        onHide={() => {
+          setCheckoutBuka(false);
+          setPercobaanSimpan(false);
+        }}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title className="fw-bold">Konfirmasi Pesanan</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="mb-3">
+            <Form.Control
+              placeholder="Nama pelanggan"
+              value={namaPelanggan}
+              maxLength={99}
+              autoFocus
+              required
+              isInvalid={percobaanSimpan && !namaBersih}
+              onChange={(e) => setNamaPelanggan(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  simpanPesananKasir();
+                }
+              }}
+            />
+            <Form.Control.Feedback type="invalid">
+              Nama pelanggan wajib diisi.
+            </Form.Control.Feedback>
+          </div>
+          
+          {keranjang.map((m) => (
+            <div key={m.id} className="d-flex justify-content-between">
+              <span>{m.nama_makanan} x{m.quantity}</span>
+              <span>{rupiah(m.harga * m.quantity)}</span>
+            </div>
+          ))}
+          <div className="d-flex justify-content-between fw-bold fs-5 mt-3">
+            <span>Total:</span>
+            <span>{rupiah(totalKeranjang)}</span>
+          </div>
+          {errorMsg && <p className="text-danger small mt-2 mb-0">{errorMsg}</p>}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="papeda"
+            className="w-100 text-white"
+            disabled={menyimpan}
+            onClick={simpanPesananKasir}
+          >
+            {menyimpan ? 'Menyimpan…' : 'Simpan Pesanan'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {rekapBuka && (
         <div className={styles.overlay} onClick={() => setRekapBuka(false)} role="presentation">
