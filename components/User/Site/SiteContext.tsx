@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Navbar from '@/components/User/Navbar/Navbar';
 import styles from './PendingOrderBar.module.css';
 import Footer from '@/components/User/Footer/Footer';
@@ -110,7 +110,8 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const cartHydrated = useRef(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
-  const [pendingOrderId, setPendingOrderId] = useState<number | null>(null); // pesanan yang menunggu konfirmasi kasir
+  const [pendingOrderIds, setPendingOrderIds] = useState<number[]>([]); // pesanan yang menunggu pembayaran (bisa lebih dari satu)
+  const router = useRouter();
   const [resumeOrderId, setResumeOrderId] = useState<number | null>(null); // pesanan yang sedang dibuka lagi di modal
   const pathname = usePathname();
   const isMenuPage = !!pathname && (pathname === '/menu' || pathname.startsWith('/menu/'));
@@ -365,27 +366,37 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     setCartItems((prev) => prev.filter((i) => i.id !== id));
   };
 
-  // cek apakah ada pesanan "bayar di kasir" yang masih menunggu (misalnya modal sempat ditutup / halaman di-refresh)
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const saved = localStorage.getItem(PENDING_ORDER_KEY);
-        const id = saved ? parseInt(saved, 10) : NaN;
-        if (!Number.isFinite(id)) return;
-        const res = await fetch(`/api/pesanan/${id}`);
-        if (cancelled) return;
-        const json = res.ok ? await res.json() : null;
-        if (json?.data?.status === 'menunggu_bayar') setPendingOrderId(id);
-        else if (res.status === 404 || json?.data) localStorage.removeItem(PENDING_ORDER_KEY);
-      } catch {
-        // koneksi bermasalah, coba lagi saat halaman dibuka berikutnya
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const pendingEpoch = useRef(0);
+  const handlePendingChange = useCallback((id: number, aktif: boolean) => {
+    pendingEpoch.current += 1;
+    setPendingOrderIds((prev) => {
+      const tanpa = prev.filter((x) => x !== id);
+      return aktif ? [...tanpa, id] : tanpa;
+    });
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    let aktif = true;
+    const cek = async () => {
+      const epoch = pendingEpoch.current;
+      try {
+        const res = await fetch('/api/pesanan/mine', { cache: 'no-store' });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!aktif || epoch !== pendingEpoch.current) return;
+        const daftar: { id: number; status: string }[] = Array.isArray(json?.data) ? json.data : [];
+        setPendingOrderIds(daftar.filter((o) => o.status === 'menunggu_bayar').map((o) => o.id));
+      } catch {
+      }
+    };
+    cek();
+    const timer = setInterval(cek, 15000);
+    return () => {
+      aktif = false;
+      clearInterval(timer);
+    };
+  }, [userId]);
 
   const openOrder = useCallback((orderId: number) => {
     setResumeOrderId(orderId);
@@ -409,7 +420,7 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     } catch {}
     localStorage.removeItem('papeda_user');
     localStorage.removeItem(PENDING_ORDER_KEY);
-    setPendingOrderId(null);
+    setPendingOrderIds([]);
     setUser(null);
     setMails([]);
     // Bersihkan URL address bar jika ada parameter tersisa
@@ -472,15 +483,19 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
         }}
       />
 
-      {/* Pesanan yang masih menunggu konfirmasi kasir */}
-      {user && pendingOrderId && !checkoutModalOpen && (
+      {/* Pesanan yang masih menunggu pembayaran (satu atau lebih) */}
+      {user && pendingOrderIds.length > 0 && !checkoutModalOpen && (
         <button
           type="button"
           className={styles.bar}
-          aria-label={`Buka pesanan #${pendingOrderId} yang menunggu pembayaran`}
+          aria-label={
+            pendingOrderIds.length === 1
+              ? `Buka pesanan #${pendingOrderIds[0]} yang menunggu pembayaran`
+              : `Lihat ${pendingOrderIds.length} pesanan yang menunggu pembayaran`
+          }
           onClick={() => {
-            setResumeOrderId(pendingOrderId);
-            setCheckoutModalOpen(true);
+            if (pendingOrderIds.length === 1) openOrder(pendingOrderIds[0]);
+            else router.push('/my-orders');
           }}
         >
           <span className={styles.icon}>
@@ -488,7 +503,11 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           </span>
           <span className={styles.text}>
             <small>Menunggu pembayaran</small>
-            <strong>Pesanan #{pendingOrderId}</strong>
+            <strong>
+              {pendingOrderIds.length === 1
+                ? `Pesanan #${pendingOrderIds[0]}`
+                : `${pendingOrderIds.length} pesanan`}
+            </strong>
           </span>
           <span className={styles.go}>
             <i className="fa-solid fa-chevron-right"></i>
@@ -503,7 +522,8 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
         branches={branches}
         userName={user?.nama}
         resumeOrderId={resumeOrderId}
-        onPendingChange={setPendingOrderId}
+        onPendingChange={handlePendingChange}
+        onOrderCreated={() => setCartItems([])}
         onClose={handleCheckoutClose}
         onSuccess={(orderId) => {
           setCartItems([]);
