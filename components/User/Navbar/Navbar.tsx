@@ -36,7 +36,7 @@ export default function Navbar({
   const pathname = usePathname();
 
   const isActive = (href: string) =>
-  href === '/reservation' || href === '/my-reservation'
+  href === '/reservation' || href === '/my-reservation' || href === '/my-orders'
     ? pathname === href || pathname.startsWith(href + '/')
     : pathname === '/' && href.startsWith('/#');
 
@@ -147,6 +147,16 @@ export default function Navbar({
                       <i className="fa-solid fa-calendar-check me-2" />
                       My Reservation
                     </Dropdown.Item>
+
+                    <Dropdown.Item
+                      as={Link}
+                      href="/my-orders"
+                      className={styles.userItem}
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <i className="fa-solid fa-receipt me-2" />
+                      Pesanan Saya
+                    </Dropdown.Item>
                   </>
                 )}
 
@@ -250,6 +260,19 @@ export default function Navbar({
                   onClick={closeMenu}
                 >
                   My Reservation
+                </Nav.Link>
+              </Nav.Item>
+            )}
+
+            {user && (!user.role || user.role === 'user') && (
+              <Nav.Item as="li" id="nav-myorders">
+                <Nav.Link
+                  as={Link}
+                  href="/my-orders"
+                  active={isActive('/my-orders')}
+                  onClick={closeMenu}
+                >
+                  My Orders
                 </Nav.Link>
               </Nav.Item>
             )}

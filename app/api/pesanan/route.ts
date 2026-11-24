@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { bacaSesiDariRequest } from "@/lib/auth";
 import { batalkanEwalletKadaluarsa } from "@/lib/expiredOrders";
 
 // GET /api/pesanan - Daftar pesanan aktif
@@ -21,13 +22,28 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const { nama, item, total, status } = await req.json();
+    const sesi = await bacaSesiDariRequest(req);
+    const userId = sesi?.role === "user" ? sesi.id : "";
+    const statusBaru = String(status || "pending");
+
+    let itemTersimpan: string = typeof item === "string" ? item : JSON.stringify(item);
+    try {
+      const parsed = typeof item === "string" ? JSON.parse(item) : item;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const salinan: Record<string, unknown> = { ...parsed };
+        delete salinan.user_id;
+        salinan.dibuat_ms = Date.now();
+        if (userId) salinan.user_id = userId;
+        itemTersimpan = JSON.stringify(salinan);
+      }
+    } catch {}
 
     const created = await prisma.pesanan.create({
       data: {
         nama: String(nama || "Pelanggan"),
-        item: typeof item === "string" ? item : JSON.stringify(item),
+        item: itemTersimpan,
         total: Number(total || 0),
-        status: status || "pending",
+        status: statusBaru,
       },
     });
 
