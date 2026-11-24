@@ -63,10 +63,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Status tidak valid.' }, { status: 400 });
     }
 
+    // Batalkan dulu kalau sudah lewat batas bayar, supaya pesanan kadaluarsa tidak bisa diproses
+    await batalkanEwalletKadaluarsa(pesananId);
     const current = await prisma.pesanan.findUnique({ where: { id: pesananId } });
     if (!current) return NextResponse.json({ error: 'Pesanan tidak ditemukan.' }, { status: 404 });
     if (geraiDariItem(current.item) !== sesi.gerai) {
       return NextResponse.json({ error: 'Pesanan ini bukan milik gerai Anda.' }, { status: 403 });
+    }
+    if (current.status === 'dibatalkan' || current.status === 'selesai') {
+      return NextResponse.json(
+        {
+          error:
+            current.status === 'dibatalkan'
+              ? `Pesanan #${pesananId} sudah dibatalkan (atau kadaluarsa) dan tidak bisa diproses.`
+              : `Pesanan #${pesananId} sudah selesai.`,
+        },
+        { status: 409 },
+      );
     }
 
     const data: { status?: string; item?: string; total?: number } = {};

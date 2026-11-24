@@ -56,24 +56,53 @@ export async function PUT(
     const { id } = await params;
     const { status, status_bayar, metode_bayar } = await req.json();
     const pesananId = parseInt(id, 10);
+    if (!Number.isFinite(pesananId)) {
+      return NextResponse.json(
+        { error: "ID pesanan tidak valid." },
+        { status: 400 },
+      );
+    }
+
+    await batalkanEwalletKadaluarsa(pesananId);
+    const current = await prisma.pesanan.findUnique({
+      where: { id: pesananId },
+    });
+    if (!current) {
+      return NextResponse.json(
+        { error: "Pesanan tidak ditemukan." },
+        { status: 404 },
+      );
+    }
+    if (current.status === "dibatalkan" || current.status === "selesai") {
+      if (status && String(status) === current.status && !status_bayar && !metode_bayar) {
+        return NextResponse.json({
+          pesan: `Pesanan sudah berstatus ${current.status}`,
+          data: current,
+        });
+      }
+      return NextResponse.json(
+        {
+          error:
+            current.status === "dibatalkan"
+              ? "Pesanan sudah dibatalkan (atau waktu pembayaran habis) dan tidak bisa diubah lagi."
+              : "Pesanan sudah selesai dan tidak bisa diubah lagi.",
+        },
+        { status: 409 },
+      );
+    }
 
     const data: { status?: string; item?: string } = {};
     if (status) data.status = String(status);
 
     if (status_bayar || metode_bayar) {
-      const current = await prisma.pesanan.findUnique({
-        where: { id: pesananId },
-      });
-      if (current) {
-        try {
-          const parsed = JSON.parse(current.item);
-          if (parsed && typeof parsed === "object") {
-            if (status_bayar) parsed.status_bayar = String(status_bayar);
-            if (metode_bayar) parsed.metode_bayar = String(metode_bayar);
-            data.item = JSON.stringify(parsed);
-          }
-        } catch {}
-      }
+      try {
+        const parsed = JSON.parse(current.item);
+        if (parsed && typeof parsed === "object") {
+          if (status_bayar) parsed.status_bayar = String(status_bayar);
+          if (metode_bayar) parsed.metode_bayar = String(metode_bayar);
+          data.item = JSON.stringify(parsed);
+        }
+      } catch {}
     }
 
     const updated = await prisma.pesanan.update({
