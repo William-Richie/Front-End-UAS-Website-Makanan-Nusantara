@@ -20,7 +20,7 @@ interface CheckoutModalProps {
   onOrderCreated?: (orderId: number) => void;
   onSuccess: (orderId: number) => void;
   resumeOrderId?: number | null;
-  onPendingChange?: (orderId: number | null) => void;
+  onPendingChange?: (orderId: number, aktif: boolean) => void;
 }
 
 type PayKey = 'cash' | 'ewallet';
@@ -42,14 +42,14 @@ const hasCoord = (b: BranchMap) => Number.isFinite(b.latitude) && Number.isFinit
 
 export const PENDING_ORDER_KEY = 'papeda_pesanan_aktif';
 
-function clearPending(id: number, notify?: (orderId: number | null) => void) {
+function clearPending(id: number, notify?: (orderId: number, aktif: boolean) => void) {
   try {
     if (localStorage.getItem(PENDING_ORDER_KEY) === String(id)) {
       localStorage.removeItem(PENDING_ORDER_KEY);
-      notify?.(null);
     }
   } catch {
   }
+  notify?.(id, false);
 }
 
 interface OrderApi {
@@ -334,7 +334,7 @@ export default function CheckoutModal({
           localStorage.setItem(PENDING_ORDER_KEY, String(receipt.id));
         } catch {
         }
-        onPendingChange?.(receipt.id);
+        onPendingChange?.(receipt.id, true);
       }
     }
     resetAll();
@@ -415,7 +415,9 @@ export default function CheckoutModal({
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memproses pesanan.');
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal memproses pesanan.');
+      }
 
       const orderId: number = data.pesanan?.id || 1;
       const created = data.pesanan?.created_at ? new Date(data.pesanan.created_at) : new Date();
@@ -447,7 +449,7 @@ export default function CheckoutModal({
           localStorage.setItem(PENDING_ORDER_KEY, String(orderId));
         } catch {
         }
-        onPendingChange?.(orderId);
+        onPendingChange?.(orderId, true);
         setStep('cashier');
       } else {
         setStep(payment);
@@ -484,13 +486,24 @@ export default function CheckoutModal({
     }
   };
 
-  const handleCancelPayment = () => {
-    if (receipt) {
-      updateOrder(receipt.id, { status: 'dibatalkan' }).catch(() => {});
-      clearPending(receipt.id, onPendingChange);
+  const handleCancelPayment = async () => {
+    if (!receipt) {
+      resetAll();
+      onClose();
+      return;
     }
-    resetAll();
-    onClose();
+    if (!window.confirm(`Batalkan pesanan #${receipt.id}?`)) return;
+    setErrorMsg('');
+    try {
+      const res = await fetch(`/api/pesanan/${receipt.id}/cancel`, { method: 'POST' });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || 'Gagal membatalkan pesanan.');
+      clearPending(receipt.id, onPendingChange);
+      resetAll();
+      onClose();
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Gagal membatalkan pesanan.');
+    }
   };
 
   const handlePrint = () => {
@@ -556,9 +569,13 @@ export default function CheckoutModal({
                 Pesanan dibatalkan otomatis jika belum dibayar dalam {Math.round(BATAS_BAYAR_KASIR_DETIK / 60)} menit.
               </p>
             </div>
+            {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
           </Modal.Body>
           <Modal.Footer className={styles.checkoutFooter}>
-            <Button variant="outline-secondary" className={`${styles.receiptBtn} w-100`} onClick={handleClose}>
+            <Button variant="outline-danger" className={`${styles.receiptBtn} flex-fill`} onClick={handleCancelPayment}>
+              Batalkan Pesanan
+            </Button>
+            <Button variant="outline-secondary" className={`${styles.receiptBtn} flex-fill`} onClick={handleClose}>
               Tutup
             </Button>
           </Modal.Footer>
