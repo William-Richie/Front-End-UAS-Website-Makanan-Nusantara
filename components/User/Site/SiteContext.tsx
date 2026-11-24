@@ -68,6 +68,8 @@ interface SiteContextValue {
   showToast: (msg: string) => void;
   openAuth: (tab: 'login' | 'register') => void;
   addToCart: (menu: MenuItem, qty?: number) => void;
+  /** buka lagi pesanan yang menunggu pembayaran (lanjut bayar / lihat nomor pesanan) */
+  openOrder: (orderId: number) => void;
 }
 
 const SiteContext = createContext<SiteContextValue | null>(null);
@@ -385,6 +387,11 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const openOrder = useCallback((orderId: number) => {
+    setResumeOrderId(orderId);
+    setCheckoutModalOpen(true);
+  }, []);
+
   const handleCheckoutClose = useCallback(() => {
     setCheckoutModalOpen(false);
     setResumeOrderId(null);
@@ -427,6 +434,7 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     showToast,
     openAuth,
     addToCart,
+    openOrder,
   };
 
   return (
