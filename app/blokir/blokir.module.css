@@ -1,0 +1,112 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--color-bg-cream);
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  padding: 34px 28px 28px;
+  background: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  box-shadow: 0 18px 50px rgba(59, 35, 20, 0.14);
+  text-align: center;
+  color: var(--color-primary-brown);
+  animation: blokirIn 0.4s ease;
+}
+
+.icon {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-pink-blush);
+  border-radius: 50%;
+  background: var(--color-pink-light);
+  color: var(--color-status-danger-dark);
+  font-size: 1.9rem;
+}
+
+.title {
+  margin: 0 0 10px;
+  font-family: var(--title-font);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.text {
+  margin: 0 0 22px;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btnPrimary,
+.btnOutline {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: 2px solid var(--color-primary-brown);
+  border-radius: 50px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s;
+}
+
+.btnPrimary {
+  background: var(--color-primary-brown);
+  color: var(--color-white);
+}
+
+.btnPrimary:hover {
+  background: var(--color-brown-base);
+  border-color: var(--color-brown-base);
+  transform: translateY(-2px);
+}
+
+.btnOutline {
+  background: transparent;
+  color: var(--color-primary-brown);
+}
+
+.btnOutline:hover:not(:disabled) {
+  background: var(--color-primary-brown);
+  color: var(--color-white);
+}
+
+.btnOutline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.contact {
+  margin: 20px 0 0;
+  font-size: 0.85rem;
+  color: var(--color-brown-muted);
+}
+
+.contact a {
+  color: var(--color-accent-terracotta);
+  font-weight: 700;
+}
+
+@keyframes blokirIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}

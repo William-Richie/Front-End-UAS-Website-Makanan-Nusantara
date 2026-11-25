@@ -1,10 +1,12 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { Container, Row, Col, Form, Button } from 'react-bootstrap';
 import styles from './ReservationSection.module.css';
 import { JAM_RESERVASI } from '@/lib/jam';
-import { KODE_RUANGAN, type TipeMeja } from '@/lib/mejaTipe';
+import { KODE_RUANGAN, INFO_TIPE, type TipeMeja } from '@/lib/mejaTipe';
+import { namaSingkatGerai } from '@/lib/gerai';
 
 // tanggal & jam hari ini menurut jam perangkat pengguna (format YYYY-MM-DD dan HH:MM)
 const sekarangLokal = () => {
@@ -16,6 +18,17 @@ const sekarangLokal = () => {
     jam: `${dua(d.getHours())}:${dua(d.getMinutes())}`,
   };
 };
+
+const HARI = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// '2026-11-09' -> 'Mon 9 Nov'
+const formatTanggal = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${HARI[new Date(y, m - 1, d).getDay()]} ${d} ${BULAN[m - 1]}`;
+};
+
+const LABEL_TIPE: Record<TipeMeja, string> = { indoor: 'Indoor', outdoor: 'Outdoor', vip: 'VIP' };
 
 export interface BranchMap {
   id: number;
@@ -34,6 +47,7 @@ interface MejaPublik {
   open: boolean;
   dipesan: boolean;
   bisaDipilih: boolean;
+  catatan: string;
 }
 
 interface ReservationSectionProps {
@@ -67,6 +81,7 @@ export default function ReservationSection({
   const [showRules, setShowRules] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [hasViewedRules, setHasViewedRules] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [isShaking, setIsShaking] = useState(false);
   const triggerShake = () => {
@@ -80,6 +95,15 @@ export default function ReservationSection({
       setIsShaking(false);
     }, 400);
   };
+
+  useEffect(() => {
+    if (!showConfirm) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !submitting) setShowConfirm(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showConfirm, submitting]);
 
   useEffect(() => {
     const timer = setTimeout(() => setHariIni(sekarangLokal().tanggal), 0);
@@ -171,6 +195,11 @@ export default function ReservationSection({
       triggerShake();
       return;
     }
+    setShowConfirm(true);
+  };
+
+  const handleConfirm = async () => {
+    if (!user || !tipe || !mejaTerpilih) return;
 
     setSubmitting(true);
     setErrorMsg('');
@@ -208,9 +237,12 @@ export default function ReservationSection({
       setMejaId(null);
       setMejaList([]);
       setJumlah(0);
+      setShowConfirm(false);   
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan saat memproses reservasi.';
       setErrorMsg(msg);
+      setShowConfirm(false);
+      triggerShake(); 
     } finally {
       setSubmitting(false);
     }
@@ -306,7 +338,7 @@ export default function ReservationSection({
             </div>
           </div>
 
-          <Form noValidate onSubmit={handleSubmit} className={`${styles.resForm} ${isShaking ? styles.shake : ''}`}>
+          <Form noValidate onSubmit={handleSubmit} className={`${styles.resForm} ${isShaking ? styles.shake : ''} mt-3`}>
             <Form.Group className="mb-3">
               <Form.Label className="fs-bold d-flex align-items-center gap-2 mb-2">
                 <button type="button"
@@ -613,6 +645,54 @@ export default function ReservationSection({
             </Button>
           </Form>
         </Container>
+      )}
+
+      {/* Reservato Confirmation*/}
+      {showConfirm && user && tipe && mejaTerpilih && (
+        <div role="presentation" className={styles.guestOverlay}
+             onClick={() => !submitting && setShowConfirm(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="reservation-confirm-title"
+               className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+
+            <div className={styles.confirmHeader}>
+              <h3 id="reservation-confirm-title" className={styles.confirmTitle}>
+                Selected: {LABEL_TIPE[tipe]}{' '}
+                <span>(Tag: {String(mejaTerpilih.nomor).padStart(2, '0')})</span>
+              </h3>
+              <button type="button" className={`${styles.confirmClose} `}
+                      onClick={() => setShowConfirm(false)} disabled={submitting}
+                      aria-label="Close confirmation">&times;</button>
+            </div>
+
+            <div className={styles.confirmImage}>
+              <Image src={INFO_TIPE[tipe].gambar} alt={INFO_TIPE[tipe].judul} fill
+                     sizes="(max-width: 480px) 90vw, 380px" style={{ objectFit: 'cover' }} />
+              <span className={styles.confirmImageTag}>{INFO_TIPE[tipe].judul}</span>
+            </div>
+
+            <div className={styles.confirmWhen}>
+              <span><i className="fa-regular fa-calendar"></i>{formatTanggal(tanggal)}</span>
+              <span className={styles.confirmDot} aria-hidden="true"></span>
+              <span><i className="fa-regular fa-clock"></i>{sesi}</span>
+            </div>
+
+            <div className={styles.confirmChips}>
+              <span><i className="fa-solid fa-location-dot"></i>{namaSingkatGerai(selectedBranch)}</span>
+              <span><i className="fa-solid fa-user-group"></i>{jumlah} {jumlah === 1 ? 'guest' : 'guests'}</span>
+            </div>
+
+            <div className={styles.confirmAbout}>
+              <h4>About</h4>
+              <p>{mejaTerpilih.catatan?.trim() || 'Belum ada keterangan khusus untuk meja ini.'}</p>
+            </div>
+
+            <Button type="button" variant="papeda"
+                    className={`${styles.confirmBtn} w-100 text-white fw-bold`}
+                    disabled={submitting} onClick={handleConfirm}>
+              {submitting ? 'Memproses...' : 'Confirm'}
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Memperlihatkan isi aturan*/}

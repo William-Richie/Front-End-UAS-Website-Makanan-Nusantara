@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
 
       if (!user.is_active) {
         return NextResponse.json(
-          { error: 'Akun Anda dinonaktifkan. Hubungi admin.' },
+          { error: 'Akun Anda dinonaktifkan. Hubungi admin.', blocked: true },
           { status: 403 }
         );
       }
