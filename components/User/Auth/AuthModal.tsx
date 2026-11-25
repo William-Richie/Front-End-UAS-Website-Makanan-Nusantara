@@ -153,6 +153,10 @@ export default function AuthModal({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (data.blocked) {
+          window.location.replace('/blokir');
+          return;
+        }
         gagal(pesanError(res.status, data.error, fallback));
         return;
       }

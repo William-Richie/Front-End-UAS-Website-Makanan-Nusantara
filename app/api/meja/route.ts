@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
         open: m.open,
         dipesan: m.dipesan,
         bisaDipilih: m.bisaDipilih,
+        catatan: m.catatan,
       }));
     return NextResponse.json({ data });
   } catch (error: unknown) {

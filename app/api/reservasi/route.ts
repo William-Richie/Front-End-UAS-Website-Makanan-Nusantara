@@ -70,6 +70,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Semua data reservasi wajib diisi.' }, { status: 400 });
     }
 
+    if (user_id) {
+      const akun = await prisma.user.findUnique({
+        where: { id: String(user_id) },
+        select: { is_active: true },
+      });
+      if (akun && !akun.is_active) {
+        return NextResponse.json(
+          { error: 'Akun Anda diblokir dan tidak dapat membuat reservasi.', blocked: true },
+          { status: 403 }
+        );
+      }
+    }
     const tipe = TIPE_DARI_KODE[String(ruangan)];
     if (!tipe) {
       return NextResponse.json({ error: 'Ruangan tidak valid.' }, { status: 400 });
