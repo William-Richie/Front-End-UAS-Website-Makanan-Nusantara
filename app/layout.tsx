@@ -33,7 +33,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className={`${playfair.variable} ${lato.variable}`}>
+    <html lang="id" className={`${playfair.variable} ${lato.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(sessionStorage.getItem('hasEntered')==='true'){document.documentElement.setAttribute('data-entered','true')}}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         <NotifyProvider>{children}</NotifyProvider>
       </body>

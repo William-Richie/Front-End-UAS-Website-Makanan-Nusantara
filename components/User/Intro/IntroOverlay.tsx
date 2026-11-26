@@ -39,6 +39,7 @@ export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
 
   useEffect(() => {
     if (!visible) return;
+    if (document.documentElement.getAttribute('data-entered') === 'true') return;
     const html = document.documentElement;
     const body = document.body;
     const prevHtml = html.style.overflow;
