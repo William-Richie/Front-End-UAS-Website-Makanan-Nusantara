@@ -1171,25 +1171,25 @@ export default function AdminPage() {
             <div className="row g-3 mb-4">
               <div className="col-md-3">
                 <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-2 fw-bold text-warning">{menus.length}</div>
+                  <div className="fs-4 fw-bold stat-gold">{menus.length}</div>
                   <div className="text-muted small">Total Menu</div>
                 </div>
               </div>
               <div className="col-md-3">
                 <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-2 fw-bold text-primary">{pesananList.length}</div>
+                  <div className="fs-4 fw-bold stat-brown">{pesananList.length}</div>
                   <div className="text-muted small">Total Pesanan</div>
                 </div>
               </div>
               <div className="col-md-3">
                 <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-2 fw-bold text-success">{reservasiList.length}</div>
+                  <div className="fs-4 fw-bold stat-green">{reservasiList.length}</div>
                   <div className="text-muted small">Total Reservasi</div>
                 </div>
               </div>
               <div className="col-md-3">
                 <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-2 fw-bold text-info">{statistik?.jumlah_pengunjung || 0}</div>
+                  <div className="fs-4 fw-bold stat-terra">{statistik?.jumlah_pengunjung || 0}</div>
                   <div className="text-muted small">Total Pengunjung</div>
                 </div>
               </div>
@@ -1271,7 +1271,7 @@ export default function AdminPage() {
                 <div className="row g-3 mb-4">
                   <div className="col-md-3">
                     <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold text-success">
+                      <div className="fs-4 fw-bold stat-green">
                         Rp {pendapatanData.ringkasan.total.toLocaleString('id-ID')}
                       </div>
                       <div className="text-muted small">Total Pendapatan</div>
@@ -1279,7 +1279,7 @@ export default function AdminPage() {
                   </div>
                   <div className="col-md-3">
                     <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold text-primary">
+                      <div className="fs-4 fw-bold stat-brown">
                         {pendapatanData.ringkasan.pesanan}
                       </div>
                       <div className="text-muted small">Pesanan Selesai</div>
@@ -1287,7 +1287,7 @@ export default function AdminPage() {
                   </div>
                   <div className="col-md-3">
                     <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold text-warning">
+                      <div className="fs-4 fw-bold stat-gold">
                         {pendapatanData.ringkasan.item}
                       </div>
                       <div className="text-muted small">Item Terjual</div>
@@ -1295,7 +1295,7 @@ export default function AdminPage() {
                   </div>
                   <div className="col-md-3">
                     <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold text-info">
+                      <div className="fs-4 fw-bold stat-terra">
                         Rp {pendapatanData.ringkasan.rata.toLocaleString('id-ID')}
                       </div>
                       <div className="text-muted small">Rata-rata per Pesanan</div>

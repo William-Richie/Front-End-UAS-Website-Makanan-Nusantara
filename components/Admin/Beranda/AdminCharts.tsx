@@ -29,12 +29,14 @@ export function BarChart({ data, format = String, ringkas = String, kosong = 'Be
     <div className="chart-bars" role="img" aria-label={data.map((d) => `${d.label}: ${format(d.value)}`).join(', ')}>
       {data.map((d, i) => (
         <div className="chart-col" key={`${d.label}-${i}`} title={`${d.label}: ${format(d.value)}`}>
-          <span className="chart-val">{d.value > 0 && data.length <= 12 ? ringkas(d.value) : ''}</span>
           <div className="chart-track">
             <div
-              className="chart-bar"
+              className="chart-bar-wrap"
               style={{ height: `${d.value > 0 ? Math.max((d.value / max) * 100, 4) : 0}%` }}
-            />
+            >
+              {d.value > 0 && data.length <= 12 && <span className="chart-val">{ringkas(d.value)}</span>}
+              <div className="chart-bar" />
+            </div>
           </div>
           <span className="chart-label">{i % step === 0 ? d.label : ''}</span>
         </div>
