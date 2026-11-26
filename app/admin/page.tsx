@@ -109,9 +109,28 @@ const statusMatch = (status: string, tab: ReservasiTabKey): boolean => {
 };
 
 const cocokSearch = (data: object, keyword: string): boolean => {
-  if (!keyword) return true;
+  if (!keyword.trim()) return true;
   const k = keyword.toLowerCase().trim();
   return Object.values(data).some((v) => String(v ?? '').toLowerCase().includes(k));
+};
+
+const cocokSearchUser = (user: UserItem, index: number, keyword: string): boolean => {
+  const k = keyword.toLowerCase().trim();
+  if (!k) return true;
+
+  const userIdTampil = String(index + 1).padStart(5, '0');
+  const tanggalTampil = user.created_at
+    ? new Date(user.created_at).toLocaleDateString('id-ID')
+    : '';
+  const jumlahReserve = String(user.total_reserve ?? 0);
+
+  return [
+    userIdTampil,
+    user.nama ?? '',
+    user.email ?? '',
+    tanggalTampil,
+    jumlahReserve,
+  ].some((value) => String(value).toLowerCase().includes(k));
 };
 
 const adminFetch = (url: string, opts: RequestInit = {}) => {
@@ -611,11 +630,11 @@ export default function AdminPage() {
     });
   };
 
-  const filteredUsers = usersList.filter((u) => {
+  const filteredUsers = usersList.filter((u, index) => {
     const aktif = isUserActive(u);
     if (userFilter === 'active' && !aktif) return false;
     if (userFilter === 'blocked' && aktif) return false;
-    return cocokSearch(u, globalSearch);
+    return cocokSearchUser(u, index, globalSearch);
   });
 
   const filteredReservasi =
