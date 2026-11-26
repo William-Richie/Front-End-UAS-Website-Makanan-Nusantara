@@ -8,7 +8,6 @@ import { JAM_RESERVASI } from '@/lib/jam';
 import { KODE_RUANGAN, INFO_TIPE, type TipeMeja } from '@/lib/mejaTipe';
 import { namaSingkatGerai } from '@/lib/gerai';
 
-// tanggal & jam hari ini menurut jam perangkat pengguna (format YYYY-MM-DD dan HH:MM)
 const sekarangLokal = () => {
   const d = new Date();
   const dua = (n: number) => String(n).padStart(2, '0');
@@ -22,7 +21,6 @@ const sekarangLokal = () => {
 const HARI = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// '2026-11-09' -> 'Mon 9 Nov'
 const formatTanggal = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number);
   return `${HARI[new Date(y, m - 1, d).getDay()]} ${d} ${BULAN[m - 1]}`;
@@ -647,7 +645,7 @@ export default function ReservationSection({
         </Container>
       )}
 
-      {/* Reservato Confirmation*/}
+      {/* Reservation Confirmation*/}
       {showConfirm && user && tipe && mejaTerpilih && (
         <div role="presentation" className={styles.guestOverlay}
              onClick={() => !submitting && setShowConfirm(false)}>
@@ -695,7 +693,7 @@ export default function ReservationSection({
         </div>
       )}
 
-      {/* Memperlihatkan isi aturan*/}
+      {/* Memperlihatkan aturan reservasi*/}
       {showRules && (
         <div role="presentation" onClick={() => setShowRules(false)} className={styles.RulesOver}>
           <div
@@ -724,7 +722,7 @@ export default function ReservationSection({
             <div className={styles.rulesContent}>
               <ol className={styles.rulesList}>
                 <span>
-                  Open daily from 8:00 AM to 9:00 PM according to Western Indonesian Time (WIB).
+                  Open daily from 8:00 AM to 10:00 PM according to Western Indonesian Time (WIB).
                   Once your reservation is confirmed, we’ll start setting up the dining area 15 minutes before your schedule time, and
                   We will hold your table for a <strong>maximum of 30 minutes</strong> past your reservation time. No outside drinks & foods are allowed.
                   All card games, drugs, firearms & sharp objects are strictly prohibited. We reserve the right to refuse service to anyone.
