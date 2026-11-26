@@ -684,6 +684,17 @@ export default function ReservationSection({
               <p>{mejaTerpilih.catatan?.trim() || 'Belum ada keterangan khusus untuk meja ini.'}</p>
             </div>
 
+            <div className={styles.contactUs}>
+              <p className={styles.contactDescription}>
+                Have trouble with your reservation? Feel free to contact our admin
+                for further assistance.
+              </p>
+              <div className = {`${styles.whatsapp} mb-3`}>
+                <i className="fa-brands fa-whatsapp"> </i>
+                <span> +62 856-####-####</span>
+              </div>
+            </div>
+
             <Button type="button" variant="papeda"
                     className={`${styles.confirmBtn} w-100 text-white fw-bold`}
                     disabled={submitting} onClick={handleConfirm}>

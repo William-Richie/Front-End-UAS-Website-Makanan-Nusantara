@@ -45,7 +45,7 @@ export default function KotakMeja({ meja, gambar, jam, onUbah }: Props) {
 
       <div className="meja-body">
         <div className="meja-row">
-          <span>Waktu: {jam}</span>
+          <span>Time: {jam}</span>
           <button
             type="button"
             className={`meja-state ${meja.open ? 'is-open' : 'is-closed'}`}

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { hitungKetersediaan } from '@/lib/ruangan'; // masih dipakai GET ?terisi=1
+import { hitungKetersediaan } from '@/lib/ruangan'; 
 import { daftarMeja } from '@/lib/meja';
 import { TIPE_DARI_KODE } from '@/lib/mejaTipe';
 
-// GET /api/reservasi - Mengambil reservasi & cek VIP
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -48,7 +47,6 @@ const jamSekarangWib = () =>
       hourCycle: 'h23',
     });
 
-// POST /api/reservasi - membuat reservasi baru
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -70,18 +68,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Semua data reservasi wajib diisi.' }, { status: 400 });
     }
 
-    if (user_id) {
-      const akun = await prisma.user.findUnique({
-        where: { id: String(user_id) },
-        select: { is_active: true },
-      });
-      if (akun && !akun.is_active) {
-        return NextResponse.json(
-          { error: 'Akun Anda diblokir dan tidak dapat membuat reservasi.', blocked: true },
-          { status: 403 }
-        );
-      }
+    if (!user_id) {
+      return NextResponse.json(
+        { error: 'Sesi login tidak valid. Silakan login ulang.' },
+        { status: 401 }
+      );
     }
+
+    const userAda = await prisma.user.findUnique({
+      where: { id: String(user_id) },
+      select: { id: true, is_active: true },
+    });
+
+    if (!userAda) {
+      return NextResponse.json(
+        { error: 'Sesi login tidak valid. Silakan login ulang.' },
+        { status: 401 }
+      );
+    }
+
+    if (!userAda.is_active) {
+      return NextResponse.json(
+        { error: 'Akun Anda diblokir dan tidak dapat membuat reservasi.', blocked: true },
+        { status: 403 }
+      );
+    }
+
     const tipe = TIPE_DARI_KODE[String(ruangan)];
     if (!tipe) {
       return NextResponse.json({ error: 'Ruangan tidak valid.' }, { status: 400 });
@@ -98,7 +110,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Meja ini untuk ${m.kapMin}-${m.kapMaks} orang.` }, { status: 400 });
     }
 
-    // tanggal tidak boleh sebelum hari ini (acuan: waktu Jakarta)
     const hariIni = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(tanggal)) || String(tanggal) < hariIni) {
       return NextResponse.json({ error: 'Tanggal reservasi tidak boleh sebelum hari ini.' }, { status: 400 });
@@ -106,49 +117,93 @@ export async function POST(req: NextRequest) {
 
     let created;
     try {
-      if (user_id) {
-        const userAda = await prisma.user.findUnique({ where: { id: user_id } });
-        if (!userAda) {
-          return NextResponse.json(
-            { error: 'Sesi login tidak valid. Silakan login ulang.' },
-            { status: 401 }
-          );
-        }
-      }
-      created = await prisma.reservasi.create({
-        data: {
-          user_id: user_id || null,
-          gerai: String(gerai),
-          nama: String(nama),
-          email: String(email),
-          telepon: String(telepon),
-          tanggal: String(tanggal),
-          jam: jamSekarangWib(),
-          sesi: String(sesi),
-          jumlah: Number(jumlah),
-          ruangan: String(ruangan),
-          meja_id: m.id,
-          nomor_meja: m.nomor,
-          catatan: catatan ? String(catatan) : null,
-          status: 'pending',
+      created = await prisma.$transaction(
+        async (tx) => {
+          const reservasiPending = await tx.reservasi.count({
+            where: {
+              user_id: String(user_id),
+              status: 'pending',
+            },
+          });
+
+          if (reservasiPending > 0) {
+            const error = new Error(
+              'Anda masih memiliki reservasi yang menunggu konfirmasi admin. Silakan tunggu hingga reservasi tersebut dikonfirmasi sebelum membuat reservasi baru.'
+            ) as Error & { code: string };
+            error.code = 'RESERVATION_PENDING';
+            throw error;
+          }
+
+          const jumlahDikonfirmasi = await tx.reservasi.count({
+            where: {
+              user_id: String(user_id),
+              status: {
+                in: ['approved', 'dikonfirmasi'],
+              },
+            },
+          });
+
+          if (jumlahDikonfirmasi >= 2) {
+            const error = new Error(
+              'Anda sudah mencapai batas maksimal 2 reservasi yang dikonfirmasi. Anda tidak dapat membuat reservasi baru.'
+            ) as Error & { code: string };
+            error.code = 'RESERVATION_LIMIT_REACHED';
+            throw error;
+          }
+
+          const reservasiBaru = await tx.reservasi.create({
+            data: {
+              user_id: String(user_id),
+              gerai: String(gerai),
+              nama: String(nama),
+              email: String(email),
+              telepon: String(telepon),
+              tanggal: String(tanggal),
+              jam: jamSekarangWib(),
+              sesi: String(sesi),
+              jumlah: Number(jumlah),
+              ruangan: String(ruangan),
+              meja_id: m.id,
+              nomor_meja: m.nomor,
+              catatan: catatan ? String(catatan) : null,
+              status: 'pending',
+            },
+          });
+
+          await tx.user.update({
+            where: { id: String(user_id) },
+            data: { total_reserve: { increment: 1 } },
+          });
+
+          return reservasiBaru;
         },
-      });
+        { isolationLevel: 'Serializable' }
+      );
     } catch (e: unknown) {
-      if ((e as { code?: string }).code === 'P2002') {
+      const code = (e as { code?: string }).code;
+
+      if (code === 'RESERVATION_PENDING' || code === 'RESERVATION_LIMIT_REACHED') {
+        return NextResponse.json(
+          { error: e instanceof Error ? e.message : 'Batas reservasi tidak terpenuhi.', code },
+          { status: 409 }
+        );
+      }
+
+      if (code === 'P2002') {
         return NextResponse.json(
           { error: 'Meja ini sudah dipesan pada sesi tersebut. Silakan pilih meja atau sesi lain.' },
           { status: 409 }
         );
       }
-      throw e;
-    }
 
-    if (user_id) {
-      await prisma.user.update({
-        where: { id: user_id },
-        data: { total_reserve: { increment: 1 } },
-      })
-      .catch(() => {});
+      if (code === 'P2034') {
+        return NextResponse.json(
+          { error: 'Permintaan reservasi sedang diproses. Silakan coba sekali lagi.' },
+          { status: 409 }
+        );
+      }
+
+      throw e;
     }
 
     return NextResponse.json({ pesan: 'Reservasi berhasil dibuat!', data: created }, { status: 201 });
