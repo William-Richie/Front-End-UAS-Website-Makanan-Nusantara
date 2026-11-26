@@ -6,7 +6,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: safe center;
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   padding: 24px 12px;
   text-align: center;
   background:
@@ -14,6 +17,10 @@
     linear-gradient(160deg, var(--color-warm-beige-200), var(--color-border-dough) 55%, var(--color-accent-russet));
 }
  
+.intro::-webkit-scrollbar {
+  display: none;
+}
+
 .intro::before {
   content: "";
   position: fixed;
@@ -122,6 +129,47 @@
   transform: translateX(4px);
 }
 
+/* animasi keluar */
+.intro.leaving {
+  overflow: hidden;
+  pointer-events: none;
+  animation: introLift 0.75s cubic-bezier(0.65, 0, 0.35, 1) both 0.5s;
+}
+
+.intro.leaving .introEyebrow,
+.intro.leaving .introTitle,
+.intro.leaving .introSub {
+  animation: introFadeOut 0.45s ease both;
+}
+
+.intro.leaving .introTable {
+  clip-path: none;
+  animation: introFadeOut 0.5s ease both 0.15s;
+}
+
+.intro.leaving .introItem {
+  animation: introFadeOut 0.45s ease both;
+  animation-play-state: running;
+}
+
+.intro.leaving .introBtn {
+  animation: introPress 0.5s ease both;
+}
+
+@keyframes introFadeOut {
+  to { opacity: 0; transform: translateY(-18px); }
+}
+
+@keyframes introPress {
+  0%   { transform: scale(1); opacity: 1; }
+  30%  { transform: scale(0.93); opacity: 1; }
+  100% { transform: scale(1.08); opacity: 0; }
+}
+
+@keyframes introLift {
+  to { transform: translateY(-100%); }
+}
+
 @keyframes introFadeUp {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: none; }
@@ -147,7 +195,10 @@
   .introSub,
   .introTable,
   .introItem,
-  .introBtn {
+  .introBtn,
+  .intro.leaving,
+  .intro.leaving .introItem,
+  .intro.leaving .introBtn {
     animation: none;
     opacity: 1;
   }
@@ -156,4 +207,3 @@
     clip-path: none;
   }
 }
- 

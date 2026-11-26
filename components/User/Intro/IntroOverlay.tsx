@@ -19,10 +19,12 @@ const ITEMS = [
 ];
 
 const MAX_WAIT_MS = 4000;
+const EXIT_MS = 1250; // harus >= durasi animasi keluar di CSS
 
 export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
   const [visible, setVisible] = useState(true);
   const [imagesReady, setImagesReady] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const loaded = useRef<Set<number>>(new Set());
 
   useEffect(() => {
@@ -36,6 +38,20 @@ export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
   }, []);
 
   useEffect(() => {
+    if (!visible) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+    };
+  }, [visible]);
+
+  useEffect(() => {
     const timer = setTimeout(() => setImagesReady(true), MAX_WAIT_MS);
     return () => clearTimeout(timer);
   }, []);
@@ -46,18 +62,26 @@ export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
   };
 
   const handleStart = () => {
+    if (leaving) return;
     sessionStorage.setItem('hasEntered', 'true');
-    setVisible(false);
-    onEnter();
+    setLeaving(true);
+
+    // konten di belakang mulai muncul saat tirai intro naik
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('papeda:reveal'));
-    }, 150);
+    }, 650);
+
+    // lepas overlay setelah animasi keluar selesai
+    setTimeout(() => {
+      setVisible(false);
+      onEnter();
+    }, EXIT_MS);
   };
 
   if (!visible) return null;
 
   return (
-    <div id="intro" className={`${styles.intro} ${imagesReady ? styles.ready : ''}`}>
+    <div id="intro" className={`${styles.intro} ${imagesReady ? styles.ready : ''} ${leaving ? styles.leaving : ''}`}>
       <Container className="mb-4">
         <p className={`${styles.introEyebrow} mb-2`}>Cita Rasa Timur Indonesia</p>
         <h1 className={`${styles.introTitle} mb-2`}>Papeda Restaurant</h1>
@@ -88,6 +112,7 @@ export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
         id="btn-start"
         className={`${styles.introBtn} rounded-pill px-5 py-2 mt-5`}
         onClick={handleStart}
+        disabled={leaving}
       >
         Masuk ke Restoran <i className="fa-solid fa-arrow-right ms-2"></i>
       </Button>
