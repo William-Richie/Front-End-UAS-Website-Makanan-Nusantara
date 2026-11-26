@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './Navbar.module.css';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -33,14 +33,43 @@ export default function Navbar({
 }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const activityRef = useRef<HTMLLIElement>(null);
   const pathname = usePathname();
 
   const isActive = (href: string) =>
-  href === '/reservation' || href === '/my-reservation' || href === '/my-orders'
+  href === '/reservation'
     ? pathname === href || pathname.startsWith(href + '/')
     : pathname === '/' && href.startsWith('/#');
 
-  const closeMenu = () => setMenuOpen(false);
+  const isCustomer = !user?.role || user.role === 'user';
+  const ordersActive = pathname === '/my-orders' || pathname.startsWith('/my-orders/');
+  const reservationActive =
+    pathname === '/my-reservation' || pathname.startsWith('/my-reservation/');
+  const activityActive = ordersActive || reservationActive;
+
+  useEffect(() => {
+    if (!activityOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (activityRef.current && !activityRef.current.contains(e.target as Node)) {
+        setActivityOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActivityOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [activityOpen]);
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setActivityOpen(false);
+  };
 
   return (
     <header className="sticky-top">
@@ -252,28 +281,61 @@ export default function Navbar({
             </Nav.Item>
 
             {user && (
-              <Nav.Item as="li" id="nav-myres">
+              <Nav.Item as="li" id="nav-myactivity" ref={activityRef} className={styles.activity}>
                 <Nav.Link
-                  as={Link}
-                  href="/my-reservation"
-                  active={isActive('/my-reservation')}
-                  onClick={closeMenu}
+                  as="button"
+                  type="button"
+                  active={activityActive}
+                  className={styles.activityToggle}
+                  aria-haspopup="menu"
+                  aria-expanded={activityOpen}
+                  onClick={() => setActivityOpen((prev) => !prev)}
                 >
-                  My Reservation
+                  My Activity
+                  <i
+                    className={`fa-solid fa-chevron-down ${styles.activityCaret} ${
+                      activityOpen ? styles.activityCaretOpen : ''
+                    }`}
+                  />
                 </Nav.Link>
-              </Nav.Item>
-            )}
 
-            {user && (!user.role || user.role === 'user') && (
-              <Nav.Item as="li" id="nav-myorders">
-                <Nav.Link
-                  as={Link}
-                  href="/my-orders"
-                  active={isActive('/my-orders')}
-                  onClick={closeMenu}
-                >
-                  My Orders
-                </Nav.Link>
+                {activityOpen && (
+                  <div className={styles.activityMenu} role="menu">
+                    {isCustomer && (
+                      <Link
+                        href="/my-orders"
+                        role="menuitem"
+                        className={`${styles.activityItem} ${ordersActive ? styles.activityItemActive : ''}`}
+                        onClick={closeMenu}
+                      >
+                        <span className={styles.activityIcon}>
+                          <i className="fa-solid fa-receipt" />
+                        </span>
+                        <span className={styles.activityText}>
+                          <strong>My Orders</strong>
+                          <small>Status &amp; riwayat pesanan</small>
+                        </span>
+                        {ordersActive && <i className={`fa-solid fa-check ${styles.activityCheck}`} />}
+                      </Link>
+                    )}
+
+                    <Link
+                      href="/my-reservation"
+                      role="menuitem"
+                      className={`${styles.activityItem} ${reservationActive ? styles.activityItemActive : ''}`}
+                      onClick={closeMenu}
+                    >
+                      <span className={styles.activityIcon}>
+                        <i className="fa-solid fa-calendar-check" />
+                      </span>
+                      <span className={styles.activityText}>
+                        <strong>My Reservation</strong>
+                        <small>Jadwal &amp; status reservasi</small>
+                      </span>
+                      {reservationActive && <i className={`fa-solid fa-check ${styles.activityCheck}`} />}
+                    </Link>
+                  </div>
+                )}
               </Nav.Item>
             )}
           </Nav>
