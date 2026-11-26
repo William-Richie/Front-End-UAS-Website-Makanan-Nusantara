@@ -20,6 +20,7 @@ import { TIPE_MEJA, INFO_TIPE, type TipeMeja } from '@/lib/mejaTipe';
 import PantauPesanan from '@/components/Admin/Pesanan/PantauPesanan';
 import KelolaAkunKasir from '@/components/Admin/Kasir/KelolaAkunKasir';
 import type { PesananItem } from '@/components/Admin/Pesanan/types';
+import Pagination from '@/components/Admin/Pagination/Pagination';
 import { ambilDaftar } from '@/lib/adminApi';
 import {
   BENTUK_ORBIT,
@@ -84,6 +85,8 @@ type ReservasiTabKey = 'user' | 'pending' | 'approved' | 'complete' | 'dibatalka
 type UserFilter = '' | 'active' | 'blocked';
 type UserAksi = '' | 'modifikasi' | 'blokir' | 'hapus';
 
+const PER_HALAMAN = 10; 
+
 interface ConfirmState {
   title: string;
   message: string;
@@ -106,9 +109,28 @@ const statusMatch = (status: string, tab: ReservasiTabKey): boolean => {
 };
 
 const cocokSearch = (data: object, keyword: string): boolean => {
-  if (!keyword) return true;
+  if (!keyword.trim()) return true;
   const k = keyword.toLowerCase().trim();
   return Object.values(data).some((v) => String(v ?? '').toLowerCase().includes(k));
+};
+
+const cocokSearchUser = (user: UserItem, index: number, keyword: string): boolean => {
+  const k = keyword.toLowerCase().trim();
+  if (!k) return true;
+
+  const userIdTampil = String(index + 1).padStart(5, '0');
+  const tanggalTampil = user.created_at
+    ? new Date(user.created_at).toLocaleDateString('id-ID')
+    : '';
+  const jumlahReserve = String(user.total_reserve ?? 0);
+
+  return [
+    userIdTampil,
+    user.nama ?? '',
+    user.email ?? '',
+    tanggalTampil,
+    jumlahReserve,
+  ].some((value) => String(value).toLowerCase().includes(k));
 };
 
 const adminFetch = (url: string, opts: RequestInit = {}) => {
@@ -263,6 +285,7 @@ export default function AdminPage() {
   const [reservasiAdmin, setReservasiAdmin] = useState<ReservasiItem[]>([]);
   const [usersList, setUsersList] = useState<UserItem[]>([]);
   const [reservasiTab, setReservasiTab] = useState<ReservasiTabKey>('user');
+  const [halaman, setHalaman] = useState(1);
   const [globalSearch, setGlobalSearch] = useState<string>('');
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
   const [fGerai, setFGerai] = useState<string>('');
@@ -293,6 +316,11 @@ export default function AdminPage() {
     }, 0);
     return () => clearTimeout(t);
   }, []);
+
+  const toggleFilterUser = () => {
+    setUserFilter((f) => (f === '' ? 'active' : f === 'active' ? 'blocked' : ''));
+    setHalaman(1);
+  };
 
   // Form Tambah Menu State
   const [kategoriBaru, setKategoriBaru] = useState(false);
@@ -602,14 +630,11 @@ export default function AdminPage() {
     });
   };
 
-  const toggleFilterUser = () =>
-    setUserFilter((f) => (f === '' ? 'active' : f === 'active' ? 'blocked' : ''));
-
-  const filteredUsers = usersList.filter((u) => {
+  const filteredUsers = usersList.filter((u, index) => {
     const aktif = isUserActive(u);
     if (userFilter === 'active' && !aktif) return false;
     if (userFilter === 'blocked' && aktif) return false;
-    return cocokSearch(u, globalSearch);
+    return cocokSearchUser(u, index, globalSearch);
   });
 
   const filteredReservasi =
@@ -637,19 +662,35 @@ export default function AdminPage() {
     setFTanggal('');
     setFSesi('');
     setFRuangan('');
+    setHalaman(1);
   };
 
   const countReservasi = (tab: ReservasiTabKey) => reservasiAdmin.filter((r) => statusMatch(r.status, tab)).length;
   const pertanyaanBaru = pertanyaanList.filter((q) => !q.dibaca && !q.dijawab_at).length;
 
-  const allUsersChecked =
-    filteredUsers.length > 0 && filteredUsers.every((u) => selectedUsers.includes(String(u.id)));
+  const jumlahHalaman = Math.max(
+    1,
+    Math.ceil((reservasiTab === 'user' ? filteredUsers.length : filteredReservasi.length) / PER_HALAMAN)
+  );
+  const halamanAman = Math.min(halaman, jumlahHalaman); 
+  const awalBaris = (halamanAman - 1) * PER_HALAMAN;
+  const usersHalaman = filteredUsers.slice(awalBaris, awalBaris + PER_HALAMAN);
+  const reservasiHalaman = filteredReservasi.slice(awalBaris, awalBaris + PER_HALAMAN);
+
+  const idsHalaman = usersHalaman.map((u) => String(u.id));
+  const allUsersChecked = idsHalaman.length > 0 && idsHalaman.every((id) => selectedUsers.includes(id));
 
   const toggleUserCheck = (id: string) =>
     setSelectedUsers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const toggleCheckAll = () =>
-    setSelectedUsers(allUsersChecked ? [] : filteredUsers.map((u) => String(u.id)));
+    setSelectedUsers((prev) =>
+      allUsersChecked
+        ? prev.filter((id) => !idsHalaman.includes(id))
+        : Array.from(new Set([...prev, ...idsHalaman]))
+    );
+
+    
 
   const AKSI_LABEL: Record<UserAksi, string> = {
     '': 'Pilih Aksi',
@@ -2152,6 +2193,7 @@ export default function AdminPage() {
                         className={`tab-btn ${reservasiTab === key ? 'active' : ''}`}
                         onClick={() => {
                           setReservasiTab(key);
+                          setHalaman(1);
                           if (key === 'user') loadUsers();
                           else loadReservasiAdmin();
                         }}
@@ -2175,14 +2217,17 @@ export default function AdminPage() {
                       className="form-control"
                       placeholder="Cari data..."
                       value={globalSearch}
-                      onChange={(e) => setGlobalSearch(e.target.value.trim() === '' ? '' : e.target.value)}
+                      onChange={(e) => {
+                        setGlobalSearch(e.target.value.trim() === '' ? '' : e.target.value);
+                        setHalaman(1);
+                      }}
                     />
                   </div>
                 </div>
                 {reservasiTab !== 'user' && filterOpen && (
                   <div className="row g-2 mb-3">
                     <div className="col-md-3">
-                      <select className="form-select" value={fGerai} onChange={(e) => setFGerai(e.target.value)}>
+                      <select className="form-select" value={fGerai} onChange={(e) => { setFGerai(e.target.value); setHalaman(1); }}>
                         <option value="">Semua gerai</option>
                         {opsiGerai.map((g) => (
                           <option key={g} value={g}>{g}</option>
@@ -2190,10 +2235,10 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div className="col-md-3">
-                      <input type="date" className="form-control" value={fTanggal} onChange={(e) => setFTanggal(e.target.value)} />
+                      <input type="date" className="form-control" value={fTanggal} onChange={(e) => { setFTanggal(e.target.value); setHalaman(1); }} />
                     </div>
                     <div className="col-md-2">
-                      <select className="form-select" value={fSesi} onChange={(e) => setFSesi(e.target.value)}>
+                      <select className="form-select" value={fSesi} onChange={(e) => { setFSesi(e.target.value); setHalaman(1); }}>
                         <option value="">Semua waktu</option>
                         {JAM_RESERVASI.map((j) => (
                           <option key={j} value={j}>{j}</option>
@@ -2201,7 +2246,7 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div className="col-md-3">
-                      <select className="form-select" value={fRuangan} onChange={(e) => setFRuangan(e.target.value)}>
+                      <select className="form-select" value={fRuangan} onChange={(e) => { setFRuangan(e.target.value); setHalaman(1); }}>
                         <option value="">Semua ruangan</option>
                         {opsiRuangan.map((r) => (
                           <option key={r} value={r}>{r}</option>
@@ -2287,7 +2332,7 @@ export default function AdminPage() {
                               <td colSpan={7} className="text-center text-muted py-4">Tidak ada user yang cocok.</td>
                             </tr>
                           ) : (
-                            filteredUsers.map((u) => {
+                            usersHalaman.map((u) => {
                               const aktif = isUserActive(u);
                               const idx = usersList.indexOf(u);
                               return (
@@ -2325,13 +2370,31 @@ export default function AdminPage() {
                         </tbody>
                       </table>
                     </div>
+                    <Pagination
+                      page={halamanAman}
+                      total={filteredUsers.length}
+                      perPage={PER_HALAMAN}
+                      onChange={setHalaman}
+                    />
                   </div>
                 )}
 
                 {/* TAB RESERVASI PENDING DLL */}
                 {reservasiTab !== 'user' && (
+                  <>
                   <div className="table-responsive">
-                    <table className="admin-table table table-striped align-middle">
+                    <table className="admin-table table table-striped align-middle"
+                             style={{ tableLayout: 'fixed', minWidth: 1000 }}>
+                      <colgroup>
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '11%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '11%' }} />
+                        <col style={{ width: '9%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '20%' }} />
+                      </colgroup>
                       <thead className="table-dark">
                         <tr>
                           <th className="text-center">Gerai</th>
@@ -2352,7 +2415,7 @@ export default function AdminPage() {
                             </td>
                           </tr>
                         ) : (
-                          filteredReservasi.map((r) => {
+                          reservasiHalaman.map((r) => {
                             const selesai = r.status === 'complete' || r.status === 'selesai';
                             const batal = r.status === 'dibatalkan' || r.status === 'cancelled';
                             const approved = r.status === 'approved' || r.status === 'dikonfirmasi';
@@ -2407,6 +2470,13 @@ export default function AdminPage() {
                       </tbody>
                     </table>
                   </div>
+                  <Pagination
+                    page={halamanAman}
+                    total={filteredReservasi.length}
+                    perPage={PER_HALAMAN}
+                    onChange={setHalaman}
+                  />
+                  </>
                 )}
               </div>
             )}

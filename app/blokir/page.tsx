@@ -12,7 +12,6 @@ export default function BlokirPage() {
   const [kontak, setKontak] = useState<Kontak | null>(null);
   const [keluar, setKeluar] = useState(false);
 
-  // kontak admin diambil dari data footer yang diisi admin
   useEffect(() => {
     fetch('/api/footer')
       .then((r) => r.json())
