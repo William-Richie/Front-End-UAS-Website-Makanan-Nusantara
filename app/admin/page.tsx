@@ -230,8 +230,9 @@ export default function AdminPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    'statistik' | 'menu' | 'favorit' | 'konten' | 'reservasi' | 'pertanyaan' | 'pendapatan' | 'kasir'
+    'statistik' | 'menu' | 'favorit' | 'konten' | 'reservasi' | 'kasir'
   >('statistik');
+  const [berandaView, setBerandaView] = useState<'ringkasan' | 'pendapatan' | 'pertanyaan'>('ringkasan');
 
   // Typed Data States
   const [menus, setMenus] = useState<MenuItem[]>([]);
@@ -549,9 +550,9 @@ export default function AdminPage() {
   }, [isLoggedIn, activeTab]);
 
   useEffect(() => {
-    if (!isLoggedIn || activeTab !== 'pertanyaan') return;
-    loadPertanyaan();
-  }, [isLoggedIn, activeTab]);
+  if (!isLoggedIn || activeTab !== 'statistik') return;
+  loadPertanyaan();
+}, [isLoggedIn, activeTab]);
 
   const bukaConfirm = (c: Omit<ConfirmState, 'danger' | 'icon'> & { danger?: boolean; icon?: string }) =>
     setConfirmState({ danger: false, icon: '?', ...c });
@@ -670,6 +671,7 @@ export default function AdminPage() {
 
   const countReservasi = (tab: ReservasiTabKey) => reservasiAdmin.filter((r) => statusMatch(r.status, tab)).length;
   const pertanyaanBaru = pertanyaanList.filter((q) => !q.dibaca && !q.dijawab_at).length;
+  const pertanyaanPreview = [...pertanyaanList].sort((a, b) => b.id - a.id).slice(0, 3);
 
   const jumlahHalaman = Math.max(
     1,
@@ -1160,17 +1162,17 @@ export default function AdminPage() {
           <li className="nav-item mb-2">
             <button
               className={`nav-link text-white text-start w-100 ${activeTab === 'statistik' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('statistik')}
+              onClick={() => {
+                setActiveTab('statistik');
+                setBerandaView('ringkasan');
+              }}
             >
-              <i className="fa-solid fa-chart-line me-2"></i> Beranda & Statistik
-            </button>
-          </li>
-          <li className="nav-item mb-2">
-            <button
-              className={`nav-link text-white text-start w-100 ${activeTab === 'pendapatan' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('pendapatan')}
-            >
-              <i className="fa-solid fa-sack-dollar me-2"></i> Laporan Pendapatan
+              <i className="fa-solid fa-chart-line me-2"></i> Beranda
+              {pertanyaanBaru > 0 && (
+                <span className="badge bg-danger ms-auto" title={`${pertanyaanBaru} pertanyaan belum dibaca`}>
+                  {pertanyaanBaru}
+                </span>
+              )}
             </button>
           </li>
           <li className="nav-item mb-2">
@@ -1215,15 +1217,6 @@ export default function AdminPage() {
           </li>
           <li className="nav-item mb-2">
             <button
-              className={`nav-link text-white text-start w-100 ${activeTab === 'pertanyaan' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('pertanyaan')}
-            >
-              <i className="fa-solid fa-envelope me-2"></i> Pertanyaan Masuk
-              {pertanyaanBaru > 0 && <span className="badge bg-danger ms-2">{pertanyaanBaru}</span>}
-            </button>
-          </li>
-          <li className="nav-item mb-2">
-            <button
               className={`nav-link text-white text-start w-100 ${activeTab === 'kasir' ? 'active bg-warning' : ''}`}
               onClick={() => setActiveTab('kasir')}
             >
@@ -1240,201 +1233,331 @@ export default function AdminPage() {
 
       {/* Main Content Area */}
       <main className="admin-main flex-grow-1 p-4 overflow-auto">
-        {/* TAB 1: STATISTIK */}
+        {/* TAB 1: BERANDA */}
         {activeTab === 'statistik' && (
-          <><div>
-            <h1 className="fs-3 fw-bold mb-4">Dashboard Statistik</h1>
-            <div className="row g-3 mb-4">
-              <div className="col-md-3">
-                <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-4 fw-bold stat-gold">{menus.length}</div>
-                  <div className="text-muted small">Total Menu</div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-4 fw-bold stat-brown">{pesananList.length}</div>
-                  <div className="text-muted small">Total Pesanan</div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-4 fw-bold stat-green">{reservasiList.length}</div>
-                  <div className="text-muted small">Total Reservasi</div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-4 fw-bold stat-terra">{statistik?.jumlah_pengunjung || 0}</div>
-                  <div className="text-muted small">Total Pengunjung</div>
-                </div>
-              </div>
-            </div>
-          </div><div className="row g-3 mb-3">
-              <div className="col-lg-7">
-                <div className="card chart-card shadow-sm border-0 p-4 h-100">
-                  <h5 className="fw-bold">Pesanan 7 Hari Terakhir</h5>
-                  <p className="chart-sub">Jumlah pesanan masuk per hari (semua status)</p>
-                  <BarChart data={pesananPerHari} format={(n) => `${n} pesanan`} kosong="Belum ada pesanan dalam 7 hari terakhir." />
-                </div>
-              </div>
-              <div className="col-lg-5">
-                <div className="card chart-card shadow-sm border-0 p-4 h-100">
-                  <h5 className="fw-bold">Status Pesanan</h5>
-                  <p className="chart-sub">{pesananList.length} pesanan seluruhnya</p>
-                  <StatusBars items={statusPesananChart} />
-                </div>
-              </div>
-            </div><div className="row g-3">
-              <div className="col-lg-7">
-                <div className="card chart-card shadow-sm border-0 p-4 h-100">
-                  <h5 className="fw-bold">Pendapatan</h5>
-                  <p className="chart-sub">Dari pesanan selesai, {labelRentang}</p>
-                  <BarChart
-                    data={(pendapatanData?.grafik || []).map((g) => ({
-                      label: pendapatanRange === 'hari' ? g.label : g.label.slice(5).split('-').reverse().join('/'),
-                      value: g.total,
-                    }))}
-                    format={rupiah}
-                    ringkas={singkat}
-                    kosong="Belum ada pendapatan pada rentang ini." />
-                </div>
-              </div>
-              <div className="col-lg-5">
-                <div className="card chart-card shadow-sm border-0 p-4 h-100">
-                  <h5 className="fw-bold">Status Reservasi</h5>
-                  <p className="chart-sub">{reservasiList.length} reservasi seluruhnya</p>
-                  <StatusBars items={statusReservasiChart} />
-                </div>
-              </div>
-            </div></>
-        )}
-
-        {/* TAB 2: PENDAPATAN */}
-        {activeTab === 'pendapatan' && (
           <div>
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h1 className="fs-3 fw-bold mb-0">Laporan Pendapatan Restoran</h1>
-              <div className="btn-group">
-                <button
-                  type="button"
-                  className={`btn btn-sm ${pendapatanRange === 'hari' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
-                  onClick={() => setPendapatanRange('hari')}
-                >
-                  Hari Ini
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${pendapatanRange === '7' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
-                  onClick={() => setPendapatanRange('7')}
-                >
-                  7 Hari Terakhir
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${pendapatanRange === '30' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
-                  onClick={() => setPendapatanRange('30')}
-                >
-                  30 Hari Terakhir
-                </button>
+            {berandaView === 'ringkasan' && (
+            <>
+              <h1 className="fs-3 fw-bold mb-4">Dashboard Statistik</h1>
+              <div className="row g-3 mb-4">
+                <div className="col-md-3">
+                  <div className="card shadow-sm border-0 p-3 text-center">
+                    <div className="fs-4 fw-bold stat-gold">{menus.length}</div>
+                    <div className="text-muted small">Total Menu</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="card shadow-sm border-0 p-3 text-center">
+                    <div className="fs-4 fw-bold stat-brown">{pesananList.length}</div>
+                    <div className="text-muted small">Total Pesanan</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="card shadow-sm border-0 p-3 text-center">
+                    <div className="fs-4 fw-bold stat-green">{reservasiList.length}</div>
+                    <div className="text-muted small">Total Reservasi</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="card shadow-sm border-0 p-3 text-center">
+                    <div className="fs-4 fw-bold stat-terra">{statistik?.jumlah_pengunjung || 0}</div>
+                    <div className="text-muted small">Total Pengunjung</div>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {!pendapatanData ? (
-              <div className="alert alert-warning">Data pendapatan belum bisa dimuat. Coba refresh halaman.</div>
-            ) : (
-              <>
+              {/* Kartu ringkasan: Pendapatan & Pertanyaan Masuk */}
                 <div className="row g-3 mb-4">
-                  <div className="col-md-3">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold stat-green">
-                        Rp {pendapatanData.ringkasan.total.toLocaleString('id-ID')}
+                  <div className="col-lg-7">
+                    <div className="card shadow-sm border-0 p-4 h-100 d-flex flex-column">
+                      <div className="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                          <h5 className="fw-bold mb-1">
+                            <i className="fa-solid fa-envelope me-2 text-warning"></i>Pertanyaan Masuk
+                          </h5>
+                          <small className="text-muted">{pertanyaanList.length} pertanyaan seluruhnya</small>
+                        </div>
+                        {pertanyaanBaru > 0 && <span className="badge bg-danger">{pertanyaanBaru} belum dibaca</span>}
                       </div>
-                      <div className="text-muted small">Total Pendapatan</div>
+
+                      {pertanyaanPreview.length === 0 ? (
+                        <p className="text-muted small mb-4">Belum ada pertanyaan masuk.</p>
+                      ) : (
+                        <ul className="list-group list-group-flush mb-4">
+                          {pertanyaanPreview.map((q) => {
+                            const dijawab = !!q.dijawab_at;
+                            const baru = !q.dibaca && !dijawab;
+                            return (
+                              <li
+                                key={q.id}
+                                className="list-group-item px-0 d-flex justify-content-between align-items-start gap-3"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setBerandaView('pertanyaan')}
+                              >
+                                <div
+                                  className="small"
+                                  style={{
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                  }}
+                                >
+                                  {q.pertanyaan}
+                                </div>
+                                <span
+                                  className={`badge flex-shrink-0 ${dijawab ? 'bg-success' : baru ? 'bg-danger' : 'bg-secondary'}`}
+                                >
+                                  {dijawab ? 'Dijawab' : baru ? 'Baru' : 'Dibaca'}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+
+                      <button
+                        type="button"
+                        className="btn btn-warning text-white fw-bold mt-auto"
+                        onClick={() => setBerandaView('pertanyaan')}
+                      >
+                        Lihat lebih detail <i className="fa-solid fa-arrow-right ms-2"></i>
+                      </button>
                     </div>
                   </div>
-                  <div className="col-md-3">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold stat-brown">
-                        {pendapatanData.ringkasan.pesanan}
+
+                  <div className="col-lg-5">
+                    <div className="card shadow-sm border-0 p-4 h-100 d-flex flex-column">
+                      <div className="mb-3">
+                        <h5 className="fw-bold mb-1">
+                          <i className="fa-solid fa-sack-dollar me-2 text-warning"></i>Laporan Pendapatan
+                        </h5>
+                        <small className="text-muted">Dari pesanan selesai, {labelRentang}</small>
                       </div>
-                      <div className="text-muted small">Pesanan Selesai</div>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold stat-gold">
-                        {pendapatanData.ringkasan.item}
-                      </div>
-                      <div className="text-muted small">Item Terjual</div>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold stat-terra">
-                        Rp {pendapatanData.ringkasan.rata.toLocaleString('id-ID')}
-                      </div>
-                      <div className="text-muted small">Rata-rata per Pesanan</div>
+
+                      {pendapatanData ? (
+                        <div className="mb-4">
+                          <div className="text-muted small">Total Pendapatan</div>
+                          <div className="fs-2 fw-bold stat-green">{rupiah(pendapatanData.ringkasan.total)}</div>
+                          <div className="small text-muted mb-3">
+                            dari {pendapatanData.ringkasan.pesanan} pesanan selesai
+                          </div>
+                          <div className="border rounded p-3">
+                            <div className="text-muted small">Rata-rata per Pesanan</div>
+                            <div className="fs-5 fw-bold stat-terra">{rupiah(pendapatanData.ringkasan.rata)}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-muted small mb-4">Data pendapatan belum bisa dimuat.</p>
+                      )}
+
+                      <button
+                        type="button"
+                        className="btn btn-warning text-white fw-bold mt-auto"
+                        onClick={() => setBerandaView('pendapatan')}
+                      >
+                        Lihat lebih detail <i className="fa-solid fa-arrow-right ms-2"></i>
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="row g-3 mb-4">
-                  <div className="col-md-5">
-                    <div className="card shadow-sm border-0 p-3 h-100">
-                      <h5 className="fw-bold mb-3">Top 5 Menu Terlaris</h5>
-                      <ul className="list-group list-group-flush">
-                        {pendapatanData.terlaris.length === 0 ? (
-                          <li className="list-group-item text-muted">Belum ada data penjualan</li>
-                        ) : (
-                          pendapatanData.terlaris.map((m, idx) => (
-                            <li key={idx} className="list-group-item d-flex justify-content-between align-items-center">
-                              <div>
-                                <span className="fw-bold me-2">#{idx + 1}</span>
-                                <span>{m.nama}</span>
-                              </div>
-                              <span className="badge bg-warning text-dark">{m.qty} porsi</span>
-                            </li>
-                          ))
-                        )}
-                      </ul>
+                {/* Grafik */}
+                <div className="row g-3 mb-3">
+                  <div className="col-lg-7">
+                    <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                      <h5 className="fw-bold">Pesanan 7 Hari Terakhir</h5>
+                      <p className="chart-sub">Jumlah pesanan masuk per hari (semua status)</p>
+                      <BarChart data={pesananPerHari} format={(n) => `${n} pesanan`} kosong="Belum ada pesanan dalam 7 hari terakhir." />
                     </div>
                   </div>
-
-                  <div className="col-md-7">
-                    <div className="card shadow-sm border-0 p-3 h-100">
-                      <h5 className="fw-bold mb-3">Rincian Laporan Harian</h5>
-                      <div className="table-responsive">
-                        <table className="table table-hover align-middle mb-0">
-                          <thead>
-                            <tr>
-                              <th>Tanggal</th>
-                              <th>Pesanan</th>
-                              <th>Item</th>
-                              <th>Total Pendapatan</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {pendapatanData.laporan.map((h, i) => (
-                              <tr key={i}>
-                                <td>{h.tanggal}</td>
-                                <td>{h.pesanan}</td>
-                                <td>{h.item}</td>
-                                <td className="fw-bold text-success">Rp {h.pendapatan.toLocaleString('id-ID')}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                  <div className="col-lg-5">
+                    <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                      <h5 className="fw-bold">Status Pesanan</h5>
+                      <p className="chart-sub">{pesananList.length} pesanan seluruhnya</p>
+                      <StatusBars items={statusPesananChart} />
+                    </div>
+                  </div>
+                </div>
+                <div className="row g-3">
+                  <div className="col-lg-7">
+                    <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                      <h5 className="fw-bold">Pendapatan</h5>
+                      <p className="chart-sub">Dari pesanan selesai, {labelRentang}</p>
+                      <BarChart
+                        data={(pendapatanData?.grafik || []).map((g) => ({
+                          label: pendapatanRange === 'hari' ? g.label : g.label.slice(5).split('-').reverse().join('/'),
+                          value: g.total,
+                        }))}
+                        format={rupiah}
+                        ringkas={singkat}
+                        kosong="Belum ada pendapatan pada rentang ini." />
+                    </div>
+                  </div>
+                  <div className="col-lg-5">
+                    <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                      <h5 className="fw-bold">Status Reservasi</h5>
+                      <p className="chart-sub">{reservasiList.length} reservasi seluruhnya</p>
+                      <StatusBars items={statusReservasiChart} />
                     </div>
                   </div>
                 </div>
               </>
             )}
+
+            {/* Detail: Laporan Pendapatan */}
+            {berandaView === 'pendapatan' && (
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary mb-3"
+                  onClick={() => setBerandaView('ringkasan')}
+                >
+                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali
+                </button>
+
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                  <h1 className="fs-3 fw-bold mb-0">Laporan Pendapatan Restoran</h1>
+                  <div className="btn-group">
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${pendapatanRange === 'hari' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setPendapatanRange('hari')}
+                    >
+                      Hari Ini
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${pendapatanRange === '7' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setPendapatanRange('7')}
+                    >
+                      7 Hari Terakhir
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${pendapatanRange === '30' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setPendapatanRange('30')}
+                    >
+                      30 Hari Terakhir
+                    </button>
+                  </div>
+                </div>
+
+                {!pendapatanData ? (
+                  <div className="alert alert-warning">Data pendapatan belum bisa dimuat. Coba refresh halaman.</div>
+                ) : (
+                  <>
+                    <div className="row g-3 mb-4">
+                      <div className="col-md-3">
+                        <div className="card shadow-sm border-0 p-3 text-center">
+                          <div className="fs-4 fw-bold stat-green">
+                            Rp {pendapatanData.ringkasan.total.toLocaleString('id-ID')}
+                          </div>
+                          <div className="text-muted small">Total Pendapatan</div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card shadow-sm border-0 p-3 text-center">
+                          <div className="fs-4 fw-bold stat-brown">
+                            {pendapatanData.ringkasan.pesanan}
+                          </div>
+                          <div className="text-muted small">Pesanan Selesai</div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card shadow-sm border-0 p-3 text-center">
+                          <div className="fs-4 fw-bold stat-gold">
+                            {pendapatanData.ringkasan.item}
+                          </div>
+                          <div className="text-muted small">Item Terjual</div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card shadow-sm border-0 p-3 text-center">
+                          <div className="fs-4 fw-bold stat-terra">
+                            Rp {pendapatanData.ringkasan.rata.toLocaleString('id-ID')}
+                          </div>
+                          <div className="text-muted small">Rata-rata per Pesanan</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="row g-3 mb-4">
+                      <div className="col-md-5">
+                        <div className="card shadow-sm border-0 p-3 h-100">
+                          <h5 className="fw-bold mb-3">Top 5 Menu Terlaris</h5>
+                          <ul className="list-group list-group-flush">
+                            {pendapatanData.terlaris.length === 0 ? (
+                              <li className="list-group-item text-muted">Belum ada data penjualan</li>
+                            ) : (
+                              pendapatanData.terlaris.map((m, idx) => (
+                                <li key={idx} className="list-group-item d-flex justify-content-between align-items-center">
+                                  <div>
+                                    <span className="fw-bold me-2">#{idx + 1}</span>
+                                    <span>{m.nama}</span>
+                                  </div>
+                                  <span className="badge bg-warning text-dark">{m.qty} porsi</span>
+                                </li>
+                              ))
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="col-md-7">
+                        <div className="card shadow-sm border-0 p-3 h-100">
+                          <h5 className="fw-bold mb-3">Rincian Laporan Harian</h5>
+                          <div className="table-responsive">
+                            <table className="table table-hover align-middle mb-0">
+                              <thead>
+                                <tr>
+                                  <th>Tanggal</th>
+                                  <th>Pesanan</th>
+                                  <th>Item</th>
+                                  <th>Total Pendapatan</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pendapatanData.laporan.map((h, i) => (
+                                  <tr key={i}>
+                                    <td>{h.tanggal}</td>
+                                    <td>{h.pesanan}</td>
+                                    <td>{h.item}</td>
+                                    <td className="fw-bold text-success">Rp {h.pendapatan.toLocaleString('id-ID')}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Detail: Pertanyaan Masuk */}
+            {berandaView === 'pertanyaan' && (
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary mb-3"
+                  onClick={() => setBerandaView('ringkasan')}
+                >
+                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali
+                </button>
+                <h1 className="fs-3 fw-bold mb-1">Pertanyaan Masuk</h1>
+                <p className="text-muted mb-3">
+                  Pertanyaan dari pengguna yang login. Jawaban dikirim ke Mail pengguna; pertanyaan yang bagus bisa Anda tambahkan manual di Kelola Halaman &gt; FAQ.
+                </p>
+                <PertanyaanMasuk items={pertanyaanList} onTandaiDibaca={handleTandaiDibaca} onJawab={handleJawabPertanyaan} />
+              </div>
+            )}
           </div>
         )}
 
-        {/* TAB 3: MENU */}
+        {/* TAB 2: MENU */}
         {activeTab === 'menu' && (
           <div>
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -1670,7 +1793,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: FAVORIT (pilih menu + atur tampilan orbit) */}
+        {/* TAB 3: FAVORIT (pilih menu + atur tampilan orbit) */}
         {activeTab === 'favorit' && (
           <div>
             <h1 className="fs-3 fw-bold mb-2">Kelola Menu Favorit (Chef&apos;s Recommendation)</h1>
@@ -1894,7 +2017,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 5: KELOLA (Home, About, FAQ, Lokasi, Footer + preview satu halaman) */}
+        {/* TAB 4: KELOLA (Home, About, FAQ, Lokasi, Footer + preview satu halaman) */}
         {activeTab === 'konten' && (
           <div>
             <h1 className="fs-3 fw-bold mb-3">Kelola Halaman Utama</h1>
@@ -2194,19 +2317,8 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-        
-        {/* TAB: PERTANYAAN MASUK */}
-        {activeTab === 'pertanyaan' && (
-          <div>
-            <h1 className="fs-3 fw-bold mb-1">Pertanyaan Masuk</h1>
-            <p className="text-muted mb-3">
-              Pertanyaan dari pengguna yang login. Jawaban dikirim ke Mail pengguna; pertanyaan yang bagus bisa Anda tambahkan manual di Kelola Halaman &gt; FAQ.
-            </p>
-            <PertanyaanMasuk items={pertanyaanList} onTandaiDibaca={handleTandaiDibaca} onJawab={handleJawabPertanyaan} />
-          </div>
-        )}
 
-        {/* TAB 8: ORDER & RESERVASI  */}
+        {/* TAB 5: ORDER & RESERVASI  */}
         {activeTab === 'reservasi' && (
           <div>
             <h1 className="fs-3 fw-bold mb-3">Order & Ruangan</h1>
@@ -2327,7 +2439,7 @@ export default function AdminPage() {
                   className="btn btn-sm btn-outline-secondary mb-3 align-self-start"
                   onClick={() => setOrderView('ringkasan')}
                 >
-                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali ke Ringkasan
+                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali
                 </button>
 
                 <div className="reservation-toolbar">
