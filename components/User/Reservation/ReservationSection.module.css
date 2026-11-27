@@ -675,7 +675,7 @@
 
 .confirmAbout {
   min-height: 86px;
-  margin: 16px 0 18px;
+  margin: 16px 0 10px;
   padding: 12px 14px;
   border: 1px dashed var(--color-border);
   border-radius: 12px;
@@ -711,6 +711,16 @@
   transform: none;
 }
 
+.contactDescription {
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: var(--color-primary-dark);
+  text-align: center;
+}
+
+.whatsapp {
+  text-align: center;
+}
 
 /* At Rule */
 @keyframes storeIn {

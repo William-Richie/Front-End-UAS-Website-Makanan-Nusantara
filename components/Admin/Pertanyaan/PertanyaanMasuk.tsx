@@ -92,7 +92,13 @@ export default function PertanyaanMasuk({ items, onTandaiDibaca, onJawab }: Pert
       </div>
 
       <div className="table-responsive">
-        <table className="admin-table table table-striped align-middle">
+        <table className="admin-table table table-striped align-middle" style={{ tableLayout: 'fixed', minWidth: 1000 }}>
+            <colgroup>
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '25%' }} />
+            </colgroup>
           <thead className="table-dark">
             <tr>
               <th className="text-center">Pengirim</th>
