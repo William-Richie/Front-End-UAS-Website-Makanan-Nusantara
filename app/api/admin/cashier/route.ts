@@ -75,10 +75,19 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
 
-    const dobel = await prisma.kasir.findUnique({
-      where: { username: userBersih },
-    });
-    if (dobel)
+    const adminUser = (process.env.ADMIN_USERNAME || "admin").toLowerCase();
+    if (userBersih === adminUser) {
+      return NextResponse.json(
+        { error: "Username tersebut dilindungi oleh sistem." },
+        { status: 409 },
+      );
+    }
+
+    const [dobelKasir, dobelUser] = await Promise.all([
+      prisma.kasir.findUnique({ where: { username: userBersih } }),
+      prisma.user.findFirst({ where: { username: userBersih } }),
+    ]);
+    if (dobelKasir || dobelUser)
       return NextResponse.json(
         { error: "Username sudah dipakai." },
         { status: 409 },
