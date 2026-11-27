@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
+import { wajibSesi } from "@/lib/auth";
 
 const MIN_PASSWORD = 6;
 
@@ -9,7 +10,9 @@ function pesanError(error: unknown, cadangan: string) {
 }
 
 // GET /api/admin/cashier -> daftar akun kasir
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await wajibSesi(req, ["admin"]);
+  if (auth.error) return auth.error;
   try {
     const list = await prisma.kasir.findMany({
       orderBy: { created_at: "asc" },
@@ -33,6 +36,8 @@ export async function GET() {
 
 // POST /api/admin/cashier -> tambah akun kasir baru
 export async function POST(req: NextRequest) {
+  const auth = await wajibSesi(req, ["admin"]);
+  if (auth.error) return auth.error;
   try {
     const { nama, username, password, gerai } = await req.json();
     const namaBersih = String(nama || "").trim();
@@ -101,6 +106,8 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/admin/cashier -> ubah nama, gerai, password atau status aktif
 export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ["admin"]);
+  if (auth.error) return auth.error;
   try {
     const { id, nama, gerai, password, is_active } = await req.json();
     if (!id)
@@ -163,6 +170,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/admin/cashier -> hapus akun kasir
 export async function DELETE(req: NextRequest) {
+  const auth = await wajibSesi(req, ["admin"]);
+  if (auth.error) return auth.error;
   try {
     const { id } = await req.json();
     if (!id)

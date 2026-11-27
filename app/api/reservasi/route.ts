@@ -3,21 +3,11 @@ import prisma from '@/lib/prisma';
 import { hitungKetersediaan } from '@/lib/ruangan'; 
 import { daftarMeja } from '@/lib/meja';
 import { TIPE_DARI_KODE } from '@/lib/mejaTipe';
+import { wajibSesi } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const email = searchParams.get('email');
-
-    const whereClause: { email?: string } = {};
-    if (email) {
-      whereClause.email = email;
-    }
-
-    const list = await prisma.reservasi.findMany({
-      where: whereClause,
-      orderBy: { created_at: 'desc' },
-    });
 
     if (searchParams.get('terisi') === '1') {
       const gerai = searchParams.get('gerai');
@@ -31,6 +21,22 @@ export async function GET(req: NextRequest) {
       const info = await hitungKetersediaan(gerai, tanggal, sesi);
       return NextResponse.json({ terisi: info.filter((r) => !r.tersedia).map((r) => r.ruangan) });
     }
+
+    const auth = await wajibSesi(req, ['admin', 'user']);
+    if (auth.error) return auth.error;
+
+    const email = searchParams.get('email');
+    const whereClause: { email?: string; user_id?: string } = {};
+    if (auth.sesi.role === 'user') {
+      whereClause.user_id = auth.sesi.id;
+    } else if (email) {
+      whereClause.email = email;
+    }
+
+    const list = await prisma.reservasi.findMany({
+      where: whereClause,
+      orderBy: { created_at: 'desc' },
+    });
 
     return NextResponse.json({ data: list });
   } catch (error: unknown) {
@@ -48,10 +54,12 @@ const jamSekarangWib = () =>
     });
 
 export async function POST(req: NextRequest) {
+  const auth = await wajibSesi(req, ['user']);
+  if (auth.error) return auth.error;
+
   try {
     const body = await req.json();
     const {
-      user_id,
       gerai,
       nama,
       email,
@@ -63,16 +71,10 @@ export async function POST(req: NextRequest) {
       meja_id,
       catatan,
     } = body;
+    const user_id = auth.sesi.id;
 
     if (!gerai || !nama || !email || !telepon || !tanggal || !jumlah || !sesi || !ruangan) {
       return NextResponse.json({ error: 'Semua data reservasi wajib diisi.' }, { status: 400 });
-    }
-
-    if (!user_id) {
-      return NextResponse.json(
-        { error: 'Sesi login tidak valid. Silakan login ulang.' },
-        { status: 401 }
-      );
     }
 
     const userAda = await prisma.user.findUnique({

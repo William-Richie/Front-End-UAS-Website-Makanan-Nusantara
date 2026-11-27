@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { validateNama } from '@/lib/validation';
+import { wajibSesi } from '@/lib/auth';
 
 // PUT /api/auth/profile - mengganti nama pengguna
 export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ['user']);
+  if (auth.error) return auth.error;
+
   try {
-    const { id, email, nama } = await req.json();
+    const { nama } = await req.json();
     const cleanNama = String(nama || '').trim();
 
     const problem = validateNama(cleanNama);
@@ -13,8 +17,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: problem }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: String(id || '') } });
-    if (!user || user.email !== String(email || '').trim().toLowerCase()) {
+    const user = await prisma.user.findUnique({ where: { id: auth.sesi.id } });
+    if (!user) {
       return NextResponse.json({ error: 'Akun tidak ditemukan, silakan login ulang.' }, { status: 404 });
     }
 

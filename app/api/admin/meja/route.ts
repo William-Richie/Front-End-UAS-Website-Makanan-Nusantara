@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { daftarMeja } from '@/lib/meja';
 import { TIPE_MEJA, type TipeMeja } from '@/lib/mejaTipe';
+import { wajibSesi } from '@/lib/auth';
 
 const tipeValid = (t: unknown): t is TipeMeja => TIPE_MEJA.includes(t as TipeMeja);
 const kunci = (meja_id: number, tanggal: string, jam: string) => ({
@@ -10,6 +11,8 @@ const kunci = (meja_id: number, tanggal: string, jam: string) => ({
 
 // GET ?gerai=..&tanggal=..&jam=..
 export async function GET(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const sp = new URL(req.url).searchParams;
     const gerai = sp.get('gerai');
@@ -25,6 +28,8 @@ export async function GET(req: NextRequest) {
 
 // POST { gerai, tipe, jumlah } -> sinkronkan jumlah meja
 export async function POST(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { gerai, tipe, jumlah } = await req.json();
     const n = Number(jumlah);
@@ -46,6 +51,8 @@ export async function POST(req: NextRequest) {
 
 // PUT { meja_id, tanggal, jam, published?, open?, catatan?, kapMin?, kapMaks?, semua? }
 export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const b = await req.json();
     const meja_id = Number(b.meja_id);

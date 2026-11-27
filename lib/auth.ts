@@ -157,3 +157,30 @@ export async function bacaSesiDariRequest(req: NextRequest): Promise<AuthSession
   if (!token) return null;
   return await verifikasiTokenAuth(token);
 }
+
+/**
+ * Helper untuk memproteksi API route berdasarkan sesi & role
+ */
+export async function wajibSesi(
+  req: NextRequest,
+  roles?: AuthRole[]
+): Promise<{ sesi: AuthSession; error?: never } | { sesi?: never; error: NextResponse }> {
+  const sesi = await bacaSesiDariRequest(req);
+  if (!sesi) {
+    return {
+      error: NextResponse.json(
+        { error: 'Silakan login terlebih dahulu.', message: 'Silakan login terlebih dahulu.' },
+        { status: 401 }
+      ),
+    };
+  }
+  if (roles && !roles.includes(sesi.role)) {
+    return {
+      error: NextResponse.json(
+        { error: 'Akses ditolak.', message: 'Akses ditolak.' },
+        { status: 403 }
+      ),
+    };
+  }
+  return { sesi };
+}

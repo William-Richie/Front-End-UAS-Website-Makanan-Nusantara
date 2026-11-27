@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { bacaSesiDariRequest } from "@/lib/auth";
+import { wajibSesi } from "@/lib/auth";
 import { batalkanEwalletKadaluarsa } from "@/lib/expiredOrders";
 
 // GET /api/pesanan - Daftar pesanan aktif
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await wajibSesi(req, ["admin", "cashier"]);
+  if (auth.error) return auth.error;
   try {
     await batalkanEwalletKadaluarsa();
     const list = await prisma.pesanan.findMany({
@@ -20,10 +22,12 @@ export async function GET() {
 
 // POST /api/pesanan - Membuat pesanan baru
 export async function POST(req: NextRequest) {
+  const auth = await wajibSesi(req);
+  if (auth.error) return auth.error;
   try {
     const { nama, item, total, status } = await req.json();
-    const sesi = await bacaSesiDariRequest(req);
-    const userId = sesi?.role === "user" ? sesi.id : "";
+    const sesi = auth.sesi;
+    const userId = sesi.role === "user" ? sesi.id : "";
     const statusBaru = String(status || "pending");
 
     let itemTersimpan: string = typeof item === "string" ? item : JSON.stringify(item);
@@ -59,7 +63,9 @@ export async function POST(req: NextRequest) {
 }
 
 // DELETE /api/pesanan - Hapus semua pesanan yang dibatalkan sekaligus
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
+  const auth = await wajibSesi(req, ["admin"]);
+  if (auth.error) return auth.error;
   try {
     const hasil = await prisma.pesanan.deleteMany({
       where: { status: "dibatalkan" },
