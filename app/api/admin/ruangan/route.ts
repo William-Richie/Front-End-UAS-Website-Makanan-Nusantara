@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { list_ruangan, hitungKetersediaan } from '@/lib/ruangan';
+import { wajibSesi } from '@/lib/auth';
 
 // GET /api/admin/ruangan?gerai=..&tanggal=..&sesi=..
 export async function GET(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const sp = new URL(req.url).searchParams;
     const gerai = sp.get('gerai');
@@ -18,6 +21,8 @@ export async function GET(req: NextRequest) {
 
 // Reguler: { gerai, ruangan, jumlah }   VIP: { gerai, ruangan, status }
 export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { gerai, ruangan, jumlah, status } = await req.json();
     const def = list_ruangan.find((r) => r.kode === ruangan);

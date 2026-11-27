@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { ids, Is_Active } = (await req.json()) as { ids: string[]; Is_Active: boolean };
     if (!Array.isArray(ids) || ids.length === 0) {

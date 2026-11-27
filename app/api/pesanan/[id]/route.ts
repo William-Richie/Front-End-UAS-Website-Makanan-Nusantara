@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { wajibSesi } from "@/lib/auth";
 import { batalkanEwalletKadaluarsa } from "@/lib/expiredOrders";
+import { userIdDariItem } from "@/lib/orderOwner";
 
 // GET /api/pesanan/[id] - Cek status pesanan
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await wajibSesi(req);
+  if (auth.error) return auth.error;
   try {
     const { id } = await params;
     const pesananId = parseInt(id, 10);
@@ -24,6 +28,12 @@ export async function GET(
         { error: "Pesanan tidak ditemukan." },
         { status: 404 },
       );
+    if (auth.sesi.role === "user" && userIdDariItem(row.item) !== auth.sesi.id) {
+      return NextResponse.json(
+        { error: "Akses ditolak." },
+        { status: 403 },
+      );
+    }
 
     let statusBayar = "";
     try {
@@ -52,6 +62,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await wajibSesi(req);
+  if (auth.error) return auth.error;
   try {
     const { id } = await params;
     const { status, status_bayar, metode_bayar } = await req.json();
@@ -71,6 +83,12 @@ export async function PUT(
       return NextResponse.json(
         { error: "Pesanan tidak ditemukan." },
         { status: 404 },
+      );
+    }
+    if (auth.sesi.role === "user" && userIdDariItem(current.item) !== auth.sesi.id) {
+      return NextResponse.json(
+        { error: "Akses ditolak." },
+        { status: 403 },
       );
     }
     if (current.status === "dibatalkan" || current.status === "selesai") {
@@ -124,9 +142,11 @@ export async function PUT(
 
 // DELETE /api/pesanan/[id] - Hapus pesanan (hanya yang berstatus dibatalkan)
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await wajibSesi(req, ["admin"]);
+  if (auth.error) return auth.error;
   try {
     const { id } = await params;
     const pesananId = parseInt(id, 10);

@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import type { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { AUTH_COOKIE } from '@/lib/auth';
+import { AUTH_COOKIE, getSecretKey, verifikasiTokenAuth } from '@/lib/auth';
 
 export const KASIR_COOKIE = 'papeda_kasir_token';
 const MASA_BERLAKU_DETIK = 60 * 60 * 12; // 12 jam
@@ -14,11 +14,7 @@ export type KasirSesi = {
 };
 
 function rahasia(): string {
-  const s = process.env.KASIR_JWT_SECRET || process.env.AUTH_SECRET;
-  if (!s || s.length < 16) {
-    return 'papeda-nusantara-super-secret-auth-key-min-32-characters';
-  }
-  return s;
+  return getSecretKey();
 }
 
 export function buatToken(sesi: KasirSesi): string {
@@ -39,8 +35,23 @@ export function hapusCookie(res: NextResponse) {
   res.cookies.set(KASIR_COOKIE, '', { httpOnly: true, path: '/', maxAge: 0, expires: new Date(0) });
 }
 
-export function bacaSesiKasir(req: NextRequest): KasirSesi | null {
-  // Cek cookie legacy kasir terlebih dahulu
+export async function bacaSesiKasir(req: NextRequest): Promise<KasirSesi | null> {
+  const tokenAuth = req.cookies.get(AUTH_COOKIE)?.value;
+  if (tokenAuth) {
+    const payload = await verifikasiTokenAuth(tokenAuth);
+    if (payload) {
+      if (payload.role !== 'cashier' || !payload.id || !payload.gerai) {
+        return null;
+      }
+      return {
+        kasirId: String(payload.id),
+        nama: String(payload.nama || ''),
+        username: String(payload.username || ''),
+        gerai: String(payload.gerai),
+      };
+    }
+  }
+
   const tokenKasir = req.cookies.get(KASIR_COOKIE)?.value;
   if (tokenKasir) {
     try {
@@ -56,32 +67,11 @@ export function bacaSesiKasir(req: NextRequest): KasirSesi | null {
     } catch {}
   }
 
-  // Jika tidak ada, cek cookie papeda_session (Unified Auth)
-  const tokenAuth = req.cookies.get(AUTH_COOKIE)?.value;
-  if (tokenAuth) {
-    try {
-      const parts = tokenAuth.split('.');
-      if (parts.length === 3) {
-        let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        while (base64.length % 4) base64 += '=';
-        const payload = JSON.parse(atob(base64));
-        if (payload.role === 'cashier' && payload.id && payload.gerai) {
-          return {
-            kasirId: String(payload.id),
-            nama: String(payload.nama || ''),
-            username: String(payload.username || ''),
-            gerai: String(payload.gerai),
-          };
-        }
-      }
-    } catch {}
-  }
-
   return null;
 }
 
 export async function ambilSesiKasirAktif(req: NextRequest): Promise<KasirSesi | null> {
-  const sesi = bacaSesiKasir(req);
+  const sesi = await bacaSesiKasir(req);
   if (!sesi) return null;
   const kasir = await prisma.kasir.findUnique({ where: { id: sesi.kasirId } });
   if (!kasir || !kasir.is_active) return null;

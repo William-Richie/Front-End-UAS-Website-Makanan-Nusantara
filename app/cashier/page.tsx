@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import styles from './cashier.module.css';
 import { buildReceiptHtml, type OrderType, type Receipt } from '@/lib/receiptPrint';
 import type { CartItem } from '@/components/User/FloatingButton/FloatingButton';
@@ -232,7 +231,6 @@ async function ubahPesanan(id: number, body: Record<string, string>) {
 }
 
 export default function KasirPage() {
-  const router = useRouter();
   const notify = useNotify();
   const cetak = (p: Pesanan) => {
     if (!cetakStruk(p)) {
@@ -311,11 +309,11 @@ export default function KasirPage() {
           setGerai(d.data.gerai);
           setLoggedIn(true);
         } else {
-          router.push('/?auth=login&pesan=Silakan+login+sebagai+kasir');
+          window.location.replace('/?auth=login&pesan=Silakan+login+sebagai+kasir');
         }
       })
       .catch(() => {
-        if (!batal) router.push('/?auth=login&pesan=Silakan+login+sebagai+kasir');
+        if (!batal) window.location.replace('/?auth=login&pesan=Silakan+login+sebagai+kasir');
       })
       .finally(() => {
         if (batal) return;
@@ -325,7 +323,7 @@ export default function KasirPage() {
     return () => {
       batal = true;
     };
-  }, [router]);
+  }, []);
 
   useEffect(() => {
   if (!loggedIn) return;
@@ -344,7 +342,7 @@ export default function KasirPage() {
         if (Array.isArray(d?.data)) setDaftarGerai(d.data.map((m) => m.nama).filter(Boolean));
       })
       .catch(() => {});
-  }, [router]);
+  }, []);
 
   const muat = useCallback(async () => {
     try {
@@ -356,7 +354,7 @@ export default function KasirPage() {
         setMemuat(true);
         prevAktif.current = null;
         setGerai('');
-        router.push('/?auth=login&pesan=Sesi+kasir+berakhir');
+        window.location.replace('/?auth=login&pesan=Sesi+kasir+berakhir');
         return;
       }
       if (!res.ok) throw new Error(data?.error || 'Gagal memuat pesanan.');
@@ -371,7 +369,7 @@ export default function KasirPage() {
     } finally {
       setMemuat(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (!loggedIn) return;

@@ -3,7 +3,6 @@
 import './admin-global.css';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminCharts';
 import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePreview';
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
@@ -71,6 +70,7 @@ export interface ReservasiItem {
 
 export interface UserItem {
   id: string | number;
+  username?: string | null;
   nama: string | null;
   email: string | null;
   created_at: string | null;
@@ -126,6 +126,7 @@ const cocokSearchUser = (user: UserItem, index: number, keyword: string): boolea
 
   return [
     userIdTampil,
+    user.username ?? '',
     user.nama ?? '',
     user.email ?? '',
     tanggalTampil,
@@ -133,12 +134,7 @@ const cocokSearchUser = (user: UserItem, index: number, keyword: string): boolea
   ].some((value) => String(value).toLowerCase().includes(k));
 };
 
-const adminFetch = (url: string, opts: RequestInit = {}) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('papeda_admin_token') : null;
-  const headers: Record<string, string> = { ...((opts.headers as Record<string, string>) || {}) };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return fetch(url, { ...opts, headers });
-};
+const adminFetch = (url: string, opts: RequestInit = {}) => fetch(url, opts);
 
 // Menu di halaman Kelola: tiap tombol punya bagian di preview yang ikut digulir
 const KATEGORI_DEFAULT = ['MAIN COURSE'];
@@ -230,8 +226,7 @@ export interface PendapatanSummary {
 }
 
 export default function AdminPage() {
-  const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
@@ -429,16 +424,21 @@ export default function AdminPage() {
 
   // Cek sesi login admin
   useEffect(() => {
-    fetch('/api/auth/session')
+    fetch('/api/auth/session', { cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => {
-        if (!d?.authenticated || d?.session?.role !== 'admin') {
+        if (d?.authenticated && d?.session?.role === 'admin') {
+          setIsLoggedIn(true);
+        } else {
           setIsLoggedIn(false);
-          router.push('/?auth=login&pesan=Silakan+login+sebagai+admin');
+          window.location.replace('/?auth=login&pesan=Silakan+login+sebagai+admin');
         }
       })
-      .catch(() => {});
-  }, [router]);
+      .catch(() => {
+        setIsLoggedIn(false);
+        window.location.replace('/?auth=login&pesan=Silakan+login+sebagai+admin');
+      });
+  }, []);
 
   // Reload sebagian data saja, supaya isian form yang belum disimpan tidak ikut ter-reset
   const loadFavorit = () => {
@@ -2315,6 +2315,7 @@ export default function AdminPage() {
                               />
                             </th>
                             <th>User ID</th>
+                            <th>Username</th>
                             <th>Nama</th>
                             <th>Email</th>
                             <th>Tanggal Pembuatan</th>
@@ -2325,11 +2326,11 @@ export default function AdminPage() {
                         <tbody id="user-table-body">
                           {usersList.length === 0 ? (
                             <tr>
-                              <td colSpan={7} className="text-center text-muted py-4">Belum ada user terdaftar.</td>
+                              <td colSpan={8} className="text-center text-muted py-4">Belum ada user terdaftar.</td>
                             </tr>
                           ) : filteredUsers.length === 0 ? (
                             <tr>
-                              <td colSpan={7} className="text-center text-muted py-4">Tidak ada user yang cocok.</td>
+                              <td colSpan={8} className="text-center text-muted py-4">Tidak ada user yang cocok.</td>
                             </tr>
                           ) : (
                             usersHalaman.map((u) => {
@@ -2349,6 +2350,13 @@ export default function AdminPage() {
                                     <span className="badge bg-light text-dark border font-monospace">
                                       {String(idx + 1).padStart(5, '0')}
                                     </span>
+                                  </td>
+                                  <td>
+                                    {u.username ? (
+                                      <span className="font-monospace text-muted">@{u.username}</span>
+                                    ) : (
+                                      '-'
+                                    )}
                                   </td>
                                   <td><strong>{u.nama || '-'}</strong></td>
                                   <td>{u.email || '-'}</td>

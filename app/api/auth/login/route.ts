@@ -23,24 +23,29 @@ export async function POST(req: NextRequest) {
 
     if (cleanIdentifier === adminUser) {
       const matchAdmin = password === adminPass;
-      if (matchAdmin) {
-        const session: AuthSession = {
-          role: 'admin',
-          id: 'admin',
-          nama: 'Administrator',
-          username: adminUser,
-          email: 'admin@papeda.com',
-        };
-        const token = await buatTokenAuth(session);
-        const res = NextResponse.json({
-          pesan: 'Login berhasil sebagai Administrator!',
-          role: 'admin',
-          redirectTo: '/admin',
-          user: session,
-        });
-        pasangCookieAuth(res, token);
-        return res;
+      if (!matchAdmin) {
+        return NextResponse.json(
+          { error: 'Username atau password salah.' },
+          { status: 401 }
+        );
       }
+
+      const session: AuthSession = {
+        role: 'admin',
+        id: 'admin',
+        nama: 'Administrator',
+        username: adminUser,
+        email: 'admin@papeda.com',
+      };
+      const token = await buatTokenAuth(session);
+      const res = NextResponse.json({
+        pesan: 'Login berhasil sebagai Administrator!',
+        role: 'admin',
+        redirectTo: '/admin',
+        user: session,
+      });
+      pasangCookieAuth(res, token);
+      return res;
     }
 
     const kasir = await prisma.kasir.findUnique({

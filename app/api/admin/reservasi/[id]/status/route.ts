@@ -1,9 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 const STATUS_VALID = ['pending', 'approved', 'complete', 'dibatalkan'];
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { id } = await params;
     const { status } = (await req.json()) as { status: string };
