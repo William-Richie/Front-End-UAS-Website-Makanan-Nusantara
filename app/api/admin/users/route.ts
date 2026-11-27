@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
 
     const data = users.map((u) => ({
       id: u.id,
+      username: (u as { username?: string | null }).username ?? null,
       nama: u.nama,
       email: u.email,
       created_at: u.created_at,

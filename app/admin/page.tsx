@@ -70,6 +70,7 @@ export interface ReservasiItem {
 
 export interface UserItem {
   id: string | number;
+  username?: string | null;
   nama: string | null;
   email: string | null;
   created_at: string | null;
@@ -125,6 +126,7 @@ const cocokSearchUser = (user: UserItem, index: number, keyword: string): boolea
 
   return [
     userIdTampil,
+    user.username ?? '',
     user.nama ?? '',
     user.email ?? '',
     tanggalTampil,
@@ -2313,6 +2315,7 @@ export default function AdminPage() {
                               />
                             </th>
                             <th>User ID</th>
+                            <th>Username</th>
                             <th>Nama</th>
                             <th>Email</th>
                             <th>Tanggal Pembuatan</th>
@@ -2323,11 +2326,11 @@ export default function AdminPage() {
                         <tbody id="user-table-body">
                           {usersList.length === 0 ? (
                             <tr>
-                              <td colSpan={7} className="text-center text-muted py-4">Belum ada user terdaftar.</td>
+                              <td colSpan={8} className="text-center text-muted py-4">Belum ada user terdaftar.</td>
                             </tr>
                           ) : filteredUsers.length === 0 ? (
                             <tr>
-                              <td colSpan={7} className="text-center text-muted py-4">Tidak ada user yang cocok.</td>
+                              <td colSpan={8} className="text-center text-muted py-4">Tidak ada user yang cocok.</td>
                             </tr>
                           ) : (
                             usersHalaman.map((u) => {
@@ -2347,6 +2350,13 @@ export default function AdminPage() {
                                     <span className="badge bg-light text-dark border font-monospace">
                                       {String(idx + 1).padStart(5, '0')}
                                     </span>
+                                  </td>
+                                  <td>
+                                    {u.username ? (
+                                      <span className="font-monospace text-muted">@{u.username}</span>
+                                    ) : (
+                                      '-'
+                                    )}
                                   </td>
                                   <td><strong>{u.nama || '-'}</strong></td>
                                   <td>{u.email || '-'}</td>
