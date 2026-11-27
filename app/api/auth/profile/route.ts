@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { validateNama } from '@/lib/validation';
-import { wajibSesi } from '@/lib/auth';
+import { buatTokenAuth, pasangCookieAuth, wajibSesi, type AuthSession } from '@/lib/auth';
 
 // PUT /api/auth/profile - mengganti nama pengguna
 export async function PUT(req: NextRequest) {
@@ -34,15 +34,20 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const updatedSession: AuthSession = {
+      role: 'user',
+      id: updated.id,
+      nama: updated.nama,
+      email: updated.email,
+      username: (updated as { username?: string | null }).username || undefined,
+    };
+    const token = await buatTokenAuth(updatedSession);
+    const res = NextResponse.json({
       pesan: 'Profil berhasil diperbarui!',
-      user: {
-        id: updated.id,
-        nama: updated.nama,
-        email: updated.email,
-        username: (updated as { username?: string | null }).username || undefined,
-      },
+      user: updatedSession,
     });
+    pasangCookieAuth(res, token);
+    return res;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Terjadi kesalahan server.';
     return NextResponse.json({ error: message }, { status: 500 });
