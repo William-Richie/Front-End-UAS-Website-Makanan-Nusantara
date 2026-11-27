@@ -301,7 +301,7 @@ export default function ReservationSection({
         <Container className="text-content py-4" style={{ maxWidth: '720px' }}>
           <div className={`${styles.lol}"mb-4"`}>
             <Form.Label className={styles.storeLabel}>
-              <i className="fa-solid fa-store me-2"></i>please choose a restaurant outlet&nbsp;<strong>!</strong>
+              <i className="fa-solid fa-store me-2"></i>Please choose a restaurant outlet&nbsp;<strong>!</strong>
             </Form.Label>
             <div className={styles.storeCards}>
               {branches.length === 0 ? (
@@ -348,7 +348,7 @@ export default function ReservationSection({
                   }}
                 > ! </button> 
                 <span className={`${styles.resFormRules} ${!hasViewedRules? styles.warningText : ''}`}> 
-                  please read this before making a reservation.
+                  Please read this before making a reservation.
                 </span>
               </Form.Label>
 

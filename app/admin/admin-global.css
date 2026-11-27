@@ -189,21 +189,96 @@
     transition: all .2s ease;
 }
 .admin-main .btn-warning {
-    background: #c99b63;
-    border-color: #c99b63;
-    color: #3b2314;
+    background: #b87a2c;
+    border-color: #b87a2c;
+    color: #fff;
 }
 .admin-main .btn-warning:hover {
-    background: #b48750;
-    border-color: #b48750;
+    background: #9c6521;
+    border-color: #9c6521;
+    color: #fff;
 }
 .admin-main .btn-primary {
     background: #4a2c17;
     border-color: #4a2c17;
+    color: #fff;
 }
 .admin-main .btn-primary:hover {
     background: #654329;
     border-color: #654329;
+    color: #fff;
+}
+.admin-main .btn-outline-primary {
+    color: #6b4226;
+    border-color: #c9a17a;
+}
+.admin-main .btn-outline-primary:hover {
+    background: #6b4226;
+    border-color: #6b4226;
+    color: #fff;
+}
+.admin-main .btn-outline-secondary {
+    color: #6d5542;
+    border-color: #cbb69e;
+}
+.admin-main .btn-outline-secondary:hover {
+    background: #eee2d5;
+    border-color: #b79b7e;
+    color: #3b2314;
+}
+.admin-main .btn-success {
+    background: #3d8b57 !important;
+    border-color: #3d8b57 !important;
+    color: #fff !important;
+}
+.admin-main .btn-success:hover {
+    background: #317347 !important;
+    border-color: #317347 !important;
+}
+.admin-main .btn-danger {
+    background: #c0524a;
+    border-color: #c0524a;
+    color: #fff;
+}
+.admin-main .btn-danger:hover {
+    background: #a5433b;
+    border-color: #a5433b;
+    color: #fff;
+}
+.admin-main .btn-outline-danger {
+    color: #c0524a;
+    border-color: #dfb0ac;
+}
+.admin-main .btn-outline-danger:hover {
+    background: #c0524a;
+    border-color: #c0524a;
+    color: #fff;
+}
+
+/* HARMONIZED SEMANTIC COLORS */
+.admin-main .text-warning {
+    color: #b87a2c !important;
+}
+.admin-main .text-success {
+    color: #3d8b57 !important;
+}
+.admin-main .text-danger {
+    color: #c0524a !important;
+}
+.admin-main .bg-warning {
+    background-color: #c99b63 !important;
+}
+.admin-main .bg-warning-subtle {
+    background-color: #fdf3e4 !important;
+}
+.admin-main .bg-success {
+    background-color: #3d8b57 !important;
+}
+.admin-main .bg-danger {
+    background-color: #c0524a !important;
+}
+.admin-main .bg-secondary {
+    background-color: #8a6d55 !important;
 }
 
 /* TABLE */

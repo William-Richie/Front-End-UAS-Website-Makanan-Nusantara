@@ -699,9 +699,9 @@ export default function AdminPage() {
 
   const AKSI_LABEL: Record<UserAksi, string> = {
     '': 'Pilih Aksi',
-    modifikasi: '✏️ Modifikasi Akun',
-    blokir: '🚫 Blokir Akun',
-    hapus: '🗑️ Hapus Akun',
+    modifikasi: 'Modifikasi Akun',
+    blokir: 'Blokir Akun',
+    hapus: 'Hapus Akun',
   };
 
   const handleLogout = async () => {
@@ -1144,7 +1144,7 @@ export default function AdminPage() {
     return (
       <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
         <div className="text-center">
-          <div className="spinner-border text-warning mb-3" role="status"></div>
+          <div className="spinner-border mb-3" style={{ color: '#c9622a' }} role="status"></div>
           <p className="text-muted small">Memuat Dashboard Admin...</p>
         </div>
       </div>
@@ -2546,7 +2546,7 @@ export default function AdminPage() {
                                   <li key={a || 'none'}>
                                     <button
                                       type="button"
-                                      className={`aksi-item ${a === 'blokir' ? 'text-danger' : a === 'hapus' ? 'text-secondary' : ''}`}
+                                      className={`aksi-item ${a === 'hapus' ? 'text-danger' : a === 'blokir' ? 'text-warning' : ''}`}
                                       onClick={() => {
                                         setUserAksi(a);
                                         setAksiOpen(false);

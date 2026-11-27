@@ -132,10 +132,11 @@ export default function Navbar({
                   <Dropdown.Item
                     as={Link}
                     href="/admin"
-                    className={`${styles.userItem} text-warning fw-bold`}
+                    className={`${styles.userItem} fw-bold`}
+                    style={{ color: '#b5651d' }}
                     onClick={() => setDropdownOpen(false)}
                   >
-                    <i className="fa-solid fa-gauge-high me-2 text-warning" />
+                    <i className="fa-solid fa-gauge-high me-2" />
                     Dashboard Admin
                   </Dropdown.Item>
                 )}
@@ -144,10 +145,11 @@ export default function Navbar({
                   <Dropdown.Item
                     as={Link}
                     href="/cashier"
-                    className={`${styles.userItem} text-info fw-bold`}
+                    className={`${styles.userItem} fw-bold`}
+                    style={{ color: '#4a2c17' }}
                     onClick={() => setDropdownOpen(false)}
                   >
-                    <i className="fa-solid fa-cash-register me-2 text-info" />
+                    <i className="fa-solid fa-cash-register me-2" />
                     Panel Kasir {user.gerai ? `(${user.gerai})` : ''}
                   </Dropdown.Item>
                 )}

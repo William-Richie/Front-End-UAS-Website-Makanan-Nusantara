@@ -824,7 +824,7 @@ export default function KasirPage() {
     return (
       <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
         <div className="text-center">
-          <div className="spinner-border text-primary mb-3" role="status"></div>
+          <div className="spinner-border mb-3" style={{ color: '#c9622a' }} role="status"></div>
           <p className="text-muted small">Memuat Panel Kasir...</p>
         </div>
       </div>
