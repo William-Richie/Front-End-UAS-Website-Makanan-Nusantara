@@ -230,6 +230,8 @@ export default function AdminPage() {
   const orbitBerubah = JSON.stringify(orbitSetting) !== JSON.stringify(orbitTersimpan);
   const [branches, setBranches] = useState<BranchMap[]>([]);
   const [newBranch, setNewBranch] = useState({ nama: '', alamat: '', latitude: '', longitude: '' });
+  const [editBranchId, setEditBranchId] = useState<number | null>(null);
+  const [namaBranchAsli, setNamaBranchAsli] = useState('');
   const [kelolaTab, setKelolaTab] = useState<KelolaKey>('home');
   const [orbitTab, setOrbitTab] = useState<OrbitTabKey>('menu');
   const previewRef = useRef<HTMLDivElement>(null);
@@ -897,20 +899,55 @@ export default function AdminPage() {
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notify.validateForm(e.currentTarget)) return;
+    const sedangEdit = editBranchId !== null;
+
+    if (sedangEdit) {
+      const namaBerubah = newBranch.nama.trim() !== namaBranchAsli.trim();
+      const yakin = await notify.confirm({
+        title: 'Simpan Perubahan Cabang?',
+        message: namaBerubah
+          ? `Nama cabang akan diubah dari "${namaBranchAsli}" menjadi "${newBranch.nama}". Data reservasi atau meja lama yang memakai nama lama bisa tidak ikut terhubung.`
+          : `Perubahan pada cabang "${newBranch.nama}" akan disimpan.`,
+        confirmText: 'Ya, Simpan',
+        cancelText: 'Periksa Lagi',
+      });
+      if (!yakin) return;
+    }
     try {
-      const res = await fetch('/api/maps', {
-        method: 'POST',
+      const res = await fetch(sedangEdit ? `/api/maps/${editBranchId}` : '/api/maps', {
+        method: sedangEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBranch),
+        body: JSON.stringify({ ...newBranch, nama: newBranch.nama.trim(), alamat: newBranch.alamat.trim() }),
       });
       if (res.ok) {
-        notify.success('Cabang berhasil ditambahkan!');
-        setNewBranch({ nama: '', alamat: '', latitude: '', longitude: '' });
+        notify.success(sedangEdit ? 'Cabang berhasil diperbarui!' : 'Cabang berhasil ditambahkan!');
+        resetFormBranch();
         loadBranches();
+      } else {
+        const json = await res.json().catch(() => null);
+        notify.error(json?.error || 'Gagal menyimpan cabang');
       }
     } catch {
       notify.error('Gagal menambah cabang');
     }
+  };
+
+  const resetFormBranch = () => {
+    setEditBranchId(null);
+    setNamaBranchAsli('');
+    setNewBranch({ nama: '', alamat: '', latitude: '', longitude: '' });
+  };
+
+  const handleEditBranch = (b: BranchMap) => {
+    setEditBranchId(b.id);
+    setNamaBranchAsli(b.nama);
+    setNewBranch({
+      nama: b.nama ?? '',
+      alamat: b.alamat ?? '',
+      latitude: b.latitude != null ? String(b.latitude) : '',
+      longitude: b.longitude != null ? String(b.longitude) : '',
+    });
+    document.getElementById('form-cabang')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleDeleteBranch = async (id: number) => {
@@ -923,6 +960,7 @@ export default function AdminPage() {
     if (!yakin) return;
     const res = await fetch(`/api/maps/${id}`, { method: 'DELETE' });
     if (!res.ok) notify.error('Gagal menghapus cabang. Mungkin masih dipakai data lain.');
+    else if (editBranchId === id) resetFormBranch();
     loadBranches();
   };
 
@@ -1953,8 +1991,8 @@ export default function AdminPage() {
                 {/* Lokasi */}
                 {kelolaTab === 'lokasi' && (
                   <>
-                    <div className="card shadow-sm border-0 p-4 mb-4">
-                      <h5 className="fw-bold mb-3">Tambah Cabang</h5>
+                    <div id="form-cabang" className="card shadow-sm border-0 p-4 mb-4">
+                      <h5 className="fw-bold mb-3">{editBranchId !== null ? 'Edit Cabang' : 'Tambah Cabang'}</h5>
                       <form onSubmit={handleAddBranch} noValidate>
                         <div className="mb-3">
                           <label className="form-label small fw-bold">Nama Cabang</label>
@@ -1972,8 +2010,8 @@ export default function AdminPage() {
                             type="text"
                             className="form-control"
                             required
-                            value={newBranch.nama}
-                            onChange={(e) => setNewBranch({ ...newBranch, nama: e.target.value })}
+                            value={newBranch.alamat}
+                            onChange={(e) => setNewBranch({ ...newBranch, alamat: e.target.value })}
                           />
                         </div>
                         <div className="row g-2 mb-3">
@@ -2000,9 +2038,16 @@ export default function AdminPage() {
                             />
                           </div>
                         </div>
+                        <div className="d-flex gap-2">
                         <button type="submit" className="btn btn-warning text-white fw-bold">
-                          Simpan Cabang
+                          {editBranchId !== null ? 'Simpan Perubahan' : 'Simpan Cabang'}
                         </button>
+                        {editBranchId !== null && (
+                          <button type="button" className="btn btn-outline-secondary fw-bold" onClick={resetFormBranch}>
+                            Batal
+                          </button>
+                        )}
+                        </div>
                       </form>
                     </div>
 
@@ -2016,18 +2061,30 @@ export default function AdminPage() {
                           <li className="list-group-item text-muted">Belum ada cabang.</li>
                         ) : (
                           branches.map((b) => (
-                            <li key={b.id} className="list-group-item d-flex justify-content-between align-items-start gap-2">
+                            <li
+                              key={b.id}
+                              className={`list-group-item d-flex justify-content-between align-items-start gap-2 ${editBranchId === b.id ? 'bg-warning-subtle' : ''}`}
+                            >
                               <div>
                                 <div className="fw-bold">{b.nama}</div>
                                 <div className="small text-muted">{b.alamat}</div>
                               </div>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => handleDeleteBranch(b.id)}
-                              >
-                                Hapus
-                              </button>
+                              <div className="d-flex gap-2 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-primary"
+                                  onClick={() => handleEditBranch(b)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDeleteBranch(b.id)}
+                                >
+                                  Hapus
+                                </button>
+                              </div>
                             </li>
                           ))
                         )}
