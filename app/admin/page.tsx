@@ -149,7 +149,7 @@ const KELOLA_MENU = [
 type KelolaKey = (typeof KELOLA_MENU)[number]['key'];
 
 const RESERVASI_MENU = [
-  { key: 'reservasi', label: 'Reservasi', icon: 'fa-calendar-check' },
+  { key: 'order', label: 'Order', icon: 'fa-receipt' },
   { key: 'ruangan', label: 'Ruangan', icon: 'fa-door-open' },
 ] as const;
 
@@ -230,8 +230,9 @@ export default function AdminPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    'statistik' | 'menu' | 'favorit' | 'konten' | 'pesanan' | 'reservasi' | 'pertanyaan' | 'pendapatan' | 'kasir'
+    'statistik' | 'menu' | 'favorit' | 'konten' | 'reservasi' | 'kasir'
   >('statistik');
+  const [berandaView, setBerandaView] = useState<'ringkasan' | 'pendapatan' | 'pertanyaan'>('ringkasan');
 
   // Typed Data States
   const [menus, setMenus] = useState<MenuItem[]>([]);
@@ -247,6 +248,8 @@ export default function AdminPage() {
   const orbitBerubah = JSON.stringify(orbitSetting) !== JSON.stringify(orbitTersimpan);
   const [branches, setBranches] = useState<BranchMap[]>([]);
   const [newBranch, setNewBranch] = useState({ nama: '', alamat: '', latitude: '', longitude: '' });
+  const [editBranchId, setEditBranchId] = useState<number | null>(null);
+  const [namaBranchAsli, setNamaBranchAsli] = useState('');
   const [kelolaTab, setKelolaTab] = useState<KelolaKey>('home');
   const [orbitTab, setOrbitTab] = useState<OrbitTabKey>('menu');
   const previewRef = useRef<HTMLDivElement>(null);
@@ -294,7 +297,8 @@ export default function AdminPage() {
   const [ruanganTanggal, setRuanganTanggal] = useState<string>('');
   const [ruanganSesi, setRuanganSesi] = useState<string>('08:00');
   const [ruanganPesan, setRuanganPesan] = useState<string>('');
-  const [reservasiMenu, setReservasiMenu] = useState<ReservasiMenuKey>('reservasi');
+  const [reservasiMenu, setReservasiMenu] = useState<ReservasiMenuKey>('order');
+  const [orderView, setOrderView] = useState<'ringkasan' | 'pesanan' | 'reservasi'>('ringkasan');
   const [aksiOpen, setAksiOpen] = useState<boolean>(false);
   const notify = useNotify();
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
@@ -546,9 +550,9 @@ export default function AdminPage() {
   }, [isLoggedIn, activeTab]);
 
   useEffect(() => {
-    if (!isLoggedIn || activeTab !== 'pertanyaan') return;
-    loadPertanyaan();
-  }, [isLoggedIn, activeTab]);
+  if (!isLoggedIn || activeTab !== 'statistik') return;
+  loadPertanyaan();
+}, [isLoggedIn, activeTab]);
 
   const bukaConfirm = (c: Omit<ConfirmState, 'danger' | 'icon'> & { danger?: boolean; icon?: string }) =>
     setConfirmState({ danger: false, icon: '?', ...c });
@@ -667,6 +671,7 @@ export default function AdminPage() {
 
   const countReservasi = (tab: ReservasiTabKey) => reservasiAdmin.filter((r) => statusMatch(r.status, tab)).length;
   const pertanyaanBaru = pertanyaanList.filter((q) => !q.dibaca && !q.dijawab_at).length;
+  const pertanyaanPreview = [...pertanyaanList].sort((a, b) => b.id - a.id).slice(0, 3);
 
   const jumlahHalaman = Math.max(
     1,
@@ -938,20 +943,55 @@ export default function AdminPage() {
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notify.validateForm(e.currentTarget)) return;
+    const sedangEdit = editBranchId !== null;
+
+    if (sedangEdit) {
+      const namaBerubah = newBranch.nama.trim() !== namaBranchAsli.trim();
+      const yakin = await notify.confirm({
+        title: 'Simpan Perubahan Cabang?',
+        message: namaBerubah
+          ? `Nama cabang akan diubah dari "${namaBranchAsli}" menjadi "${newBranch.nama}". Data reservasi atau meja lama yang memakai nama lama bisa tidak ikut terhubung.`
+          : `Perubahan pada cabang "${newBranch.nama}" akan disimpan.`,
+        confirmText: 'Ya, Simpan',
+        cancelText: 'Periksa Lagi',
+      });
+      if (!yakin) return;
+    }
     try {
-      const res = await fetch('/api/maps', {
-        method: 'POST',
+      const res = await fetch(sedangEdit ? `/api/maps/${editBranchId}` : '/api/maps', {
+        method: sedangEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBranch),
+        body: JSON.stringify({ ...newBranch, nama: newBranch.nama.trim(), alamat: newBranch.alamat.trim() }),
       });
       if (res.ok) {
-        notify.success('Cabang berhasil ditambahkan!');
-        setNewBranch({ nama: '', alamat: '', latitude: '', longitude: '' });
+        notify.success(sedangEdit ? 'Cabang berhasil diperbarui!' : 'Cabang berhasil ditambahkan!');
+        resetFormBranch();
         loadBranches();
+      } else {
+        const json = await res.json().catch(() => null);
+        notify.error(json?.error || 'Gagal menyimpan cabang');
       }
     } catch {
       notify.error('Gagal menambah cabang');
     }
+  };
+
+  const resetFormBranch = () => {
+    setEditBranchId(null);
+    setNamaBranchAsli('');
+    setNewBranch({ nama: '', alamat: '', latitude: '', longitude: '' });
+  };
+
+  const handleEditBranch = (b: BranchMap) => {
+    setEditBranchId(b.id);
+    setNamaBranchAsli(b.nama);
+    setNewBranch({
+      nama: b.nama ?? '',
+      alamat: b.alamat ?? '',
+      latitude: b.latitude != null ? String(b.latitude) : '',
+      longitude: b.longitude != null ? String(b.longitude) : '',
+    });
+    document.getElementById('form-cabang')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleDeleteBranch = async (id: number) => {
@@ -964,6 +1004,7 @@ export default function AdminPage() {
     if (!yakin) return;
     const res = await fetch(`/api/maps/${id}`, { method: 'DELETE' });
     if (!res.ok) notify.error('Gagal menghapus cabang. Mungkin masih dipakai data lain.');
+    else if (editBranchId === id) resetFormBranch();
     loadBranches();
   };
 
@@ -1092,6 +1133,13 @@ export default function AdminPage() {
   ];
   const labelRentang = pendapatanRange === 'hari' ? 'hari ini (per jam)' : `${pendapatanRange} hari terakhir`;
 
+  const pesananMenunggu = pesananList.filter((p) => p.status === 'menunggu_bayar' || p.status === 'pending').length;
+  const pesananDiproses = hitungStatus(pesananList, ['diproses']);
+  const pesananSelesai = hitungStatus(pesananList, ['selesai']);
+  const sumberReservasi = reservasiAdmin.length > 0 ? reservasiAdmin : reservasiList;
+  const reservasiPending = sumberReservasi.filter((r) => r.status === 'pending').length;
+  const notifOrder = pesananMenunggu + reservasiPending;
+
   if (!isLoggedIn) {
     return (
       <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
@@ -1114,17 +1162,17 @@ export default function AdminPage() {
           <li className="nav-item mb-2">
             <button
               className={`nav-link text-white text-start w-100 ${activeTab === 'statistik' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('statistik')}
+              onClick={() => {
+                setActiveTab('statistik');
+                setBerandaView('ringkasan');
+              }}
             >
-              <i className="fa-solid fa-chart-line me-2"></i> Beranda & Statistik
-            </button>
-          </li>
-          <li className="nav-item mb-2">
-            <button
-              className={`nav-link text-white text-start w-100 ${activeTab === 'pendapatan' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('pendapatan')}
-            >
-              <i className="fa-solid fa-sack-dollar me-2"></i> Laporan Pendapatan
+              <i className="fa-solid fa-chart-line me-2"></i> Beranda
+              {pertanyaanBaru > 0 && (
+                <span className="badge bg-danger ms-auto" title={`${pertanyaanBaru} pertanyaan belum dibaca`}>
+                  {pertanyaanBaru}
+                </span>
+              )}
             </button>
           </li>
           <li className="nav-item mb-2">
@@ -1153,32 +1201,18 @@ export default function AdminPage() {
           </li>
           <li className="nav-item mb-2">
             <button
-              className={`nav-link text-white text-start w-100 ${activeTab === 'pesanan' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('pesanan')}
-            >
-              <i className="fa-solid fa-receipt me-2"></i> Pantau Pesanan
-              {pesananList.filter((p) => p.status === 'menunggu_bayar' || p.status === 'pending').length > 0 && (
-                <span className="badge bg-danger ms-auto">
-                  {pesananList.filter((p) => p.status === 'menunggu_bayar' || p.status === 'pending').length}
-                </span>
-              )}
-            </button>
-          </li>
-          <li className="nav-item mb-2">
-            <button
               className={`nav-link text-white text-start w-100 ${activeTab === 'reservasi' ? 'active bg-warning' : ''}`}
               onClick={() => setActiveTab('reservasi')}
             >
-              <i className="fa-solid fa-calendar-check me-2"></i> Kelola Reservasi & Ruangan
-            </button>
-          </li>
-          <li className="nav-item mb-2">
-            <button
-              className={`nav-link text-white text-start w-100 ${activeTab === 'pertanyaan' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('pertanyaan')}
-            >
-              <i className="fa-solid fa-envelope me-2"></i> Pertanyaan Masuk
-              {pertanyaanBaru > 0 && <span className="badge bg-danger ms-2">{pertanyaanBaru}</span>}
+              <i className="fa-solid fa-calendar-check me-2"></i> Order & Ruangan
+              {notifOrder > 0 && (
+                <span
+                  className="badge bg-danger ms-auto"
+                  title={`${pesananMenunggu} pesanan menunggu, ${reservasiPending} reservasi pending`}
+                >
+                  {notifOrder}
+                </span>
+              )}
             </button>
           </li>
           <li className="nav-item mb-2">
@@ -1199,201 +1233,331 @@ export default function AdminPage() {
 
       {/* Main Content Area */}
       <main className="admin-main flex-grow-1 p-4 overflow-auto">
-        {/* TAB 1: STATISTIK */}
+        {/* TAB 1: BERANDA */}
         {activeTab === 'statistik' && (
-          <><div>
-            <h1 className="fs-3 fw-bold mb-4">Dashboard Statistik</h1>
-            <div className="row g-3 mb-4">
-              <div className="col-md-3">
-                <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-4 fw-bold stat-gold">{menus.length}</div>
-                  <div className="text-muted small">Total Menu</div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-4 fw-bold stat-brown">{pesananList.length}</div>
-                  <div className="text-muted small">Total Pesanan</div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-4 fw-bold stat-green">{reservasiList.length}</div>
-                  <div className="text-muted small">Total Reservasi</div>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="card shadow-sm border-0 p-3 text-center">
-                  <div className="fs-4 fw-bold stat-terra">{statistik?.jumlah_pengunjung || 0}</div>
-                  <div className="text-muted small">Total Pengunjung</div>
-                </div>
-              </div>
-            </div>
-          </div><div className="row g-3 mb-3">
-              <div className="col-lg-7">
-                <div className="card chart-card shadow-sm border-0 p-4 h-100">
-                  <h5 className="fw-bold">Pesanan 7 Hari Terakhir</h5>
-                  <p className="chart-sub">Jumlah pesanan masuk per hari (semua status)</p>
-                  <BarChart data={pesananPerHari} format={(n) => `${n} pesanan`} kosong="Belum ada pesanan dalam 7 hari terakhir." />
-                </div>
-              </div>
-              <div className="col-lg-5">
-                <div className="card chart-card shadow-sm border-0 p-4 h-100">
-                  <h5 className="fw-bold">Status Pesanan</h5>
-                  <p className="chart-sub">{pesananList.length} pesanan seluruhnya</p>
-                  <StatusBars items={statusPesananChart} />
-                </div>
-              </div>
-            </div><div className="row g-3">
-              <div className="col-lg-7">
-                <div className="card chart-card shadow-sm border-0 p-4 h-100">
-                  <h5 className="fw-bold">Pendapatan</h5>
-                  <p className="chart-sub">Dari pesanan selesai, {labelRentang}</p>
-                  <BarChart
-                    data={(pendapatanData?.grafik || []).map((g) => ({
-                      label: pendapatanRange === 'hari' ? g.label : g.label.slice(5).split('-').reverse().join('/'),
-                      value: g.total,
-                    }))}
-                    format={rupiah}
-                    ringkas={singkat}
-                    kosong="Belum ada pendapatan pada rentang ini." />
-                </div>
-              </div>
-              <div className="col-lg-5">
-                <div className="card chart-card shadow-sm border-0 p-4 h-100">
-                  <h5 className="fw-bold">Status Reservasi</h5>
-                  <p className="chart-sub">{reservasiList.length} reservasi seluruhnya</p>
-                  <StatusBars items={statusReservasiChart} />
-                </div>
-              </div>
-            </div></>
-        )}
-
-        {/* TAB 2: PENDAPATAN */}
-        {activeTab === 'pendapatan' && (
           <div>
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h1 className="fs-3 fw-bold mb-0">Laporan Pendapatan Restoran</h1>
-              <div className="btn-group">
-                <button
-                  type="button"
-                  className={`btn btn-sm ${pendapatanRange === 'hari' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
-                  onClick={() => setPendapatanRange('hari')}
-                >
-                  Hari Ini
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${pendapatanRange === '7' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
-                  onClick={() => setPendapatanRange('7')}
-                >
-                  7 Hari Terakhir
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${pendapatanRange === '30' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
-                  onClick={() => setPendapatanRange('30')}
-                >
-                  30 Hari Terakhir
-                </button>
+            {berandaView === 'ringkasan' && (
+            <>
+              <h1 className="fs-3 fw-bold mb-4">Dashboard Statistik</h1>
+              <div className="row g-3 mb-4">
+                <div className="col-md-3">
+                  <div className="card shadow-sm border-0 p-3 text-center">
+                    <div className="fs-4 fw-bold stat-gold">{menus.length}</div>
+                    <div className="text-muted small">Total Menu</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="card shadow-sm border-0 p-3 text-center">
+                    <div className="fs-4 fw-bold stat-brown">{pesananList.length}</div>
+                    <div className="text-muted small">Total Pesanan</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="card shadow-sm border-0 p-3 text-center">
+                    <div className="fs-4 fw-bold stat-green">{reservasiList.length}</div>
+                    <div className="text-muted small">Total Reservasi</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="card shadow-sm border-0 p-3 text-center">
+                    <div className="fs-4 fw-bold stat-terra">{statistik?.jumlah_pengunjung || 0}</div>
+                    <div className="text-muted small">Total Pengunjung</div>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {!pendapatanData ? (
-              <div className="alert alert-warning">Data pendapatan belum bisa dimuat. Coba refresh halaman.</div>
-            ) : (
-              <>
+              {/* Kartu ringkasan: Pendapatan & Pertanyaan Masuk */}
                 <div className="row g-3 mb-4">
-                  <div className="col-md-3">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold stat-green">
-                        Rp {pendapatanData.ringkasan.total.toLocaleString('id-ID')}
+                  <div className="col-lg-7">
+                    <div className="card shadow-sm border-0 p-4 h-100 d-flex flex-column">
+                      <div className="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                          <h5 className="fw-bold mb-1">
+                            <i className="fa-solid fa-envelope me-2 text-warning"></i>Pertanyaan Masuk
+                          </h5>
+                          <small className="text-muted">{pertanyaanList.length} pertanyaan seluruhnya</small>
+                        </div>
+                        {pertanyaanBaru > 0 && <span className="badge bg-danger">{pertanyaanBaru} belum dibaca</span>}
                       </div>
-                      <div className="text-muted small">Total Pendapatan</div>
+
+                      {pertanyaanPreview.length === 0 ? (
+                        <p className="text-muted small mb-4">Belum ada pertanyaan masuk.</p>
+                      ) : (
+                        <ul className="list-group list-group-flush mb-4">
+                          {pertanyaanPreview.map((q) => {
+                            const dijawab = !!q.dijawab_at;
+                            const baru = !q.dibaca && !dijawab;
+                            return (
+                              <li
+                                key={q.id}
+                                className="list-group-item px-0 d-flex justify-content-between align-items-start gap-3"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setBerandaView('pertanyaan')}
+                              >
+                                <div
+                                  className="small"
+                                  style={{
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                  }}
+                                >
+                                  {q.pertanyaan}
+                                </div>
+                                <span
+                                  className={`badge flex-shrink-0 ${dijawab ? 'bg-success' : baru ? 'bg-danger' : 'bg-secondary'}`}
+                                >
+                                  {dijawab ? 'Dijawab' : baru ? 'Baru' : 'Dibaca'}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+
+                      <button
+                        type="button"
+                        className="btn btn-warning text-white fw-bold mt-auto"
+                        onClick={() => setBerandaView('pertanyaan')}
+                      >
+                        Lihat lebih detail <i className="fa-solid fa-arrow-right ms-2"></i>
+                      </button>
                     </div>
                   </div>
-                  <div className="col-md-3">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold stat-brown">
-                        {pendapatanData.ringkasan.pesanan}
+
+                  <div className="col-lg-5">
+                    <div className="card shadow-sm border-0 p-4 h-100 d-flex flex-column">
+                      <div className="mb-3">
+                        <h5 className="fw-bold mb-1">
+                          <i className="fa-solid fa-sack-dollar me-2 text-warning"></i>Laporan Pendapatan
+                        </h5>
+                        <small className="text-muted">Dari pesanan selesai, {labelRentang}</small>
                       </div>
-                      <div className="text-muted small">Pesanan Selesai</div>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold stat-gold">
-                        {pendapatanData.ringkasan.item}
-                      </div>
-                      <div className="text-muted small">Item Terjual</div>
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                      <div className="fs-4 fw-bold stat-terra">
-                        Rp {pendapatanData.ringkasan.rata.toLocaleString('id-ID')}
-                      </div>
-                      <div className="text-muted small">Rata-rata per Pesanan</div>
+
+                      {pendapatanData ? (
+                        <div className="mb-4">
+                          <div className="text-muted small">Total Pendapatan</div>
+                          <div className="fs-2 fw-bold stat-green">{rupiah(pendapatanData.ringkasan.total)}</div>
+                          <div className="small text-muted mb-3">
+                            dari {pendapatanData.ringkasan.pesanan} pesanan selesai
+                          </div>
+                          <div className="border rounded p-3">
+                            <div className="text-muted small">Rata-rata per Pesanan</div>
+                            <div className="fs-5 fw-bold stat-terra">{rupiah(pendapatanData.ringkasan.rata)}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-muted small mb-4">Data pendapatan belum bisa dimuat.</p>
+                      )}
+
+                      <button
+                        type="button"
+                        className="btn btn-warning text-white fw-bold mt-auto"
+                        onClick={() => setBerandaView('pendapatan')}
+                      >
+                        Lihat lebih detail <i className="fa-solid fa-arrow-right ms-2"></i>
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="row g-3 mb-4">
-                  <div className="col-md-5">
-                    <div className="card shadow-sm border-0 p-3 h-100">
-                      <h5 className="fw-bold mb-3">Top 5 Menu Terlaris</h5>
-                      <ul className="list-group list-group-flush">
-                        {pendapatanData.terlaris.length === 0 ? (
-                          <li className="list-group-item text-muted">Belum ada data penjualan</li>
-                        ) : (
-                          pendapatanData.terlaris.map((m, idx) => (
-                            <li key={idx} className="list-group-item d-flex justify-content-between align-items-center">
-                              <div>
-                                <span className="fw-bold me-2">#{idx + 1}</span>
-                                <span>{m.nama}</span>
-                              </div>
-                              <span className="badge bg-warning text-dark">{m.qty} porsi</span>
-                            </li>
-                          ))
-                        )}
-                      </ul>
+                {/* Grafik */}
+                <div className="row g-3 mb-3">
+                  <div className="col-lg-7">
+                    <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                      <h5 className="fw-bold">Pesanan 7 Hari Terakhir</h5>
+                      <p className="chart-sub">Jumlah pesanan masuk per hari (semua status)</p>
+                      <BarChart data={pesananPerHari} format={(n) => `${n} pesanan`} kosong="Belum ada pesanan dalam 7 hari terakhir." />
                     </div>
                   </div>
-
-                  <div className="col-md-7">
-                    <div className="card shadow-sm border-0 p-3 h-100">
-                      <h5 className="fw-bold mb-3">Rincian Laporan Harian</h5>
-                      <div className="table-responsive">
-                        <table className="table table-hover align-middle mb-0">
-                          <thead>
-                            <tr>
-                              <th>Tanggal</th>
-                              <th>Pesanan</th>
-                              <th>Item</th>
-                              <th>Total Pendapatan</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {pendapatanData.laporan.map((h, i) => (
-                              <tr key={i}>
-                                <td>{h.tanggal}</td>
-                                <td>{h.pesanan}</td>
-                                <td>{h.item}</td>
-                                <td className="fw-bold text-success">Rp {h.pendapatan.toLocaleString('id-ID')}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                  <div className="col-lg-5">
+                    <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                      <h5 className="fw-bold">Status Pesanan</h5>
+                      <p className="chart-sub">{pesananList.length} pesanan seluruhnya</p>
+                      <StatusBars items={statusPesananChart} />
+                    </div>
+                  </div>
+                </div>
+                <div className="row g-3">
+                  <div className="col-lg-7">
+                    <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                      <h5 className="fw-bold">Pendapatan</h5>
+                      <p className="chart-sub">Dari pesanan selesai, {labelRentang}</p>
+                      <BarChart
+                        data={(pendapatanData?.grafik || []).map((g) => ({
+                          label: pendapatanRange === 'hari' ? g.label : g.label.slice(5).split('-').reverse().join('/'),
+                          value: g.total,
+                        }))}
+                        format={rupiah}
+                        ringkas={singkat}
+                        kosong="Belum ada pendapatan pada rentang ini." />
+                    </div>
+                  </div>
+                  <div className="col-lg-5">
+                    <div className="card chart-card shadow-sm border-0 p-4 h-100">
+                      <h5 className="fw-bold">Status Reservasi</h5>
+                      <p className="chart-sub">{reservasiList.length} reservasi seluruhnya</p>
+                      <StatusBars items={statusReservasiChart} />
                     </div>
                   </div>
                 </div>
               </>
             )}
+
+            {/* Detail: Laporan Pendapatan */}
+            {berandaView === 'pendapatan' && (
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary mb-3"
+                  onClick={() => setBerandaView('ringkasan')}
+                >
+                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali
+                </button>
+
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                  <h1 className="fs-3 fw-bold mb-0">Laporan Pendapatan Restoran</h1>
+                  <div className="btn-group">
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${pendapatanRange === 'hari' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setPendapatanRange('hari')}
+                    >
+                      Hari Ini
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${pendapatanRange === '7' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setPendapatanRange('7')}
+                    >
+                      7 Hari Terakhir
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${pendapatanRange === '30' ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
+                      onClick={() => setPendapatanRange('30')}
+                    >
+                      30 Hari Terakhir
+                    </button>
+                  </div>
+                </div>
+
+                {!pendapatanData ? (
+                  <div className="alert alert-warning">Data pendapatan belum bisa dimuat. Coba refresh halaman.</div>
+                ) : (
+                  <>
+                    <div className="row g-3 mb-4">
+                      <div className="col-md-3">
+                        <div className="card shadow-sm border-0 p-3 text-center">
+                          <div className="fs-4 fw-bold stat-green">
+                            Rp {pendapatanData.ringkasan.total.toLocaleString('id-ID')}
+                          </div>
+                          <div className="text-muted small">Total Pendapatan</div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card shadow-sm border-0 p-3 text-center">
+                          <div className="fs-4 fw-bold stat-brown">
+                            {pendapatanData.ringkasan.pesanan}
+                          </div>
+                          <div className="text-muted small">Pesanan Selesai</div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card shadow-sm border-0 p-3 text-center">
+                          <div className="fs-4 fw-bold stat-gold">
+                            {pendapatanData.ringkasan.item}
+                          </div>
+                          <div className="text-muted small">Item Terjual</div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card shadow-sm border-0 p-3 text-center">
+                          <div className="fs-4 fw-bold stat-terra">
+                            Rp {pendapatanData.ringkasan.rata.toLocaleString('id-ID')}
+                          </div>
+                          <div className="text-muted small">Rata-rata per Pesanan</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="row g-3 mb-4">
+                      <div className="col-md-5">
+                        <div className="card shadow-sm border-0 p-3 h-100">
+                          <h5 className="fw-bold mb-3">Top 5 Menu Terlaris</h5>
+                          <ul className="list-group list-group-flush">
+                            {pendapatanData.terlaris.length === 0 ? (
+                              <li className="list-group-item text-muted">Belum ada data penjualan</li>
+                            ) : (
+                              pendapatanData.terlaris.map((m, idx) => (
+                                <li key={idx} className="list-group-item d-flex justify-content-between align-items-center">
+                                  <div>
+                                    <span className="fw-bold me-2">#{idx + 1}</span>
+                                    <span>{m.nama}</span>
+                                  </div>
+                                  <span className="badge bg-warning text-dark">{m.qty} porsi</span>
+                                </li>
+                              ))
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="col-md-7">
+                        <div className="card shadow-sm border-0 p-3 h-100">
+                          <h5 className="fw-bold mb-3">Rincian Laporan Harian</h5>
+                          <div className="table-responsive">
+                            <table className="table table-hover align-middle mb-0">
+                              <thead>
+                                <tr>
+                                  <th>Tanggal</th>
+                                  <th>Pesanan</th>
+                                  <th>Item</th>
+                                  <th>Total Pendapatan</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pendapatanData.laporan.map((h, i) => (
+                                  <tr key={i}>
+                                    <td>{h.tanggal}</td>
+                                    <td>{h.pesanan}</td>
+                                    <td>{h.item}</td>
+                                    <td className="fw-bold text-success">Rp {h.pendapatan.toLocaleString('id-ID')}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Detail: Pertanyaan Masuk */}
+            {berandaView === 'pertanyaan' && (
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary mb-3"
+                  onClick={() => setBerandaView('ringkasan')}
+                >
+                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali
+                </button>
+                <h1 className="fs-3 fw-bold mb-1">Pertanyaan Masuk</h1>
+                <p className="text-muted mb-3">
+                  Pertanyaan dari pengguna yang login. Jawaban dikirim ke Mail pengguna; pertanyaan yang bagus bisa Anda tambahkan manual di Kelola Halaman &gt; FAQ.
+                </p>
+                <PertanyaanMasuk items={pertanyaanList} onTandaiDibaca={handleTandaiDibaca} onJawab={handleJawabPertanyaan} />
+              </div>
+            )}
           </div>
         )}
 
-        {/* TAB 3: MENU */}
+        {/* TAB 2: MENU */}
         {activeTab === 'menu' && (
           <div>
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -1629,7 +1793,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: FAVORIT (pilih menu + atur tampilan orbit) */}
+        {/* TAB 3: FAVORIT (pilih menu + atur tampilan orbit) */}
         {activeTab === 'favorit' && (
           <div>
             <h1 className="fs-3 fw-bold mb-2">Kelola Menu Favorit (Chef&apos;s Recommendation)</h1>
@@ -1853,7 +2017,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 5: KELOLA (Home, About, FAQ, Lokasi, Footer + preview satu halaman) */}
+        {/* TAB 4: KELOLA (Home, About, FAQ, Lokasi, Footer + preview satu halaman) */}
         {activeTab === 'konten' && (
           <div>
             <h1 className="fs-3 fw-bold mb-3">Kelola Halaman Utama</h1>
@@ -1988,8 +2152,8 @@ export default function AdminPage() {
                 {/* Lokasi */}
                 {kelolaTab === 'lokasi' && (
                   <>
-                    <div className="card shadow-sm border-0 p-4 mb-4">
-                      <h5 className="fw-bold mb-3">Tambah Cabang</h5>
+                    <div id="form-cabang" className="card shadow-sm border-0 p-4 mb-4">
+                      <h5 className="fw-bold mb-3">{editBranchId !== null ? 'Edit Cabang' : 'Tambah Cabang'}</h5>
                       <form onSubmit={handleAddBranch} noValidate>
                         <div className="mb-3">
                           <label className="form-label small fw-bold">Nama Cabang</label>
@@ -2007,8 +2171,8 @@ export default function AdminPage() {
                             type="text"
                             className="form-control"
                             required
-                            value={newBranch.nama}
-                            onChange={(e) => setNewBranch({ ...newBranch, nama: e.target.value })}
+                            value={newBranch.alamat}
+                            onChange={(e) => setNewBranch({ ...newBranch, alamat: e.target.value })}
                           />
                         </div>
                         <div className="row g-2 mb-3">
@@ -2035,9 +2199,16 @@ export default function AdminPage() {
                             />
                           </div>
                         </div>
+                        <div className="d-flex gap-2">
                         <button type="submit" className="btn btn-warning text-white fw-bold">
-                          Simpan Cabang
+                          {editBranchId !== null ? 'Simpan Perubahan' : 'Simpan Cabang'}
                         </button>
+                        {editBranchId !== null && (
+                          <button type="button" className="btn btn-outline-secondary fw-bold" onClick={resetFormBranch}>
+                            Batal
+                          </button>
+                        )}
+                        </div>
                       </form>
                     </div>
 
@@ -2051,18 +2222,30 @@ export default function AdminPage() {
                           <li className="list-group-item text-muted">Belum ada cabang.</li>
                         ) : (
                           branches.map((b) => (
-                            <li key={b.id} className="list-group-item d-flex justify-content-between align-items-start gap-2">
+                            <li
+                              key={b.id}
+                              className={`list-group-item d-flex justify-content-between align-items-start gap-2 ${editBranchId === b.id ? 'bg-warning-subtle' : ''}`}
+                            >
                               <div>
                                 <div className="fw-bold">{b.nama}</div>
                                 <div className="small text-muted">{b.alamat}</div>
                               </div>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => handleDeleteBranch(b.id)}
-                              >
-                                Hapus
-                              </button>
+                              <div className="d-flex gap-2 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-primary"
+                                  onClick={() => handleEditBranch(b)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDeleteBranch(b.id)}
+                                >
+                                  Hapus
+                                </button>
+                              </div>
                             </li>
                           ))
                         )}
@@ -2135,33 +2318,20 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 7: PANTAU PESANAN */}
-        {activeTab === 'pesanan' && (
-          <PantauPesanan pesananList={pesananList} branches={branches} onRefresh={loadPesanan} />
-        )}
-
-        {/* TAB: PERTANYAAN MASUK */}
-        {activeTab === 'pertanyaan' && (
-          <div>
-            <h1 className="fs-3 fw-bold mb-1">Pertanyaan Masuk</h1>
-            <p className="text-muted mb-3">
-              Pertanyaan dari pengguna yang login. Jawaban dikirim ke Mail pengguna; pertanyaan yang bagus bisa Anda tambahkan manual di Kelola Halaman &gt; FAQ.
-            </p>
-            <PertanyaanMasuk items={pertanyaanList} onTandaiDibaca={handleTandaiDibaca} onJawab={handleJawabPertanyaan} />
-          </div>
-        )}
-
-        {/* TAB 8: RESERVASI */}
+        {/* TAB 5: ORDER & RESERVASI  */}
         {activeTab === 'reservasi' && (
           <div>
-            <h1 className="fs-3 fw-bold mb-3">Kelola Reservasi &amp; Ruangan</h1>
+            <h1 className="fs-3 fw-bold mb-3">Order & Ruangan</h1>
             <div className="d-flex flex-wrap gap-2 mb-3">
               {RESERVASI_MENU.map((m) => (
                 <button
                   key={m.key}
                   type="button"
                   className={`btn btn-sm fw-bold ${reservasiMenu === m.key ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
-                  onClick={() => setReservasiMenu(m.key)}
+                  onClick={() => {
+                    setReservasiMenu(m.key);
+                    if (m.key === 'order') setOrderView('ringkasan');
+                  }}
                 >
                   <i className={`fa-solid ${m.icon} me-2`}></i>
                   {m.label}
@@ -2169,9 +2339,109 @@ export default function AdminPage() {
               ))}
             </div>
 
+            {/* Order: ringkasan 2 kotak */}
+            {reservasiMenu === 'order' && orderView === 'ringkasan' && (
+              <div className="row g-3 mb-4">
+                <div className="col-lg-6">
+                  <div className="card shadow-sm border-0 p-4 h-100 d-flex flex-column">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <h5 className="fw-bold mb-1">
+                          <i className="fa-solid fa-receipt me-2 text-warning"></i>Pantau Pesanan
+                        </h5>
+                        <small className="text-muted">{pesananList.length} pesanan seluruhnya</small>
+                      </div>
+                      {pesananMenunggu > 0 && <span className="badge bg-danger">{pesananMenunggu} perlu dicek</span>}
+                    </div>
+                    <div className="row g-2 text-center mb-4">
+                      {([
+                        ['Menunggu', pesananMenunggu, 'stat-gold'],
+                        ['Diproses', pesananDiproses, 'stat-brown'],
+                        ['Selesai', pesananSelesai, 'stat-green'],
+                      ] as [string, number, string][]).map(([label, nilai, warna]) => (
+                        <div className="col-4" key={label}>
+                          <div className="border rounded p-2">
+                            <div className={`fs-4 fw-bold ${warna}`}>{nilai}</div>
+                            <div className="text-muted small">{label}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-warning text-white fw-bold mt-auto"
+                      onClick={() => setOrderView('pesanan')}
+                    >
+                      Lihat detail <i className="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="col-lg-6">
+                  <div className="card shadow-sm border-0 p-4 h-100 d-flex flex-column">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <h5 className="fw-bold mb-1">
+                          <i className="fa-solid fa-calendar-check me-2 text-warning"></i>Kelola Reservasi
+                        </h5>
+                        <small className="text-muted">{reservasiAdmin.length} reservasi seluruhnya</small>
+                      </div>
+                      {countReservasi('pending') > 0 && (
+                        <span className="badge bg-danger">{countReservasi('pending')} perlu dikonfirmasi</span>
+                      )}
+                    </div>
+                    <div className="row g-2 text-center mb-4">
+                      {([
+                        ['Pending', countReservasi('pending'), 'stat-gold'],
+                        ['Approved', countReservasi('approved'), 'stat-brown'],
+                        ['Complete', countReservasi('complete'), 'stat-green'],
+                        ['Dibatalkan', countReservasi('dibatalkan'), 'stat-terra'],
+                      ] as [string, number, string][]).map(([label, nilai, warna]) => (
+                        <div className="col-3" key={label}>
+                          <div className="border rounded p-2">
+                            <div className={`fs-4 fw-bold ${warna}`}>{nilai}</div>
+                            <div className="text-muted small">{label}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-warning text-white fw-bold mt-auto"
+                      onClick={() => setOrderView('reservasi')}
+                    >
+                      Lihat detail <i className="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Order: detail Pantau Pesanan */}
+            {reservasiMenu === 'order' && orderView === 'pesanan' && (
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary mb-3"
+                  onClick={() => setOrderView('ringkasan')}
+                >
+                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali
+                </button>
+                <PantauPesanan pesananList={pesananList} branches={branches} onRefresh={loadPesanan} />
+              </div>
+            )}
+
             {/* Tab Reservasi */}
-            {reservasiMenu === 'reservasi' && (
+            {reservasiMenu === 'order' && orderView === 'reservasi' && (
               <div className="card shadow-sm border-0 p-4 mb-4">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary mb-3 align-self-start"
+                  onClick={() => setOrderView('ringkasan')}
+                >
+                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali
+                </button>
+
                 <div className="reservation-toolbar">
                   <div className="reservation-tabs">
                     {([
