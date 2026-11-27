@@ -15,7 +15,7 @@ export interface AuthSession {
 export const AUTH_COOKIE = 'papeda_session';
 export const SESSION_MAX_AGE = 60 * 60 * 12; // 12 jam
 
-function getSecretKey(): string {
+export function getSecretKey(): string {
   return (
     process.env.AUTH_SECRET ||
     process.env.KASIR_JWT_SECRET ||

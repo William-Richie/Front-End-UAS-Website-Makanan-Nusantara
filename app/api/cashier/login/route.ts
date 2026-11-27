@@ -6,7 +6,7 @@ import { bacaSesiKasir, buatToken, hapusCookie, pasangCookie } from '@/lib/cashi
 // GET /api/cashier/login -> untuk cek sesi kasir yang sedang aktif
 export async function GET(req: NextRequest) {
   try {
-    const sesi = bacaSesiKasir(req);
+    const sesi = await bacaSesiKasir(req);
     if (!sesi) return NextResponse.json({ error: 'Belum login.' }, { status: 401 });
 
     const kasir = await prisma.kasir.findUnique({ where: { id: sesi.kasirId } });
