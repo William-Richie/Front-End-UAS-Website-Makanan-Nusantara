@@ -77,7 +77,7 @@ export default function Navbar({
         <div className={styles.login}>
           <Link href="/" className={styles.logo}>
             <Image
-              src="/img/Web-Icon/PAPEDA.png"
+              src="/img/Web-Icon/icon.png"
               alt="Logo Papeda"
               width={44}
               height={44}
@@ -252,12 +252,6 @@ export default function Navbar({
             </Nav.Item>
 
             <Nav.Item as="li">
-              <Nav.Link as={Link} href="/menu" onClick={closeMenu}>
-                Menu
-              </Nav.Link>
-            </Nav.Item>
-
-            <Nav.Item as="li">
               <Nav.Link as={Link} href="/#faq" onClick={closeMenu}>
                 FAQ
               </Nav.Link>
@@ -266,6 +260,12 @@ export default function Navbar({
             <Nav.Item as="li">
               <Nav.Link as={Link} href="/#location" onClick={closeMenu}>
                 Location
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item as="li">
+              <Nav.Link as={Link} href="/menu" onClick={closeMenu}>
+                Menu
               </Nav.Link>
             </Nav.Item>
 

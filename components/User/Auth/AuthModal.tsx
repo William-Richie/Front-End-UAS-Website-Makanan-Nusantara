@@ -246,7 +246,7 @@ export default function AuthModal({
           <span className={`${styles.authFloat} ${styles.a3}`}><i className="fa-solid fa-lemon"></i></span>
           <span className={`${styles.authFloat} ${styles.a4}`}><i className="fa-solid fa-leaf"></i></span>
           <Image
-            src="/img/Web-Icon/Papeda-icon.png"
+            src="/img/Web-Icon/icon.png"
             alt="Papeda"
             width={130}
             height={130}

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   title: 'Papeda Restaurant - Cita Rasa Timur Indonesia',
   description: 'Dari sagu hingga kuah kuning, semua dimulai dari sini. Restoran khas Nusantara dengan cita rasa autentik.',
   icons: {
-    icon: '/img/Web-Icon/Papeda-icon.png',
+    icon: '/img/papeda-icon.png',
   },
 };
 
