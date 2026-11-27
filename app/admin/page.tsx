@@ -149,7 +149,7 @@ const KELOLA_MENU = [
 type KelolaKey = (typeof KELOLA_MENU)[number]['key'];
 
 const RESERVASI_MENU = [
-  { key: 'reservasi', label: 'Reservasi', icon: 'fa-calendar-check' },
+  { key: 'order', label: 'Order', icon: 'fa-receipt' },
   { key: 'ruangan', label: 'Ruangan', icon: 'fa-door-open' },
 ] as const;
 
@@ -230,7 +230,7 @@ export default function AdminPage() {
 
   // Tab State
   const [activeTab, setActiveTab] = useState<
-    'statistik' | 'menu' | 'favorit' | 'konten' | 'pesanan' | 'reservasi' | 'pertanyaan' | 'pendapatan' | 'kasir'
+    'statistik' | 'menu' | 'favorit' | 'konten' | 'reservasi' | 'pertanyaan' | 'pendapatan' | 'kasir'
   >('statistik');
 
   // Typed Data States
@@ -296,7 +296,8 @@ export default function AdminPage() {
   const [ruanganTanggal, setRuanganTanggal] = useState<string>('');
   const [ruanganSesi, setRuanganSesi] = useState<string>('08:00');
   const [ruanganPesan, setRuanganPesan] = useState<string>('');
-  const [reservasiMenu, setReservasiMenu] = useState<ReservasiMenuKey>('reservasi');
+  const [reservasiMenu, setReservasiMenu] = useState<ReservasiMenuKey>('order');
+  const [orderView, setOrderView] = useState<'ringkasan' | 'pesanan' | 'reservasi'>('ringkasan');
   const [aksiOpen, setAksiOpen] = useState<boolean>(false);
   const notify = useNotify();
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
@@ -1130,6 +1131,13 @@ export default function AdminPage() {
   ];
   const labelRentang = pendapatanRange === 'hari' ? 'hari ini (per jam)' : `${pendapatanRange} hari terakhir`;
 
+  const pesananMenunggu = pesananList.filter((p) => p.status === 'menunggu_bayar' || p.status === 'pending').length;
+  const pesananDiproses = hitungStatus(pesananList, ['diproses']);
+  const pesananSelesai = hitungStatus(pesananList, ['selesai']);
+  const sumberReservasi = reservasiAdmin.length > 0 ? reservasiAdmin : reservasiList;
+  const reservasiPending = sumberReservasi.filter((r) => r.status === 'pending').length;
+  const notifOrder = pesananMenunggu + reservasiPending;
+
   if (!isLoggedIn) {
     return (
       <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
@@ -1191,23 +1199,18 @@ export default function AdminPage() {
           </li>
           <li className="nav-item mb-2">
             <button
-              className={`nav-link text-white text-start w-100 ${activeTab === 'pesanan' ? 'active bg-warning' : ''}`}
-              onClick={() => setActiveTab('pesanan')}
-            >
-              <i className="fa-solid fa-receipt me-2"></i> Pantau Pesanan
-              {pesananList.filter((p) => p.status === 'menunggu_bayar' || p.status === 'pending').length > 0 && (
-                <span className="badge bg-danger ms-auto">
-                  {pesananList.filter((p) => p.status === 'menunggu_bayar' || p.status === 'pending').length}
-                </span>
-              )}
-            </button>
-          </li>
-          <li className="nav-item mb-2">
-            <button
               className={`nav-link text-white text-start w-100 ${activeTab === 'reservasi' ? 'active bg-warning' : ''}`}
               onClick={() => setActiveTab('reservasi')}
             >
-              <i className="fa-solid fa-calendar-check me-2"></i> Kelola Reservasi & Ruangan
+              <i className="fa-solid fa-calendar-check me-2"></i> Order & Ruangan
+              {notifOrder > 0 && (
+                <span
+                  className="badge bg-danger ms-auto"
+                  title={`${pesananMenunggu} pesanan menunggu, ${reservasiPending} reservasi pending`}
+                >
+                  {notifOrder}
+                </span>
+              )}
             </button>
           </li>
           <li className="nav-item mb-2">
@@ -2191,12 +2194,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-
-        {/* TAB 7: PANTAU PESANAN */}
-        {activeTab === 'pesanan' && (
-          <PantauPesanan pesananList={pesananList} branches={branches} onRefresh={loadPesanan} />
-        )}
-
+        
         {/* TAB: PERTANYAAN MASUK */}
         {activeTab === 'pertanyaan' && (
           <div>
@@ -2208,17 +2206,20 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 8: RESERVASI */}
+        {/* TAB 8: ORDER & RESERVASI  */}
         {activeTab === 'reservasi' && (
           <div>
-            <h1 className="fs-3 fw-bold mb-3">Kelola Reservasi &amp; Ruangan</h1>
+            <h1 className="fs-3 fw-bold mb-3">Order & Ruangan</h1>
             <div className="d-flex flex-wrap gap-2 mb-3">
               {RESERVASI_MENU.map((m) => (
                 <button
                   key={m.key}
                   type="button"
                   className={`btn btn-sm fw-bold ${reservasiMenu === m.key ? 'btn-warning text-white' : 'btn-outline-secondary'}`}
-                  onClick={() => setReservasiMenu(m.key)}
+                  onClick={() => {
+                    setReservasiMenu(m.key);
+                    if (m.key === 'order') setOrderView('ringkasan');
+                  }}
                 >
                   <i className={`fa-solid ${m.icon} me-2`}></i>
                   {m.label}
@@ -2226,9 +2227,109 @@ export default function AdminPage() {
               ))}
             </div>
 
+            {/* Order: ringkasan 2 kotak */}
+            {reservasiMenu === 'order' && orderView === 'ringkasan' && (
+              <div className="row g-3 mb-4">
+                <div className="col-lg-6">
+                  <div className="card shadow-sm border-0 p-4 h-100 d-flex flex-column">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <h5 className="fw-bold mb-1">
+                          <i className="fa-solid fa-receipt me-2 text-warning"></i>Pantau Pesanan
+                        </h5>
+                        <small className="text-muted">{pesananList.length} pesanan seluruhnya</small>
+                      </div>
+                      {pesananMenunggu > 0 && <span className="badge bg-danger">{pesananMenunggu} perlu dicek</span>}
+                    </div>
+                    <div className="row g-2 text-center mb-4">
+                      {([
+                        ['Menunggu', pesananMenunggu, 'stat-gold'],
+                        ['Diproses', pesananDiproses, 'stat-brown'],
+                        ['Selesai', pesananSelesai, 'stat-green'],
+                      ] as [string, number, string][]).map(([label, nilai, warna]) => (
+                        <div className="col-4" key={label}>
+                          <div className="border rounded p-2">
+                            <div className={`fs-4 fw-bold ${warna}`}>{nilai}</div>
+                            <div className="text-muted small">{label}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-warning text-white fw-bold mt-auto"
+                      onClick={() => setOrderView('pesanan')}
+                    >
+                      Lihat detail <i className="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="col-lg-6">
+                  <div className="card shadow-sm border-0 p-4 h-100 d-flex flex-column">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <h5 className="fw-bold mb-1">
+                          <i className="fa-solid fa-calendar-check me-2 text-warning"></i>Kelola Reservasi
+                        </h5>
+                        <small className="text-muted">{reservasiAdmin.length} reservasi seluruhnya</small>
+                      </div>
+                      {countReservasi('pending') > 0 && (
+                        <span className="badge bg-danger">{countReservasi('pending')} perlu dikonfirmasi</span>
+                      )}
+                    </div>
+                    <div className="row g-2 text-center mb-4">
+                      {([
+                        ['Pending', countReservasi('pending'), 'stat-gold'],
+                        ['Approved', countReservasi('approved'), 'stat-brown'],
+                        ['Complete', countReservasi('complete'), 'stat-green'],
+                        ['Dibatalkan', countReservasi('dibatalkan'), 'stat-terra'],
+                      ] as [string, number, string][]).map(([label, nilai, warna]) => (
+                        <div className="col-3" key={label}>
+                          <div className="border rounded p-2">
+                            <div className={`fs-4 fw-bold ${warna}`}>{nilai}</div>
+                            <div className="text-muted small">{label}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-warning text-white fw-bold mt-auto"
+                      onClick={() => setOrderView('reservasi')}
+                    >
+                      Lihat detail <i className="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Order: detail Pantau Pesanan */}
+            {reservasiMenu === 'order' && orderView === 'pesanan' && (
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary mb-3"
+                  onClick={() => setOrderView('ringkasan')}
+                >
+                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali
+                </button>
+                <PantauPesanan pesananList={pesananList} branches={branches} onRefresh={loadPesanan} />
+              </div>
+            )}
+
             {/* Tab Reservasi */}
-            {reservasiMenu === 'reservasi' && (
+            {reservasiMenu === 'order' && orderView === 'reservasi' && (
               <div className="card shadow-sm border-0 p-4 mb-4">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary mb-3 align-self-start"
+                  onClick={() => setOrderView('ringkasan')}
+                >
+                  <i className="fa-solid fa-arrow-left me-2"></i>Kembali ke Ringkasan
+                </button>
+
                 <div className="reservation-toolbar">
                   <div className="reservation-tabs">
                     {([
