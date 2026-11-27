@@ -1189,12 +1189,6 @@ export default function AdminPage() {
               <i className="fa-solid fa-user-lock me-2"></i> Kelola Akun Kasir
             </button>
           </li>
-          <li className="nav-item mb-2">
-            <Link href="/cashier" target="_blank" className="nav-link text-white text-start w-100">
-              <i className="fa-solid fa-cash-register me-2"></i> Halaman Kasir
-              <i className="fa-solid fa-arrow-up-right-from-square ms-auto small opacity-75"></i>
-            </Link>
-          </li>
         </ul>
         <div className="mt-auto pt-3 border-top border-secondary">
           <button type="button" onClick={handleLogout} className="btn btn-outline-light w-100 btn-sm">
