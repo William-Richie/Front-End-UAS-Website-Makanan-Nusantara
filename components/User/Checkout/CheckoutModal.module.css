@@ -325,6 +325,18 @@
   font-weight: 600;
 }
 
+.cancelBtn:global(.btn) {
+  --bs-btn-color: #c0524a;
+  --bs-btn-border-color: var(--color-pink-blush);
+  --bs-btn-hover-color: var(--color-white);
+  --bs-btn-hover-bg: #c0524a;
+  --bs-btn-hover-border-color: #c0524a;
+  --bs-btn-active-color: var(--color-white);
+  --bs-btn-active-bg: #a5433b;
+  border-radius: 50px;
+  font-weight: 600;
+}
+
 .stepWrap {
   display: flex;
   flex-direction: column;

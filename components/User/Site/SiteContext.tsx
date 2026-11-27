@@ -529,6 +529,9 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           setCartItems([]);
           showToast(`Pesanan #${orderId} berhasil diproses!`);
         }}
+        onCancelled={(orderId) => {
+          showToast(`Pesanan #${orderId} dibatalkan.`);
+        }}
       />
 
       <MailModal

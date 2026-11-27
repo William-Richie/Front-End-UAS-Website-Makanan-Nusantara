@@ -10,6 +10,7 @@ import DeliveryPicker from './DeliveryPicker';
 import BranchSelect from './BranchSelect';
 import styles from './CheckoutModal.module.css';
 import { buildReceiptHtml, type Receipt, type OrderType } from '@/lib/receiptPrint';
+import { useNotify } from '@/components/Common/Notify/NotifyProvider';
 
 interface CheckoutModalProps {
   show: boolean;
@@ -19,6 +20,7 @@ interface CheckoutModalProps {
   onClose: () => void;
   onOrderCreated?: (orderId: number) => void;
   onSuccess: (orderId: number) => void;
+  onCancelled?: (orderId: number) => void;
   resumeOrderId?: number | null;
   onPendingChange?: (orderId: number, aktif: boolean) => void;
 }
@@ -105,9 +107,11 @@ export default function CheckoutModal({
   onClose,
   onOrderCreated,
   onSuccess,
+  onCancelled,
   resumeOrderId = null,
   onPendingChange,
 }: CheckoutModalProps) {
+  const notify = useNotify();
   const [step, setStep] = useState<Step>('form');
   const [orderType, setOrderType] = useState<OrderType>('dine-in');
   const [payment, setPayment] = useState<PayKey>('cash');
@@ -492,13 +496,22 @@ export default function CheckoutModal({
       onClose();
       return;
     }
-    if (!window.confirm(`Batalkan pesanan #${receipt.id}?`)) return;
+    const yakin = await notify.confirm({
+      title: 'Batalkan Pesanan?',
+      message: `Pesanan #${receipt.id} akan dibatalkan.`,
+      confirmText: 'Ya, Batalkan',
+      cancelText: 'Kembali',
+      danger: true,
+    });
+    if (!yakin) return;
     setErrorMsg('');
     try {
       const res = await fetch(`/api/pesanan/${receipt.id}/cancel`, { method: 'POST' });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || 'Gagal membatalkan pesanan.');
-      clearPending(receipt.id, onPendingChange);
+      const cancelledId = receipt.id;
+      clearPending(cancelledId, onPendingChange);
+      onCancelled?.(cancelledId);
       resetAll();
       onClose();
     } catch (err: unknown) {
@@ -572,7 +585,7 @@ export default function CheckoutModal({
             {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
           </Modal.Body>
           <Modal.Footer className={styles.checkoutFooter}>
-            <Button variant="outline-danger" className={`${styles.receiptBtn} flex-fill`} onClick={handleCancelPayment}>
+            <Button variant="outline-danger" className={`${styles.cancelBtn} flex-fill`} onClick={handleCancelPayment}>
               Batalkan Pesanan
             </Button>
             <Button variant="outline-secondary" className={`${styles.receiptBtn} flex-fill`} onClick={handleClose}>
@@ -615,7 +628,7 @@ export default function CheckoutModal({
             {errorMsg && <div className={styles.checkoutError} role="alert">{errorMsg}</div>}
           </Modal.Body>
           <Modal.Footer className={styles.checkoutFooter}>
-            <Button variant="outline-secondary" className={`${styles.receiptBtn} flex-fill`} onClick={handleCancelPayment}>
+            <Button variant="outline-danger" className={`${styles.cancelBtn} flex-fill`} onClick={handleCancelPayment}>
               Batalkan
             </Button>
             <Button
