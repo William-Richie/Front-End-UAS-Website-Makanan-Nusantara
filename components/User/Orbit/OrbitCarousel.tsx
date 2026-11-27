@@ -118,7 +118,7 @@ export default function OrbitCarousel({
                     />
                   ) : (
                     <Image
-                      src="/img/Web-Icon/Papeda-icon.png"
+                      src="/img/Web-Icon/icon.png"
                       alt="Coming Soon"
                       width={60}
                       height={60}
