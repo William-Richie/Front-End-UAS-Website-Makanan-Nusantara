@@ -34,7 +34,7 @@ const EWALLETS = [
   { nama: 'DANA', logo: '/img/ewallet/dana.png' },
   { nama: 'ShopeePay', logo: '/img/ewallet/shopeepay.png' },
 ];
-const PAY_TIMEOUT = BATAS_BAYAR_EWALLET_DETIK; // batas waktu bayar e-wallet
+const PAY_TIMEOUT = BATAS_BAYAR_EWALLET_DETIK;
 const POLL_MS = 4000;
 
 const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
@@ -139,7 +139,6 @@ export default function CheckoutModal({
     onPendingChangeRef.current = onPendingChange;
   });
 
-  // timer batas bayar
   useEffect(() => {
     if (step !== 'ewallet') return;
     const t = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
@@ -160,7 +159,6 @@ export default function CheckoutModal({
     return () => clearTimeout(timer);
   }, [step, secondsLeft, receipt, onPendingChange]);
 
-  // cek ke server tiap beberapa detik, struk baru muncul setelah kasir menandai lunas
   const waitingId = step === 'cashier' ? receipt?.id : undefined;
   useEffect(() => {
     if (!waitingId) return;
@@ -208,7 +206,6 @@ export default function CheckoutModal({
         } else if (data.status === 'menunggu_bayar') {
           setReceipt(r);
           if (r.metodeBayar.startsWith('E-Wallet')) {
-            // lanjutkan pembayaran e-wallet dengan sisa waktu yang tersisa
             const terpakai = Math.floor((Date.now() - new Date(data.created_at).getTime()) / 1000);
             setSecondsLeft(PAY_TIMEOUT - Math.max(terpakai, 0));
             setStep('ewallet');
@@ -356,7 +353,6 @@ export default function CheckoutModal({
       (pos) => {
         const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserCoord(coord);
-        // akan otomatis pilih gerai terdekat kalau tidak pilih gerai
         if (!deliveryBranchId) {
           let best: { id: number; km: number } | null = null;
           branches.filter(hasCoord).forEach((b) => {
@@ -559,7 +555,6 @@ export default function CheckoutModal({
         </Modal.Title>
       </Modal.Header>
 
-      {/* Bayar di kasir */}
       {step === 'cashier' && receipt && (
         <>
           <Modal.Body className={styles.checkoutBody}>
@@ -672,7 +667,6 @@ export default function CheckoutModal({
         </>
       )}
 
-      {/* STRUK */}
       {step === 'receipt' && receipt && (
         <>
           <Modal.Body className={styles.checkoutBody}>

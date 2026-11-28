@@ -11,13 +11,6 @@
 }
  
 .logo {
-  /* display: block;
-  width: 44px;
-  height: 44px;
-  flex: none;
-  overflow: hidden;
-  border-radius: 50%;
-  color: inherit; */
   transition: transform 0.25s;
 }
  
@@ -276,8 +269,6 @@
   }
 }
  
-
-/* ikon Mail (jawaban admin untuk pertanyaan FAQ) */
 .mailBtn {
   position: relative;
   display: grid;

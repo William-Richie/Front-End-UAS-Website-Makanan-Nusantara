@@ -3,7 +3,6 @@ import prisma from '@/lib/prisma';
 import { hitungTerlaris } from '@/lib/terlaris';
 import { wajibSesi } from '@/lib/auth';
 
-// Favorit pilihan admin (tabel favorit, slot 1 - 5)
 async function ambilManual() {
   const list = await prisma.favorit.findMany({
     include: {
@@ -40,7 +39,6 @@ export async function GET(req: NextRequest) {
     const pengaturan = await prisma.pengaturanOrbit.findUnique({ where: { id: 1 } }).catch(() => null);
     if (pengaturan?.mode === 'terlaris') {
       const terlaris = await hitungTerlaris();
-      // belum ada pesanan selesai -> tampilkan pilihan admin supaya orbit tidak kosong
       if (terlaris.length > 0) return NextResponse.json({ data: terlaris });
     }
 
@@ -73,7 +71,6 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // Update or insert slot 1 - 5
     for (const item of items) {
       if (item.slot && item.menu_id) {
         const existing = await prisma.favorit.findFirst({

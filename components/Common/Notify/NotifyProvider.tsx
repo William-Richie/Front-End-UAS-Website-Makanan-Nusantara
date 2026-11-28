@@ -100,7 +100,6 @@ const JUDUL: Record<ToastTipe, string> = {
   info: 'Info',
 };
 
-// error dibiarkan lebih lama supaya sempat dibaca
 const DURASI: Record<ToastTipe, number> = {
   success: 4500,
   info: 5000,
@@ -192,7 +191,7 @@ export function NotifyProvider({ children }: { children: ReactNode }) {
               <span>{t.pesan}</span>
             </div>
             <button type="button" className={styles.toastTutup} aria-label="Tutup" onClick={() => tutupToast(t.id)}>
-              ×
+              x
             </button>
             <span className={styles.toastBar} style={{ animationDuration: `${DURASI[t.tipe]}ms` }} />
           </div>

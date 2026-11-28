@@ -55,8 +55,8 @@ interface Pesanan {
   items: CartItem[];
   ongkir: number;
   lunas: boolean;
-  kasir: boolean; // makan di tempat + bayar di kasir
-  cod: boolean; // pesan antar, bayar ke kurir
+  kasir: boolean;
+  cod: boolean;
 }
 
 const rupiah = (n: number) => `Rp ${Number(n || 0).toLocaleString('id-ID')}`;
@@ -246,7 +246,6 @@ export default function KasirPage() {
   const geraiRef = useRef<HTMLDivElement>(null);
   const menuScrollRef = useRef<HTMLElement>(null);
 
-  // Tutup dropdown gerai kalau klik di luar atau tekan Escape
   useEffect(() => {
     if (!geraiBuka) return;
     const klikLuar = (e: MouseEvent | TouchEvent) => {
@@ -298,7 +297,6 @@ export default function KasirPage() {
   const namaBersih = namaPelanggan.trim();
   const [menus, setMenus] = useState<MenuItem[]>([]);
 
-  // Cek sesi kasir ke server (cookie httpOnly), gerai kasir ikut dari server
   useEffect(() => {
     let batal = false;
     fetch('/api/cashier/login', { cache: 'no-store' })
@@ -481,7 +479,6 @@ export default function KasirPage() {
       } else if (aksi === 'proses') {
         await ubahPesanan(p.id, { status: 'diproses' });
       } else if (aksi === 'selesai') {
-        // COD: uang diterima kurir saat pesanan tiba, jadi ikut ditandai lunas
         await ubahPesanan(p.id, p.cod && !p.lunas ? { status: 'selesai', status_bayar: 'Lunas' } : { status: 'selesai' });
       } else {
         await ubahPesanan(p.id, { status: 'dibatalkan' });

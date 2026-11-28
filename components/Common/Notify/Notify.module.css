@@ -1,4 +1,3 @@
-/* Toast */
 .toastWrap {
   position: fixed;
   top: 18px;
@@ -89,7 +88,6 @@
   to { transform: scaleX(0); }
 }
 
-/* Dialog (confirm / prompt) */
 .backdrop {
   position: fixed;
   inset: 0;

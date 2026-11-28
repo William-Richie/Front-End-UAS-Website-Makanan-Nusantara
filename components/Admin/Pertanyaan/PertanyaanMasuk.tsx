@@ -17,7 +17,6 @@ const PESAN_KOSONG: Record<FilterKey, string> = {
   dijawab: 'Belum ada pertanyaan yang dijawab.',
 };
 
-// satu pertanyaan selalu berada di tepat satu filter
 const statusDari = (q: PertanyaanItem): FilterKey => (q.dijawab_at ? 'dijawab' : q.dibaca ? 'dibaca' : 'belum');
 
 const formatTanggal = (iso?: string | null) =>

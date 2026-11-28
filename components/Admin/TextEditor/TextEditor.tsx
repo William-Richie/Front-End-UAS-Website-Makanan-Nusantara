@@ -8,7 +8,7 @@ interface Props {
   onChange: (v: string) => void;
   rows?: number;
   placeholder?: string;
-  garisBawah?: boolean;   // tampilkan tombol underline
+  garisBawah?: boolean;
 }
 
 export default function EditorTeks({ id, value, onChange, rows, placeholder, garisBawah = true }: Props) {
@@ -22,7 +22,6 @@ export default function EditorTeks({ id, value, onChange, rows, placeholder, gar
     const pilih = value.slice(a, b);
     const n = tanda.length;
 
-    // "*" tunggal jangan salah kenal sebagai bagian dari "**"
     const terbungkus =
       value.slice(a - n, a) === tanda &&
       value.slice(b, b + n) === tanda &&

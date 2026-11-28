@@ -19,7 +19,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Reguler: { gerai, ruangan, jumlah }   VIP: { gerai, ruangan, status }
 export async function PUT(req: NextRequest) {
   const auth = await wajibSesi(req, ['admin']);
   if (auth.error) return auth.error;

@@ -18,7 +18,6 @@ interface NavbarProps {
   onOpenAuth?: (tab: 'login' | 'register') => void;
   onLogout?: () => void;
   onOpenProfile?: () => void;
-  /** jumlah pesan Mail yang belum dibaca */
   mailCount?: number;
   onOpenMail?: () => void;
 }

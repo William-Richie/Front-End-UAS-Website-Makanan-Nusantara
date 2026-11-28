@@ -14,9 +14,7 @@ export interface FaqItem {
 interface FaqSectionProps {
   faqList?: FaqItem[];
   onSuccessNotification?: (msg: string) => void;
-  /** pengguna yang sedang login; jawaban admin masuk ke Mail miliknya */
   user?: { id: string; nama: string; email: string } | null;
-  /** dipanggil saat pengunjung yang belum login menekan tombol bertanya */
   onRequireLogin?: () => void;
 }
 
@@ -33,7 +31,6 @@ export default function FaqSection({
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleOpenModal = () => {
-    // bertanya hanya untuk pengguna yang sudah login
     if (!user) {
       onRequireLogin?.();
       return;

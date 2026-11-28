@@ -9,7 +9,6 @@ export async function GET() {
     const row = await prisma.pengaturanOrbit.findUnique({ where: { id: 1 } });
     return NextResponse.json({ data: rapikanOrbit(row) });
   } catch (error: unknown) {
-    // tabel belum dibuat / database bermasalah: website tetap jalan pakai tampilan default
     console.error('Gagal memuat pengaturan orbit:', error);
     return NextResponse.json({ data: ORBIT_DEFAULT });
   }

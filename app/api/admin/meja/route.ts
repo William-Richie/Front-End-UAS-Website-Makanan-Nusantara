@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST { gerai, tipe, jumlah } -> sinkronkan jumlah meja
 export async function POST(req: NextRequest) {
   const auth = await wajibSesi(req, ['admin']);
   if (auth.error) return auth.error;
@@ -49,7 +48,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT { meja_id, tanggal, jam, published?, open?, catatan?, kapMin?, kapMaks?, semua? }
 export async function PUT(req: NextRequest) {
   const auth = await wajibSesi(req, ['admin']);
   if (auth.error) return auth.error;
@@ -83,8 +81,6 @@ export async function PUT(req: NextRequest) {
       const semua = b.semua === true;
       const tanggal = semua ? '*' : String(b.tanggal);
       const jam = semua ? '*' : String(b.jam);
-
-      // salin nilai yang berlaku sekarang, supaya field lain tidak ter-reset
       const spesifik = await prisma.mejaSlot.findUnique({ where: kunci(meja_id, tanggal, jam) });
       const dasar = spesifik ?? (await prisma.mejaSlot.findUnique({ where: kunci(meja_id, '*', '*') }));
       const nilai = {
@@ -99,8 +95,6 @@ export async function PUT(req: NextRequest) {
         update: nilai,
         create: { meja_id, tanggal, jam, ...nilai },
       });
-
-      // "terapkan ke semua": hapus aturan spesifik supaya default yang berlaku
       if (semua) await prisma.mejaSlot.deleteMany({ where: { meja_id, NOT: { tanggal: '*' } } });
     }
 

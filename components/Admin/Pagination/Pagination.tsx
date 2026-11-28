@@ -3,13 +3,12 @@
 import styles from './Pagination.module.css';
 
 interface PaginationProps {
-  page: number;      // halaman yang sedang dibuka (mulai dari 1)
-  total: number;     // jumlah seluruh data
-  perPage: number;   // jumlah baris per halaman
+  page: number; 
+  total: number; 
+  perPage: number;
   onChange: (page: number) => void;
 }
 
-// Contoh hasil: 1 … 4 [5] 6 … 10  (selalu tampilkan halaman pertama, terakhir, dan tetangga halaman aktif)
 function buatNomor(page: number, jumlah: number): (number | '...')[] {
   const tampil = new Set([1, jumlah, page - 1, page, page + 1]);
   const urut = Array.from(tampil)
@@ -20,7 +19,7 @@ function buatNomor(page: number, jumlah: number): (number | '...')[] {
   urut.forEach((n, i) => {
     if (i > 0) {
       const sebelum = urut[i - 1];
-      if (n - sebelum === 2) hasil.push(sebelum + 1); // celah hanya satu halaman: tampilkan saja angkanya
+      if (n - sebelum === 2) hasil.push(sebelum + 1);
       else if (n - sebelum > 2) hasil.push('...');
     }
     hasil.push(n);
@@ -30,7 +29,7 @@ function buatNomor(page: number, jumlah: number): (number | '...')[] {
 
 export default function Pagination({ page, total, perPage, onChange }: PaginationProps) {
   const jumlahHalaman = Math.max(1, Math.ceil(total / perPage));
-  if (jumlahHalaman <= 1) return null; // satu halaman saja: tidak perlu pagination
+  if (jumlahHalaman <= 1) return null;
 
   const awal = (page - 1) * perPage + 1;
   const akhir = Math.min(page * perPage, total);

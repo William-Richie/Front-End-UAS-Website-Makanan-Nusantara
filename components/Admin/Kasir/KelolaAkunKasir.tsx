@@ -51,7 +51,6 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
     loadKasir();
   }, [loadKasir]);
 
-  // Akun Kasir (satu akun kasir hanya terhubung ke satu gerai)
   const handleAddKasir = async (e: FormEvent) => {
     e.preventDefault();
     if (!notify.validateForm(e.currentTarget)) return;
@@ -172,7 +171,6 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
 
     return (
       <div className="kx-page">
-        {/* Banner */}
         <div className="kx-hero">
           <div className="kx-hero-top">
             <div className="kx-hero-text">
@@ -216,7 +214,6 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
           </div>
         </div>
 
-        {/* Filter & cari */}
         <div className="kx-toolbar">
           <div className="kx-tabs" role="tablist">
             {tab.map((t) => (
@@ -243,7 +240,6 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
           </div>
         </div>
 
-        {/* Daftar akun kasir */}
         {memuat ? (
           <div className="kx-empty">
             <div className="kx-empty-icon">
@@ -322,7 +318,6 @@ export default function KelolaAkunKasir({ branches }: KelolaAkunKasirProps) {
           </div>
         )}
 
-        {/* Pop-up tambah akun kasir */}
         {showKasirForm && (
           <div className="kx-backdrop" onClick={() => setShowKasirForm(false)}>
             <div

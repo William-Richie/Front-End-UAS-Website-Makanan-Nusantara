@@ -23,8 +23,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Login kasir sekarang terpusat melalui POST /api/auth/login (Unified Auth)
-
 // DELETE /api/cashier/login -> logout
 export async function DELETE() {
   const res = NextResponse.json({ pesan: 'Berhasil keluar.' });

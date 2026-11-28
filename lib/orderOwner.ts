@@ -20,7 +20,6 @@ export function statusBayarDariItem(item: string): string {
   }
 }
 
-// Pesanan boleh dibatalkan pelanggan selama belum dibayar dan belum diproses dapur
 export function bisaDibatalkanPelanggan(status: string, item: string): boolean {
   if (status === "menunggu_bayar") return true;
   if (status === "pending") return statusBayarDariItem(item) !== "Lunas";

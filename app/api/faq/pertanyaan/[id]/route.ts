@@ -3,8 +3,6 @@ import prisma from '@/lib/prisma';
 import { wajibSesi } from '@/lib/auth';
 
 // PUT /api/faq/pertanyaan/[id] - Admin mengelola pertanyaan masuk
-//   { dibaca: true }    -> tandai pertanyaan sudah dibaca
-//   { jawaban: "..." }  -> kirim jawaban ke Mail pengguna (pertanyaan otomatis berstatus dibaca)
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -26,7 +24,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Pertanyaan tidak ditemukan.' }, { status: 404 });
     }
 
-    // hanya menandai dibaca
     if (body.jawaban === undefined) {
       if (body.dibaca !== true) {
         return NextResponse.json({ error: 'Tidak ada perubahan yang diminta.' }, { status: 400 });
@@ -38,7 +35,6 @@ export async function PUT(
       return NextResponse.json({ pesan: 'Pertanyaan ditandai sudah dibaca.', data: updated });
     }
 
-    // menjawab: jawaban selalu dikirim ke Mail pengguna
     const teks = String(body.jawaban || '').trim();
     if (teks.length < 2 || teks.length > 1000) {
       return NextResponse.json({ error: 'Jawaban harus 2 - 1000 karakter.' }, { status: 400 });

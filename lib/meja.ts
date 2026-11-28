@@ -5,7 +5,7 @@ const menit = (j: string) => {
   const [h, m] = j.split(':').map(Number);
   return h * 60 + m;
 };
-// bentrok kalau selisih kurang dari 60 menit (08:00 mengunci 07:30, 08:00, 08:30)
+
 const bentrok = (a: string, b: string) => Math.abs(menit(a) - menit(b)) < 60;
 
 export async function daftarMeja(gerai: string, tanggal: string, jam: string, tipe?: TipeMeja) {

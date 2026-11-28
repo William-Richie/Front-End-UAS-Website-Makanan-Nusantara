@@ -32,7 +32,6 @@ export async function hitungTerlaris(batas = 5): Promise<FavoritData[]> {
         return;
       }
     } catch {
-      // bukan JSON, lanjut baca sebagai teks biasa
     }
 
     const teks = String(r.item || '').replace(/\[[^\]]*\]\s*/g, '').trim();
