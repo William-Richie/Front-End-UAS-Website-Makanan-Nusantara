@@ -67,7 +67,6 @@ export default function ReservationSection({
   const [telepon, setTelepon] = useState('');
   const [tanggal, setTanggal] = useState('');
   const [jumlah, setJumlah] = useState<number>(0);
-  const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [sesi, setSesi] = useState('');
   const [tipe, setTipe] = useState<TipeMeja | ''>('');
   const [mejaId, setMejaId] = useState<number | null>(null);
@@ -124,6 +123,14 @@ export default function ReservationSection({
       batal = true;
     };
   }, [selectedBranch, tanggal, sesi, tipe]);
+
+  const handleJumlahChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 2);
+    const n = digits === '' ? 0 : Math.min(Number(digits), 20);
+    setJumlah(n);
+    setMejaId(null);
+    setErrorMsg('');
+  };
 
   const isReady = !!selectedBranch && !!tanggal && !!sesi && jumlah >= 1 && jumlah <= 20;
   const daftarMeja = isReady && tipe ? mejaList.filter((m) => m.tipe === tipe) : [];
@@ -435,14 +442,17 @@ export default function ReservationSection({
               <Col xs={6} md={3}>
                 <Form.Group>
                   <Form.Label className="fw-bold">Guests</Form.Label>
-                  <button
-                    type="button"
+                  <Form.Control
+                    type="text"
+                    inputMode="numeric"
                     id="res-guest"
-                    className={styles.guestButton}
-                    onClick={() => setShowGuestPicker(true)}
-                  >
-                    {jumlah}
-                  </button>
+                    className={styles.reservationField}
+                    placeholder="1-20"
+                    maxLength={2}
+                    required
+                    value={jumlah === 0 ? '' : jumlah}
+                    onChange={handleJumlahChange}
+                  />
                 </Form.Group>
               </Col>
             </Row>
@@ -510,57 +520,6 @@ export default function ReservationSection({
                 </Form.Group>
               </Col>
             </Row>
-            
-            {/* Tab pilih jumlah Guests */}
-            {showGuestPicker && (
-              <div
-                className={styles.guestOverlay}
-                onClick={() => setShowGuestPicker(false)}
-              >
-                <div
-                  className={styles.guestModal}
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Select number of guests"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Close Button */}
-                  <button
-                    type="button"
-                    className={styles.guestClose}
-                    onClick={() => setShowGuestPicker(false)}
-                    aria-label="Close guest picker"
-                  >
-                    &times;
-                  </button>
-
-                  {/* Header */}
-                  <div className={styles.guestHeader}>
-                    <span>{jumlah} {jumlah === 1 ? 'Guest' : 'Guests'}</span>
-                    <span>Guests</span>
-                  </div>
-
-                  {/* Number List */}
-                  <div className={styles.guestList}>
-                    {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        className={`${styles.guestOption} ${
-                          jumlah === n ? styles.guestActive : ''
-                        }`}
-                        onClick={() => {
-                          setJumlah(n);
-                          setShowGuestPicker(false);
-                        }}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Tab pilih waktu */}
             {showTimePicker && (
