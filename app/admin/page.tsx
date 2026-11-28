@@ -2,7 +2,6 @@
 
 import './admin-global.css';
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { BarChart, StatusBars, singkat } from '@/components/Admin/Beranda/AdminCharts';
 import { HalamanPreview, OrbitPreview } from '@/components/Admin/Preview/SitePreview';
 import type { BranchMap } from '@/components/User/Reservation/ReservationSection';
@@ -1023,7 +1022,7 @@ export default function AdminPage() {
   const handleAddFaq = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFaq.pertanyaan.trim() || !newFaq.jawaban.trim()) {
-      alert('Pertanyaan dan jawaban wajib diisi.');
+      notify.warning('Pertanyaan dan jawaban wajib diisi.');
       return;
     }
     const sedangEdit = editFaqId !== null;
@@ -1035,13 +1034,12 @@ export default function AdminPage() {
         body: JSON.stringify(newFaq),
       });
       if (res.ok) {
-        alert(sedangEdit ? 'FAQ berhasil diperbarui!' : 'FAQ berhasil ditambahkan!');
         resetFormFaq();
-        notify.success('FAQ berhasil ditambahkan!');
+        notify.success(sedangEdit ? 'FAQ berhasil diperbarui!' : 'FAQ berhasil ditambahkan!');
         setNewFaq({ pertanyaan: '', jawaban: '' });
         loadFaq();
       } else {
-        alert('Gagal menyimpan FAQ');
+        notify.error('Gagal menyimpan FAQ');
       }
     } catch {
       notify.error('Gagal menambah FAQ');

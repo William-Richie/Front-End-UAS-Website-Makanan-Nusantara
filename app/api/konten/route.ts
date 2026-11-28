@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 // GET /api/konten - Mengambil teks dinamis web
 export async function GET() {
@@ -27,6 +28,8 @@ export async function GET() {
 
 // PUT /api/konten - Update teks dinamis web (untuk admin)
 export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { teks_hero, teks_about } = await req.json();
 

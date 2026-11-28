@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 // PUT /api/faq/[id]
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { id } = await params;
     const { pertanyaan, jawaban } = await req.json();
@@ -30,6 +33,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { id } = await params;
     await prisma.faq.delete({

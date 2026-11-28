@@ -542,7 +542,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
       />
 
       <ProfileModal
-        key={profileOpen ? 'buka' : 'tutup'}
         show={profileOpen}
         user={user}
         onClose={() => setProfileOpen(false)}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 // GET /api/faq - Mengambil daftar FAQ
 export async function GET() {
@@ -16,6 +17,8 @@ export async function GET() {
 
 // POST /api/faq - Menambah FAQ (untuk admin)
 export async function POST(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { pertanyaan, jawaban } = await req.json();
     const newFaq = await prisma.faq.create({

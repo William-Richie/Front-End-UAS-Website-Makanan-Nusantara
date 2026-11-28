@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 // POST /api/faq/pertanyaan - Pengguna yang sudah login mengirim pertanyaan; jawabannya masuk ke Mail akun tersebut
 export async function POST(req: NextRequest) {
+  const auth = await wajibSesi(req, ['user']);
+  if (auth.error) return auth.error;
+
   try {
-    const { pertanyaan, user_id } = await req.json();
+    const { pertanyaan } = await req.json();
 
     // hanya pengguna yang sudah login yang boleh bertanya
-    const user = user_id ? await prisma.user.findUnique({ where: { id: String(user_id) } }) : null;
+    const user = await prisma.user.findUnique({ where: { id: auth.sesi.id } });
     if (!user) {
       return NextResponse.json({ error: 'Silakan login terlebih dahulu untuk mengirim pertanyaan.' }, { status: 401 });
     }
@@ -37,7 +41,10 @@ export async function POST(req: NextRequest) {
 }
 
 // GET /api/faq/pertanyaan - Mengambil daftar pertanyaan dari user (untuk admin)
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
+
   try {
     const list = await prisma.faqPertanyaan.findMany({
       orderBy: { created_at: 'desc' },

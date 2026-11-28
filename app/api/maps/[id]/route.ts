@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 // PUT /api/maps/[id] - Mengedit cabang
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { id } = await params;
     const body = await req.json();
@@ -39,6 +42,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const { id } = await params;
     await prisma.map.delete({ where: { id: parseInt(id, 10) } });

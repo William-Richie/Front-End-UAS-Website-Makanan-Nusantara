@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 // GET /api/maps
 export async function GET() {
@@ -16,6 +17,8 @@ export async function GET() {
 
 // POST /api/maps
 export async function POST(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const body = await req.json();
     const { nama, alamat, latitude, longitude } = body;

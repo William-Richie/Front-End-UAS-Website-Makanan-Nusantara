@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { ORBIT_DEFAULT, rapikanOrbit } from '@/lib/orbit';
+import { wajibSesi } from '@/lib/auth';
 
 // GET /api/orbit - Mengambil pengaturan tampilan orbit favorit
 export async function GET() {
@@ -16,6 +17,8 @@ export async function GET() {
 
 // PUT /api/orbit - Simpan pengaturan tampilan orbit
 export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const body = await req.json();
     const setting = rapikanOrbit(body);

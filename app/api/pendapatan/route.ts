@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 export interface RingkasanPendapatan {
   total: number;
@@ -34,6 +35,9 @@ const jamWib = (d: Date) =>
   Number(new Intl.DateTimeFormat('en-GB', { timeZone: WIB, hour: '2-digit', hourCycle: 'h23' }).format(d));
 
 export async function GET(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
+
   try {
     const { searchParams } = new URL(req.url);
     const range = searchParams.get('range') || '7';

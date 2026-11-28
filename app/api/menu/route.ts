@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 // GET /api/menu - Mengambil semua menu
 export async function GET() {
@@ -16,6 +17,8 @@ export async function GET() {
 
 // POST /api/menu - Menambah menu baru
 export async function POST(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const body = await req.json();
     const { nama_kategori, nama_makanan, harga, gambar, status, deskripsi, pedas } = body;
