@@ -397,9 +397,7 @@ export default function ReservationSection({
               />
             </Form.Group>
 
-            {/* Reservation Date, Time & Guests */}
             <Row className="g-3 mb-3">
-              {/* date */}
               <Col xs={12} md={6}>
                 <Form.Group>
                   <Form.Label className="fw-bold">Reservation Date</Form.Label>
@@ -521,7 +519,6 @@ export default function ReservationSection({
               </Col>
             </Row>
 
-            {/* Tab pilih waktu */}
             {showTimePicker && (
               <div
                 className={styles.guestOverlay}
@@ -534,7 +531,6 @@ export default function ReservationSection({
                   aria-label="Select reservation time"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Close Button */}
                   <button
                     type="button"
                     className={styles.guestClose}
@@ -544,13 +540,11 @@ export default function ReservationSection({
                     &times;
                   </button>
 
-                  {/* Header */}
                   <div className={styles.guestHeader}>
                     <span>Time</span>
                     <span>All times</span>
                   </div>
 
-                  {/* Time Options */}
                   <div className={styles.guestList}>
                     {JAM_RESERVASI.map((time) => (
                       <button
@@ -604,7 +598,6 @@ export default function ReservationSection({
         </Container>
       )}
 
-      {/* Reservation Confirmation*/}
       {showConfirm && user && tipe && mejaTerpilih && (
         <div role="presentation" className={styles.guestOverlay}
              onClick={() => !submitting && setShowConfirm(false)}>
@@ -663,7 +656,6 @@ export default function ReservationSection({
         </div>
       )}
 
-      {/* Memperlihatkan aturan reservasi*/}
       {showRules && (
         <div role="presentation" onClick={() => setShowRules(false)} className={styles.RulesOver}>
           <div

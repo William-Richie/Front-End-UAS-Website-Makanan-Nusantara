@@ -465,7 +465,7 @@
 .admin-main .stat-green { color: #3d9a5f; }
 .admin-main .stat-terra { color: #b5523f; }
 
-/* PREVIEW KONTEN & FOOTER (komponen asli user, diperkecil) */
+/* PREVIEW KONTEN & FOOTER */
 .admin-main .site-preview {
     position: relative;
     overflow: hidden;
@@ -491,7 +491,7 @@
     font-size: .9rem;
 }
 .admin-main .preview-bar .badge { background: #3d9a5f; }
-/* Kelola Reservasi*/
+
 .admin-main .reservation-toolbar { 
     display: flex; 
     flex-direction: column; 
@@ -724,7 +724,6 @@ padding: 8px 0;
     background: #f8f4f0; 
 }
 
-/* Kelola Reservasi konfirmasi */
 .confirm-backdrop { 
     position: fixed; 
     inset: 0; 
@@ -934,7 +933,6 @@ padding: 8px 0;
   min-width: 32px;
 }
 
-/* Layout tampilan laptop */
 .orbit-layout {
     width: 100%;
     min-width: 0;

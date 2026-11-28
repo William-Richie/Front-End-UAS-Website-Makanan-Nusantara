@@ -312,8 +312,6 @@ main {
     }
 }
  
-/* TOAST — posisi dasar (override tablet/desktop ada di bawah) */
- 
 .toast-container {
     top: 15px;
     left: 50%;
@@ -348,7 +346,6 @@ main {
         right: 25px;
     }
 }
-/* TOAST / NOTIFIKASI — dipakai page-level (callback onSuccess / onNotification / onSuccessNotification dari komponen) */
  
 .custom-papeda-toast {
     width: 100%;
@@ -412,7 +409,6 @@ main {
     }
 }
  
-/* ===== BANNER SECTION (MENU & RESERVATION) ===== */
 .sec-hero {
     position: relative;
     z-index: 2;
@@ -674,12 +670,10 @@ main.p-4 {
     margin-bottom: 6px;
 }
  
-/* TAB UNTUK KELOLA MENU */
 .btn .btn-secondary {
     width: 100px;
 }
  
-/* BUTTON */
 .btn-success,
 .btn-primary {
     background-color: var(--color-primary-brown) !important;
@@ -754,7 +748,6 @@ main {
     animation: alReveal .6s ease both;
 }
  
-/* MENU */
 .text-papeda {
     color: var(--color-brown-base);
 }
@@ -823,16 +816,6 @@ main {
         opacity: 0;
     }
 }
- 
-/* ============================================================
-   SHARED — komponen publik yang dipakai lebih dari satu section
-   (dulu diduplikasi di tiap *.module.css)
-   .loc-chips  : chip di banner (Faq, Menu, Location, Reservation, MyReservation)
-   .sec-kicker : label kecil di atas judul (Faq, Location)
-   .mc-orn     : pembatas ornamen daun (Faq, Menu)
-   .gate-icon  : lingkaran ikon (AuthModal, ProfileModal, Reservation)
-   .form-alert : kotak pesan error form (AuthModal, ProfileModal)
-   ============================================================ */
  
 .loc-chips {
   list-style: none;
@@ -919,12 +902,6 @@ main {
     animation: none;
   }
 }
- 
-/* ============================================================
-   REVIEW — rule publik yang class/id-nya tidak ditemukan di 15 komponen yang di-upload.
-   Kemungkinan sisa lama atau dipakai komponen lain yang belum di-upload.
-   Cek dulu sebelum dihapus.
-   ============================================================ */
  
 @media (prefers-reduced-motion: reduce) {
 .branch-card {

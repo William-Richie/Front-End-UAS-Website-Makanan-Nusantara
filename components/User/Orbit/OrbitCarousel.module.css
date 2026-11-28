@@ -125,14 +125,12 @@
   100% { opacity: 0; }
 }
 
-/* ===== Bentuk frame (diatur dari admin) ===== */
 .bentukLingkaran .orbitItem { border-radius: 50%; }
 .bentukRounded .orbitItem   { border-radius: 26%; }
 .bentukKotak .orbitItem     { border-radius: 6px; }
 .bentukDaun .orbitItem      { border-radius: 50% 4% 50% 4%; }
 .bentukTelur .orbitItem     { border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; }
 
-/* ===== Gerakan: berputar halus (tanpa jeda) ===== */
 .gerakHalus .orbitPath {
   animation-name: orbitSpinHalus;
   animation-timing-function: linear;
@@ -143,12 +141,10 @@
   animation-timing-function: linear;
 }
 
-/* deskripsi digeser supaya muncul tepat saat menunya lewat di depan */
 .gerakHalus .descItem {
   animation-delay: calc(var(--k) * var(--dur, 20s) / 5 - var(--dur, 20s) * 0.085);
 }
 
-/* ===== Gerakan: diam ===== */
 .gerakDiam .orbitPath,
 .gerakDiam .orbitItem,
 .gerakDiam .descItem {

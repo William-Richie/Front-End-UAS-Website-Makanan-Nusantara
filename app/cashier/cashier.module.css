@@ -29,7 +29,6 @@
   --teks: #266e43;
 }
 
-/* header */
 .header {
   display: flex;
   align-items: center;
@@ -1343,7 +1342,6 @@
   }
 }
 
-/* login */
 .loginWrap {
   min-height: 100vh;
   min-height: 100dvh;

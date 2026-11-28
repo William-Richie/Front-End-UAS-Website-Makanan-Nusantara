@@ -19,7 +19,7 @@ const ITEMS = [
 ];
 
 const MAX_WAIT_MS = 4000;
-const EXIT_MS = 1250; // harus >= durasi animasi keluar di CSS
+const EXIT_MS = 1250;
 
 export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
   const [visible, setVisible] = useState(true);
@@ -67,12 +67,10 @@ export default function IntroOverlay({ onEnter }: IntroOverlayProps) {
     sessionStorage.setItem('hasEntered', 'true');
     setLeaving(true);
 
-    // konten di belakang mulai muncul saat tirai intro naik
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('papeda:reveal'));
     }, 650);
 
-    // lepas overlay setelah animasi keluar selesai
     setTimeout(() => {
       setVisible(false);
       onEnter();

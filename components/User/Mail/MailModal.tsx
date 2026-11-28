@@ -15,7 +15,6 @@ export interface MailItem {
 interface MailModalProps {
   show: boolean;
   items: MailItem[];
-  /** id pesan yang baru saat Mail dibuka (untuk label "Baru") */
   baruIds: number[];
   onClose: () => void;
 }

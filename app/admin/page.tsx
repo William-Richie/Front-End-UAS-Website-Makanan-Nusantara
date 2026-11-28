@@ -135,7 +135,6 @@ const cocokSearchUser = (user: UserItem, index: number, keyword: string): boolea
 
 const adminFetch = (url: string, opts: RequestInit = {}) => fetch(url, opts);
 
-// Menu di halaman Kelola: tiap tombol punya bagian di preview yang ikut digulir
 const KATEGORI_DEFAULT = ['MAIN COURSE'];
 
 const KELOLA_MENU = [
@@ -154,7 +153,6 @@ const RESERVASI_MENU = [
 
 type ReservasiMenuKey = (typeof RESERVASI_MENU)[number]['key'];
 
-// Tab di halaman Kelola Menu Favorit
 const ORBIT_TAB = [
   { key: 'menu', label: 'Menu', icon: 'fa-utensils' },
   { key: 'gerak', label: 'Gerakan', icon: 'fa-rotate' },
@@ -226,14 +224,10 @@ export interface PendapatanSummary {
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-
-  // Tab State
   const [activeTab, setActiveTab] = useState<
     'statistik' | 'menu' | 'favorit' | 'konten' | 'reservasi' | 'kasir'
   >('statistik');
   const [berandaView, setBerandaView] = useState<'ringkasan' | 'pendapatan' | 'pertanyaan'>('ringkasan');
-
-  // Typed Data States
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [pesananList, setPesananList] = useState<PesananItem[]>([]);
   const [faqList, setFaqList] = useState<FaqItem[]>([]);
@@ -262,7 +256,6 @@ export default function AdminPage() {
     link_linkedin: '',
   });
 
-  // Konten Web State (Dengan Live Preview)
   const [kontenWeb, setKontenWeb] = useState<KontenWebData>({
     hero_eyebrow: 'Cita Rasa Timur Indonesia',
     teks_hero: 'Welcome to Our\nPapeda Restaurant',
@@ -278,7 +271,6 @@ export default function AdminPage() {
     card3_desc: 'Suasana hangat ala rumah, cocok untuk keluarga.',
   });
 
-  // Reservasi & User (port dari Node.js)
   const [reservasiAdmin, setReservasiAdmin] = useState<ReservasiItem[]>([]);
   const [usersList, setUsersList] = useState<UserItem[]>([]);
   const [reservasiTab, setReservasiTab] = useState<ReservasiTabKey>('user');
@@ -320,7 +312,6 @@ export default function AdminPage() {
     setHalaman(1);
   };
 
-  // Form Tambah Menu State
   const [kategoriBaru, setKategoriBaru] = useState(false);
 
   const daftarKategori = Array.from(
@@ -366,7 +357,6 @@ export default function AdminPage() {
       return urutMenu === 'terbaru' ? b.id - a.id : a.id - b.id;
     });
 
-  // Meja (menggantikan pengaturan ruangan lama)
   const [mejaList, setMejaList] = useState<MejaItem[]>([]);
   const [muatUlang, setMuatUlang] = useState(0);
 
@@ -414,10 +404,7 @@ export default function AdminPage() {
     setMuatUlang((v) => v + 1);
   };
 
-  // id menu yang sedang diedit (null = form dipakai untuk menambah menu baru)
   const [editMenuId, setEditMenuId] = useState<number | null>(null);
-
-  // Form FAQ
   const [newFaq, setNewFaq] = useState<{ pertanyaan: string; jawaban: string }>({
     pertanyaan: '',
     jawaban: '',
@@ -425,7 +412,6 @@ export default function AdminPage() {
 
   const [editFaqId, setEditFaqId] = useState<number | null>(null);
 
-  // Cek sesi login admin
   useEffect(() => {
     fetch('/api/auth/session', { cache: 'no-store' })
       .then((r) => r.json())
@@ -443,7 +429,6 @@ export default function AdminPage() {
       });
   }, []);
 
-  // Reload sebagian data saja, supaya isian form yang belum disimpan tidak ikut ter-reset
   const loadFavorit = () => {
     ambilDaftar<FavoritSlot>('/api/favorit?sumber=manual').then(setFavoritList);
     ambilDaftar<FavoritSlot>('/api/favorit?sumber=terlaris').then(setFavoritTerlaris);
@@ -713,7 +698,6 @@ export default function AdminPage() {
     window.location.replace('/');
   };
 
-  // Menu Handlers
   const handleAddMenu = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notify.validateForm(e.currentTarget)) return;
@@ -769,7 +753,6 @@ export default function AdminPage() {
     });
   };
 
-  // isi form dengan data menu yang dipilih, lalu gulir ke form
   const handleEditMenu = (m: MenuItem) => {
     setEditMenuId(m.id);
     setKategoriBaru(false);
@@ -815,10 +798,8 @@ export default function AdminPage() {
     }
   };
 
-  // Kelola Favorit Slot (1 - 5)
   const handleSaveFavorit = async (slot: number, menuId: number) => {
     if (!menuId) return;
-    // Satu menu hanya boleh dipakai di satu slot
     if (menuId && favoritList.some((f) => f.slot !== slot && f.menu_id === menuId)) {
       notify.warning('Menu ini sudah dipakai di slot lain. Pilih menu yang berbeda.');
       return;
@@ -864,7 +845,6 @@ export default function AdminPage() {
     }
   };
 
-  // Simpan Konten Web
   const handleSaveKonten = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -881,7 +861,6 @@ export default function AdminPage() {
     }
   };
 
-  // Kelola Footer
   const handleSaveFooter = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -898,7 +877,6 @@ export default function AdminPage() {
     }
   };
 
-  // Tampilan orbit favorit
   const ubahOrbit = (perubahan: Partial<OrbitSetting>) =>
     setOrbitSetting((prev) => ({ ...prev, ...perubahan }));
 
@@ -921,7 +899,6 @@ export default function AdminPage() {
     }
   };
 
-  // Ubah data slot (dari admin) jadi bentuk yang dibaca komponen orbit user
   const keItemOrbit = (daftar: FavoritSlot[]): FavoriteItem[] =>
     [...daftar]
       .sort((a, b) => a.slot - b.slot)
@@ -938,7 +915,6 @@ export default function AdminPage() {
         };
       });
 
-  // Cabang (Lokasi)
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notify.validateForm(e.currentTarget)) return;
@@ -1007,7 +983,6 @@ export default function AdminPage() {
     loadBranches();
   };
 
-  // FAQ Handlers
   const resetFormFaq = () => {
     setEditFaqId(null);
     setNewFaq({ pertanyaan: '', jawaban: '' });
@@ -1059,7 +1034,6 @@ export default function AdminPage() {
     loadFaq();
   };
 
-  // Pertanyaan Masuk: jawaban dikirim ke Mail pengguna, atau pertanyaan ditandai sudah dibaca
   const kirimPembaruanPertanyaan = async (
     id: number,
     body: { jawaban: string } | { dibaca: true },
@@ -1092,7 +1066,6 @@ export default function AdminPage() {
   const handleTandaiDibaca = (id: number) =>
     kirimPembaruanPertanyaan(id, { dibaca: true }, null, 'Gagal menandai pertanyaan.');
 
-  // Data grafik beranda
   const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
   const tglLokal = (d: Date) => d.toLocaleDateString('en-CA');
 
@@ -1151,7 +1124,6 @@ export default function AdminPage() {
 
   return (
     <div className="admin-layout d-flex">
-      {/* Sidebar */}
       <aside className="admin-sidebar sidebar text-white p-3 d-flex flex-column shadow-sm">
         <h2 className="text-center mb-4 fs-4 fw-bold mt-2">
           Admin Papeda
@@ -1229,9 +1201,7 @@ export default function AdminPage() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="admin-main flex-grow-1 p-4 overflow-auto">
-        {/* TAB 1: BERANDA */}
         {activeTab === 'statistik' && (
           <div>
             {berandaView === 'ringkasan' && (
@@ -1264,7 +1234,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Kartu ringkasan: Pendapatan & Pertanyaan Masuk */}
                 <div className="row g-3 mb-4">
                   <div className="col-lg-7">
                     <div className="card shadow-sm border-0 p-4 h-100 d-flex flex-column">
@@ -1360,7 +1329,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Grafik */}
                 <div className="row g-3 mb-3">
                   <div className="col-lg-7">
                     <div className="card chart-card shadow-sm border-0 p-4 h-100">
@@ -1403,7 +1371,6 @@ export default function AdminPage() {
               </>
             )}
 
-            {/* Detail: Laporan Pendapatan */}
             {berandaView === 'pendapatan' && (
               <div>
                 <button
@@ -1535,7 +1502,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Detail: Pertanyaan Masuk */}
             {berandaView === 'pertanyaan' && (
               <div>
                 <button
@@ -1555,7 +1521,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 2: MENU */}
         {activeTab === 'menu' && (
           <div>
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -1791,7 +1756,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 3: FAVORIT (pilih menu + atur tampilan orbit) */}
         {activeTab === 'favorit' && (
           <div>
             <h1 className="fs-3 fw-bold mb-2">Kelola Menu Favorit (Chef&apos;s Recommendation)</h1>
@@ -1816,7 +1780,6 @@ export default function AdminPage() {
                 </div>
 
                 <div className="card shadow-sm border-0 p-4 mb-3">
-                  {/* Menu */}
                   {orbitTab === 'menu' && (
                     <>
                       <label className="form-label small fw-bold">Sumber Menu</label>
@@ -1931,7 +1894,6 @@ export default function AdminPage() {
                     </>
                   )}
 
-                  {/* Bentuk & Warna */}
                   {orbitTab === 'bentuk' && (
                     <>
                       <label className="form-label small fw-bold">Bentuk Frame</label>
@@ -1970,7 +1932,6 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                {/* Tombol simpan selalu terlihat, apa pun tab-nya */}
                 {orbitBerubah && (
                   <div className="small mb-2" style={{ color: '#c9622a' }}>
                     <i className="fa-solid fa-circle-exclamation me-1"></i>
@@ -1998,7 +1959,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Visual Preview Menu Favorit */}
               <div className="col-lg-7 orbit-preview-column">
                 <div className="card shadow-sm border-0 overflow-hidden sticky-top" style={{ top: '20px' }}>
                   <div className="preview-bar">
@@ -2015,7 +1975,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 4: KELOLA (Home, About, FAQ, Lokasi, Footer + preview satu halaman) */}
         {activeTab === 'konten' && (
           <div>
             <h1 className="fs-3 fw-bold mb-3">Kelola Halaman Utama</h1>
@@ -2040,7 +1999,6 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                {/* Home & About */}
                 {kelolaTab === 'home' && (
                   <div className="card shadow-sm border-0 p-4">
                     <form onSubmit={handleSaveKonten}>
@@ -2074,7 +2032,6 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* FAQ */}
                 {kelolaTab === 'faq' && (
                   <>
                     <div id="form-faq" className="card shadow-sm border-0 p-4 mb-4">
@@ -2147,7 +2104,6 @@ export default function AdminPage() {
                   </>
                 )}
 
-                {/* Lokasi */}
                 {kelolaTab === 'lokasi' && (
                   <>
                     <div id="form-cabang" className="card shadow-sm border-0 p-4 mb-4">
@@ -2252,7 +2208,6 @@ export default function AdminPage() {
                   </>
                 )}
 
-                {/* Footer */}
                 {kelolaTab === 'footer' && (
                   <div className="card shadow-sm border-0 p-4">
                     <form onSubmit={handleSaveFooter}>
@@ -2294,7 +2249,6 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {/* Preview satu halaman: Home > About > FAQ > Lokasi > Footer */}
               <div className="col-xl-7">
                 <div className="card shadow-sm border-0 overflow-hidden sticky-top" style={{ top: '20px' }}>
                   <div className="preview-bar">
@@ -2316,7 +2270,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* TAB 5: ORDER & RESERVASI  */}
         {activeTab === 'reservasi' && (
           <div>
             <h1 className="fs-3 fw-bold mb-3">Order & Ruangan</h1>
@@ -2337,7 +2290,6 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Order: ringkasan 2 kotak */}
             {reservasiMenu === 'order' && orderView === 'ringkasan' && (
               <div className="row g-3 mb-4">
                 <div className="col-lg-6">
@@ -2415,7 +2367,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Order: detail Pantau Pesanan */}
             {reservasiMenu === 'order' && orderView === 'pesanan' && (
               <div>
                 <button
@@ -2429,7 +2380,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Tab Reservasi */}
             {reservasiMenu === 'order' && orderView === 'reservasi' && (
               <div className="card shadow-sm border-0 p-4 mb-4">
                 <button
@@ -2523,7 +2473,6 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Users reservasi*/}
                 {reservasiTab === 'user' && (
                   <div>
                     {selectedUsers.length > 0 && (
@@ -2649,7 +2598,6 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* TAB RESERVASI PENDING DLL */}
                 {reservasiTab !== 'user' && (
                   <>
                   <div className="table-responsive">
@@ -2751,7 +2699,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/*  Tab Ruangan Reservasi */}
             {reservasiMenu === 'ruangan' && (
               <div className="card shadow-sm border-0 p-4 mb-4">
                 <div className="row g-2 mb-3">
@@ -2822,7 +2769,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* RESERVASI KONFIRMASI */}
             {confirmState && (
               <div className="confirm-backdrop" onClick={() => setConfirmState(null)}>
                 <div className="custom-confirm-modal" onClick={(e) => e.stopPropagation()}>
@@ -2853,7 +2799,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* AKUN KASIR */}
         {activeTab === 'kasir' && <KelolaAkunKasir branches={branches} />}
       </main>
     </div>

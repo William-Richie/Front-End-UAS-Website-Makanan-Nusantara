@@ -54,7 +54,6 @@ interface KontenFooterData {
 
 interface SiteContextValue {
   user: UserData | null;
-  /** true setelah localStorage selesai dibaca (supaya halaman tidak "berkedip" sebagai belum login) */
   userReady: boolean;
   menus: MenuItem[];
   favorites: FavoriteItem[];
@@ -68,7 +67,6 @@ interface SiteContextValue {
   showToast: (msg: string) => void;
   openAuth: (tab: 'login' | 'register') => void;
   addToCart: (menu: MenuItem, qty?: number) => void;
-  /** buka lagi pesanan yang menunggu pembayaran (lanjut bayar / lihat nomor pesanan) */
   openOrder: (orderId: number) => void;
 }
 
@@ -84,7 +82,6 @@ const CART_KEY = 'papeda_cart';
 const MAX_QTY_PER_ITEM = 99;
 
 export default function SiteProvider({ children }: { children: ReactNode }) {
-  // State User Auth
   const [user, setUser] = useState<UserData | null>(null);
   const [userReady, setUserReady] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
@@ -92,12 +89,10 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   const [authKey, setAuthKey] = useState(0);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // Mail: jawaban admin untuk pertanyaan FAQ milik pengguna yang login
   const [mails, setMails] = useState<MailItem[]>([]);
   const [mailOpen, setMailOpen] = useState(false);
   const [mailBaruIds, setMailBaruIds] = useState<number[]>([]);
 
-  // State Data Database
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [orbitSetting, setOrbitSetting] = useState<OrbitSetting>(ORBIT_DEFAULT);
@@ -106,17 +101,15 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   const [kontenWeb, setKontenWeb] = useState<KontenWebData | null>(null);
   const [kontenFooter, setKontenFooter] = useState<KontenFooterData | null>(null);
 
-  // State Cart & Checkout
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const cartHydrated = useRef(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
-  const [pendingOrderIds, setPendingOrderIds] = useState<number[]>([]); // pesanan yang menunggu pembayaran (bisa lebih dari satu)
+  const [pendingOrderIds, setPendingOrderIds] = useState<number[]>([]); 
   const router = useRouter();
-  const [resumeOrderId, setResumeOrderId] = useState<number | null>(null); // pesanan yang sedang dibuka lagi di modal
+  const [resumeOrderId, setResumeOrderId] = useState<number | null>(null);
   const pathname = usePathname();
   const isMenuPage = !!pathname && (pathname === '/menu' || pathname.startsWith('/menu/'));
 
-  // Toast Notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => {
@@ -134,7 +127,7 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('papeda_user');
         }
       }
-      // Verifikasi sesi cookie ke server
+
       fetch('/api/auth/session')
         .then((res) => res.json())
         .then((data) => {
@@ -151,7 +144,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           setUserReady(true);
         });
 
-      // Cek apakah ada redirect dari middleware (misal akses /admin atau /cashier tanpa izin)
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         if (params.get('auth') === 'login') {
@@ -161,7 +153,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           if (pesan) {
             showToast(pesan);
           }
-          // Segera bersihkan query params dari URL address bar agar tidak tersangkut
           window.history.replaceState({}, '', window.location.pathname);
         }
       }
@@ -202,7 +193,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     }
   }, [cartItems]);
 
-  // Data diambil SEKALI di sini, jadi pindah halaman tidak fetch ulang
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -241,7 +231,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
           .then((d) => setBranches(d.data || []))
           .catch(() => { });
 
-        // Statistik pengunjung
         fetch('/api/pengunjung', { method: 'POST' }).catch(() => { });
       } catch (err) {
         console.error('Gagal mengambil data:', err);
@@ -254,7 +243,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     document.body.classList.toggle('logged-in', !!user);
   }, [user]);
 
-  // Muat Mail saat login, lalu cek lagi tiap 60 detik supaya jawaban baru muncul tanpa refresh
   const userId = user?.id;
   useEffect(() => {
     if (!userId) return;
@@ -300,7 +288,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     });
   }, [cartItems, menus]);
 
-  // Cart Handlers
   const addToCart = useCallback(
     (menu: MenuItem, qty = 1) => {
       setCartItems((prev) => {
@@ -335,7 +322,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     [cartItems]
   );
 
-  // set jumlah langsung (tanpa toast). 0 = hapus dari keranjang
   const setCartQty = useCallback((menu: MenuItem, qty: number) => {
     const next = Math.min(MAX_QTY_PER_ITEM, Math.max(0, Math.floor(qty)));
     setCartItems((prev) => {
@@ -423,7 +409,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
     setPendingOrderIds([]);
     setUser(null);
     setMails([]);
-    // Bersihkan URL address bar jika ada parameter tersisa
     if (typeof window !== 'undefined' && window.location.search) {
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -451,8 +436,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
   return (
     <SiteContext.Provider value={value}>
       <IntroOverlay onEnter={() => { }} />
-
-      {/* flex column + min-vh-100 supaya footer tetap di bawah walau halamannya pendek */}
       <div className="d-flex flex-column min-vh-100">
         <Navbar
           user={user}
@@ -468,7 +451,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
         <Footer data={kontenFooter} />
       </div>
 
-      {/* Floating Actions */}
       <CartFloating
         showCart={isMenuPage}
         items={cartView}
@@ -483,7 +465,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
         }}
       />
 
-      {/* Pesanan yang masih menunggu pembayaran (satu atau lebih) */}
       {user && pendingOrderIds.length > 0 && !checkoutModalOpen && (
         <button
           type="button"
@@ -515,7 +496,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
         </button>
       )}
 
-      {/* Modals */}
       <CheckoutModal
         show={checkoutModalOpen}
         cartItems={cartView}
@@ -562,7 +542,6 @@ export default function SiteProvider({ children }: { children: ReactNode }) {
         }}
       />
 
-      {/* Papeda Toast Notification */}
       {toastMessage && (
         <div
           className="position-fixed bottom-0 start-50 translate-middle-x mb-4 p-3 bg-dark text-white rounded shadow-lg d-flex align-items-center gap-2"

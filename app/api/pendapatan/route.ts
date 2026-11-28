@@ -27,8 +27,6 @@ export interface LaporanHari {
   pendapatan: number;
 }
 
-// Semua perhitungan hari memakai waktu Jakarta (WIB), bukan zona waktu server, supaya total
-// dan rincian harian selalu sama (server di Vercel memakai UTC, laptop memakai WIB).
 const WIB = 'Asia/Jakarta';
 const kunciWib = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: WIB });
 const jamWib = (d: Date) =>
@@ -44,7 +42,6 @@ export async function GET(req: NextRequest) {
 
     const n = range === 'hari' ? 1 : range === '30' ? 30 : 7;
 
-    // n hari terakhir (hari ini termasuk), diurutkan dari yang paling lama
     const kunciHari = Array.from({ length: n }, (_, k) => kunciWib(new Date(Date.now() - (n - 1 - k) * 86400000)));
     const startDate = new Date(`${kunciHari[0]}T00:00:00+07:00`);
 
@@ -87,7 +84,6 @@ export async function GET(req: NextRequest) {
 
     rows.forEach((r) => {
       const t = kunciWib(r.created_at);
-      // di luar rentang yang ditampilkan tidak dihitung, sehingga total = jumlah rincian harian
       if (!perHari[t]) return;
       const nilai = Number(r.total) || 0;
 

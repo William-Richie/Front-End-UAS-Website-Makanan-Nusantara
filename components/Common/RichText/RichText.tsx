@@ -1,6 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
 
-// **tebal**  *miring*  __garis bawah__
 const POLA = /\*\*([\s\S]+?)\*\*|__([\s\S]+?)__|\/([\s\S]+?)\//;
 
 export function parseRich(teks: string, prefix = 'r'): ReactNode[] {
@@ -35,7 +34,6 @@ export default function RichText({ teks, className }: { teks?: string | null; cl
   );
 }
 
-// Untuk email jawaban FAQ (dipakai di backend/API yang kirim mail)
 export function richKeHtml(teks: string): string {
   const aman = teks
     .replace(/&/g, '&amp;')

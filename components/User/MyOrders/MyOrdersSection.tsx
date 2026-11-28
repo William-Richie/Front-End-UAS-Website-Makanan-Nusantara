@@ -217,7 +217,6 @@ export default function MyOrdersSection({ onNotification, onResume }: MyOrdersSe
         )}
       </div>
 
-      {/* Pop up rincian pesanan */}
       <Modal
         show={!!terpilih}
         onHide={() => setTerpilihId(null)}

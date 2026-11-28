@@ -9,8 +9,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const { pertanyaan } = await req.json();
-
-    // hanya pengguna yang sudah login yang boleh bertanya
     const user = await prisma.user.findUnique({ where: { id: auth.sesi.id } });
     if (!user) {
       return NextResponse.json({ error: 'Silakan login terlebih dahulu untuk mengirim pertanyaan.' }, { status: 401 });

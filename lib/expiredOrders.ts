@@ -4,8 +4,6 @@ import {
   BATAS_BAYAR_KASIR_DETIK,
 } from "@/lib/paymentTimeout";
 
-// Batas bayar sesuai metode: e-wallet 10 menit, bayar di kasir 20 menit.
-// COD tidak dihitung karena memang dibayar saat pesanan tiba
 function batasBayarDetik(d: Record<string, unknown> | null): number | null {
   if (!d) return null;
   const metodeBayar = String(d.metode_bayar || "");

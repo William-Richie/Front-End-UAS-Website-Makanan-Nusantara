@@ -63,7 +63,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Status tidak valid.' }, { status: 400 });
     }
 
-    // Batalkan dulu kalau sudah lewat batas bayar, supaya pesanan kadaluarsa tidak bisa diproses
     await batalkanEwalletKadaluarsa(pesananId);
     const current = await prisma.pesanan.findUnique({ where: { id: pesananId } });
     if (!current) return NextResponse.json({ error: 'Pesanan tidak ditemukan.' }, { status: 404 });
