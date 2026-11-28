@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 // PUT /api/faq/pertanyaan/[id] - Admin mengelola pertanyaan masuk
 //   { dibaca: true }    -> tandai pertanyaan sudah dibaca
@@ -8,6 +9,9 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
+
   try {
     const { id } = await params;
     const pertanyaanId = parseInt(id, 10);

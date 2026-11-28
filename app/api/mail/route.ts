@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
-// GET /api/mail?user_id=... - Pesan (jawaban admin atas pertanyaan FAQ) untuk satu pengguna
+// GET /api/mail - Pesan (jawaban admin atas pertanyaan FAQ) untuk pengguna yang login
 export async function GET(req: NextRequest) {
-  try {
-    const userId = new URL(req.url).searchParams.get('user_id');
-    if (!userId) {
-      return NextResponse.json({ data: [] });
-    }
+  const auth = await wajibSesi(req, ['user']);
+  if (auth.error) return auth.error;
 
+  try {
     const list = await prisma.faqPertanyaan.findMany({
-      where: { user_id: userId, kirim_mail: true, jawaban: { not: null } },
+      where: { user_id: auth.sesi.id, kirim_mail: true, jawaban: { not: null } },
       orderBy: { dijawab_at: 'desc' },
       select: { id: true, pertanyaan: true, jawaban: true, dijawab_at: true, dibaca_user: true },
     });
@@ -22,19 +21,19 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// PUT /api/mail - Tandai pesan sudah dibaca. body: { user_id, ids?: number[] } (tanpa ids = semua)
+// PUT /api/mail - Tandai pesan sudah dibaca. body: { ids?: number[] } (tanpa ids = semua)
 export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ['user']);
+  if (auth.error) return auth.error;
+
   try {
-    const { user_id, ids } = await req.json();
-    if (!user_id) {
-      return NextResponse.json({ error: 'user_id wajib diisi.' }, { status: 400 });
-    }
+    const { ids } = await req.json();
 
     const daftarId = Array.isArray(ids) ? ids.map(Number).filter((n) => Number.isInteger(n)) : null;
 
     const hasil = await prisma.faqPertanyaan.updateMany({
       where: {
-        user_id: String(user_id),
+        user_id: auth.sesi.id,
         kirim_mail: true,
         dibaca_user: false,
         ...(daftarId ? { id: { in: daftarId } } : {}),

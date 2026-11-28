@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hitungTerlaris } from '@/lib/terlaris';
+import { wajibSesi } from '@/lib/auth';
 
 // Favorit pilihan admin (tabel favorit, slot 1 - 5)
 async function ambilManual() {
@@ -52,6 +53,8 @@ export async function GET(req: NextRequest) {
 
 // PUT /api/favorit - Update slot favorit
 export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const body = await req.json();
     const items = body.data;

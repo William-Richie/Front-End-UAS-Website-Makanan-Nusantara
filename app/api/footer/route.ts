@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { wajibSesi } from '@/lib/auth';
 
 // GET /api/footer
 export async function GET() {
@@ -32,6 +33,8 @@ export async function GET() {
 
 // PUT /api/footer
 export async function PUT(req: NextRequest) {
+  const auth = await wajibSesi(req, ['admin']);
+  if (auth.error) return auth.error;
   try {
     const body = await req.json();
     const { judul, copyright, link_ig, link_wa, link_tiktok, email, link_linkedin } = body;

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Modal, Form, Button } from 'react-bootstrap';
 import { validateNama } from '@/lib/validation';
+import { useFocusReturn } from '@/hooks/useFocusReturn';
 import styles from './ProfileModal.module.css';
 
 interface ProfileUser {
@@ -20,10 +21,21 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ show, user, onClose, onSaved }: ProfileModalProps) {
+  const handleExited = useFocusReturn(show);
   const [nama, setNama] = useState(user?.nama ?? '');
   const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [prevShow, setPrevShow] = useState(show);
+
+  if (show !== prevShow) {
+    setPrevShow(show);
+    if (show) {
+      setNama(user?.nama ?? '');
+      setTouched(false);
+      setServerError('');
+    }
+  }
 
   useEffect(() => {
     if (!show) return;
@@ -31,12 +43,16 @@ export default function ProfileModal({ show, user, onClose, onSaved }: ProfileMo
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    // Kunci scroll body sudah diurus oleh react-bootstrap Modal. Mengaturnya lagi secara manual di sini
-    // bisa membuat body tetap overflow: hidden setelah modal ditutup (scroll hilang).
-    return () => window.removeEventListener('keydown', onKey);
+    const t = setTimeout(() => {
+      document.getElementById('profile-nama')?.focus({ preventScroll: true });
+    }, 250);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      clearTimeout(t);
+    };
   }, [show, onClose]);
 
-  if (!show || !user) return null;
+  if (!user) return null;
 
   const error = validateNama(nama);
   const berubah = nama.trim() !== user.nama;
@@ -81,6 +97,9 @@ export default function ProfileModal({ show, user, onClose, onSaved }: ProfileMo
       onHide={onClose} 
       centered 
       size="sm" 
+      autoFocus={false}
+      restoreFocus={false}
+      onExited={handleExited}
       backdrop="static" 
       contentClassName={`${styles.profileCard} border-0 position-relative`}
     >
@@ -118,7 +137,6 @@ export default function ProfileModal({ show, user, onClose, onSaved }: ProfileMo
           <Form.Control
             id="profile-nama"
             type="text"
-            autoFocus
             autoComplete="off"
             maxLength={32}
             placeholder="Contoh: Budi Santoso"

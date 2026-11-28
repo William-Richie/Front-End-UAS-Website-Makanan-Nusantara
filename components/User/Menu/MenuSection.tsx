@@ -53,13 +53,11 @@ function QtyStepper({
   min = 0,
   max,
   onChange,
-  className = '',
 }: {
   value: number;
-  min?: number,
+  min?: number;
   max: number;
   onChange: (n: number) => void;
-  className?: string;
 }) {
   const [draft, setDraft] = useState<string | null>(null); 
   const shown = draft ?? String(value);
